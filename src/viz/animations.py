@@ -169,6 +169,10 @@ def animasyon_kalp_koherant_vs_inkoherant(
 
     fig.write_html(output_path, include_plotlyjs="cdn")
     try:
+        try:
+            fig.update_layout(paper_bgcolor="white", plot_bgcolor="#f0f4f8", font=dict(color="#111111"))
+        except Exception:
+            pass
         fig.write_image(output_path.replace(".html", ".png"))
     except Exception:
         pass
@@ -316,6 +320,10 @@ def animasyon_halka_kolektif_em(
 
     fig.write_html(output_path, include_plotlyjs="cdn")
     try:
+        try:
+            fig.update_layout(paper_bgcolor="white", plot_bgcolor="#f0f4f8", font=dict(color="#111111"))
+        except Exception:
+            pass
         fig.write_image(output_path.replace(".html", ".png"))
     except Exception:
         pass
@@ -423,7 +431,7 @@ def kalp_em_gif(
         ax2.tick_params(colors="white")
         fig2.colorbar(im2, ax=ax2, label="|B| (pT)")
         plt.tight_layout()
-        fig2.savefig(png_path, dpi=150, bbox_inches="tight", facecolor="#0a0e17")
+        fig2.savefig(png_path, dpi=150, bbox_inches="tight", facecolor="white")
         plt.close(fig2)
         print(f"  PNG thumbnail: {png_path}")
         return output_path
@@ -515,7 +523,7 @@ def n_kisi_em_gif(
         ax2.scatter(konumlar[:, 0], konumlar[:, 1], c="cyan", s=60, zorder=5)
         ax2.set_title(f"BVT N={N} Halka — Son Kare (t={t_end:.0f}s)", color="white")
         plt.tight_layout()
-        fig2.savefig(png_path, dpi=150, bbox_inches="tight", facecolor="#0a0e17")
+        fig2.savefig(png_path, dpi=150, bbox_inches="tight", facecolor="white")
         plt.close(fig2)
         print(f"  PNG thumbnail: {png_path}")
         return output_path
@@ -523,6 +531,465 @@ def n_kisi_em_gif(
         plt.close(fig)
         print(f"  [HATA] GIF kaydedilemedi: {exc}")
         return None
+
+
+# ============================================================
+# 5. Ψ_SONSUZ ETKİLEŞİM ANİMASYONU
+# ============================================================
+
+def animasyon_psi_sonsuz_etkilesim(
+    n_frames: int = 50,
+    t_end: float = 30.0,
+    output_path: str = "output/animations/psi_sonsuz_etkilesim.html",
+) -> Optional[str]:
+    """
+    Ψ_Sonsuz (evrensel EM alan) ile kalp-beyin sisteminin etkileşim animasyonu.
+
+    3 panel:
+    - Sol: Overlap parametresi η(t) — kalp EM alanının Ψ_Sonsuz ile örtüşmesi
+    - Orta: Schumann harmonikleri (beş frekans) genlik zaman serisi
+    - Sağ: Domino kaskad enerji akışı (8 aşama)
+
+    dη/dt = g²_eff·η(1−η)/(g²_eff+γ²_eff) − γ_eff·η
+
+    Referans: BVT_Makale.docx, Bölüm 5 (Ψ_Sonsuz coupling).
+    """
+    if not PLOTLY_AVAILABLE:
+        print("[UYARI] Plotly yok — animasyon atlanıyor")
+        return None
+
+    from src.core.constants import (
+        G_EFF, GAMMA_K, SCHUMANN_FREQS_HZ, SCHUMANN_AMPLITUDES_PT,
+        E_SONSUZ, DOMINO_GAINS, DOMINO_TIMESCALES_S, C_THRESHOLD, BETA_GATE,
+    )
+
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+
+    t_arr = np.linspace(0, t_end, n_frames)
+    dt = t_arr[1] - t_arr[0]
+
+    # η(t): overlap dinamiği — Runge-Kutta 4
+    g2 = G_EFF ** 2
+    gam2 = GAMMA_K ** 2
+
+    def deta_dt(eta, t):
+        C = min(1.0, C_THRESHOLD + 0.65 * (1 - np.exp(-t / 5.0)))
+        fc = max(0.0, ((C - C_THRESHOLD) / (1 - C_THRESHOLD)) ** BETA_GATE) if C > C_THRESHOLD else 0.0
+        return g2 * fc * eta * (1 - eta) / (g2 + gam2) - GAMMA_K * eta
+
+    eta_arr = np.zeros(n_frames)
+    eta_arr[0] = 0.01
+    for i in range(1, n_frames):
+        e = eta_arr[i - 1]
+        k1 = deta_dt(e, t_arr[i - 1])
+        k2 = deta_dt(e + 0.5 * dt * k1, t_arr[i - 1] + 0.5 * dt)
+        k3 = deta_dt(e + 0.5 * dt * k2, t_arr[i - 1] + 0.5 * dt)
+        k4 = deta_dt(e + dt * k3, t_arr[i - 1] + dt)
+        eta_arr[i] = np.clip(e + dt * (k1 + 2 * k2 + 2 * k3 + k4) / 6, 0, 0.99)
+
+    # Schumann genlik modülasyonu — η arttıkça Schumann güçleniyor
+    sch_freqs = np.array(SCHUMANN_FREQS_HZ)
+    sch_amps = np.array(SCHUMANN_AMPLITUDES_PT)
+
+    # Domino kaskad enerji seviyeleri (8 aşama)
+    domino_labels = ["Kalp Dipol", "Vagal", "Talamus", "Korteks α",
+                     "Beyin EM", "Sch Faz Kilit", "Sch Mod Amplif", "η Geri besleme"]
+    domino_energies_log = [-16, -13, -11, -7, -10, -4, -3, -2]  # log10(J)
+
+    # Figür
+    fig = make_subplots(
+        rows=1, cols=3,
+        subplot_titles=[
+            "Ψ_Sonsuz Etkileşim: η(t)",
+            "Schumann Harmonikleri",
+            "Domino Kaskad Enerjisi",
+        ],
+        column_widths=[0.35, 0.35, 0.30],
+    )
+
+    # Panel 1 temeli — η(t) tam eğri (gri) + animasyonlu nokta
+    fig.add_trace(
+        go.Scatter(x=t_arr, y=eta_arr, mode="lines",
+                   line=dict(color="rgba(100,100,100,0.3)", width=1),
+                   showlegend=False, name="η_tam"),
+        row=1, col=1,
+    )
+    fig.add_trace(
+        go.Scatter(x=[t_arr[0]], y=[eta_arr[0]], mode="lines+markers",
+                   line=dict(color="#00d4ff", width=2),
+                   marker=dict(color="#ff6b35", size=10),
+                   name="η(t) — overlap", showlegend=True),
+        row=1, col=1,
+    )
+
+    # Panel 2 temeli — Schumann harmonikleri
+    colors_sch = ["#ff4444", "#ff8800", "#ffdd00", "#44ff44", "#4488ff"]
+    for si, (freq, amp, col) in enumerate(zip(sch_freqs, sch_amps, colors_sch)):
+        fig.add_trace(
+            go.Scatter(x=[t_arr[0]], y=[amp * (1 + eta_arr[0] * 2.0)],
+                       mode="lines",
+                       line=dict(color=col, width=2),
+                       name=f"f_S{si+1}={freq}Hz"),
+            row=1, col=2,
+        )
+
+    # Panel 3 temeli — Domino kaskad bar
+    fig.add_trace(
+        go.Bar(
+            x=domino_labels,
+            y=domino_energies_log,
+            marker_color=[
+                f"rgba(255,{int(100+155*min(1,eta_arr[0]*10))},0,0.8)"
+                for _ in domino_labels
+            ],
+            name="log10(E) [J]",
+        ),
+        row=1, col=3,
+    )
+
+    # Animasyon frame'leri
+    frames = []
+    for fi in range(n_frames):
+        eta_now = eta_arr[fi]
+        t_now = t_arr[fi]
+        phase_fill = min(1.0, eta_now * 10)
+
+        # Domino: hangi aşamalar aktif (t bazlı)
+        tau_cumsum = np.cumsum(DOMINO_TIMESCALES_S)
+        active_domino = np.searchsorted(tau_cumsum, t_now)
+
+        bar_colors = []
+        for di in range(8):
+            if di < active_domino:
+                bar_colors.append(f"rgba(255,{int(80+170*phase_fill)},0,0.9)")
+            else:
+                bar_colors.append("rgba(60,60,80,0.5)")
+
+        frame_data = [
+            # Trace 0: η_tam (değişmez)
+            go.Scatter(x=t_arr, y=eta_arr,
+                       line=dict(color="rgba(100,100,100,0.3)", width=1)),
+            # Trace 1: η kümülatif
+            go.Scatter(x=t_arr[:fi + 1], y=eta_arr[:fi + 1],
+                       line=dict(color="#00d4ff", width=2),
+                       marker=dict(color="#ff6b35", size=10)),
+        ]
+        # Schumann genlikler
+        for si, (freq, amp, col) in enumerate(zip(sch_freqs, sch_amps, colors_sch)):
+            t_prev = t_arr[:fi + 1]
+            eta_prev = eta_arr[:fi + 1]
+            amp_series = amp * (1 + eta_prev * 2.0) * (
+                1 + 0.2 * np.sin(2 * np.pi * freq * t_prev)
+            )
+            frame_data.append(
+                go.Scatter(x=t_prev, y=amp_series,
+                           line=dict(color=col, width=2))
+            )
+        # Domino bar
+        frame_data.append(
+            go.Bar(x=domino_labels, y=domino_energies_log,
+                   marker_color=bar_colors)
+        )
+
+        frames.append(go.Frame(data=frame_data, name=str(fi),
+                                layout=go.Layout(title_text=(
+                                    f"Ψ_Sonsuz Etkileşim | t={t_now:.1f}s | "
+                                    f"η={eta_now:.4f} | "
+                                    f"E_Sonsuz={E_SONSUZ:.0e}J"
+                                ))))
+
+    fig.frames = frames
+
+    sliders = [dict(
+        steps=[dict(args=[[str(fi)], dict(frame=dict(duration=100, redraw=True),
+                                          mode="immediate")],
+                    method="animate", label=f"{t_arr[fi]:.1f}s")
+               for fi in range(n_frames)],
+        active=0, x=0.1, len=0.8, y=0, yanchor="top",
+    )]
+    menus = [dict(type="buttons", showactive=False, y=1.05, x=0,
+                  buttons=[
+                      dict(label="▶", method="animate",
+                           args=[None, dict(frame=dict(duration=120, redraw=True),
+                                            fromcurrent=True, mode="immediate")]),
+                      dict(label="⏸", method="animate",
+                           args=[[None], dict(frame=dict(duration=0), mode="immediate")]),
+                  ])]
+
+    fig.update_layout(
+        title=dict(text="BVT — Ψ_Sonsuz Etkileşim: Kalp Koheransı → Evrensel Alan Kilitleme",
+                   font=dict(size=14, color="white")),
+        paper_bgcolor="#0a0e17",
+        plot_bgcolor="#0d1117",
+        font=dict(color="white"),
+        sliders=sliders, updatemenus=menus,
+        height=500,
+    )
+    fig.update_xaxes(title_text="t (s)", gridcolor="#222", zeroline=False)
+    fig.update_yaxes(gridcolor="#222", zeroline=False)
+    fig.update_yaxes(title_text="η (overlap)", row=1, col=1, range=[0, 1.05])
+    fig.update_yaxes(title_text="Genlik (pT)", row=1, col=2)
+    fig.update_yaxes(title_text="log₁₀(E) [J]", row=1, col=3)
+
+    fig.write_html(output_path, include_plotlyjs="cdn")
+    print(f"  Psi_Sonsuz animasyon: {output_path}")
+    try:
+        png_path = output_path.replace(".html", ".png")
+        try:
+            fig.update_layout(paper_bgcolor="white", plot_bgcolor="#f0f4f8", font=dict(color="#111111"))
+        except Exception:
+            pass
+        fig.write_image(png_path, width=1400, height=500)
+        print(f"  PNG: {png_path}")
+    except Exception:
+        pass
+    return output_path
+
+
+# ============================================================
+# 6. REZONANS ANI ANİMASYONU (Schumann—Kalp Frekans Kilitleme)
+# ============================================================
+
+def animasyon_rezonans_ani(
+    n_frames: int = 60,
+    t_end: float = 20.0,
+    output_path: str = "output/animations/rezonans_ani.html",
+) -> Optional[str]:
+    """
+    Rezonans anı: kalp frekansı Schumann f_S1=7.83 Hz modunu kilitler.
+
+    4 panel:
+    - Sol üst: Frekans spektrumu — kalp piki Schumann pikine yaklaşıyor
+    - Sağ üst: Faz portresi — faz farkı Δφ(t) → 0 (kilit)
+    - Sol alt: Rabi salınımı — tam periyot t=0.46s
+    - Sağ alt: Koherans & Overlap zaman serisi
+
+    Referans: BVT_Makale.docx, Bölüm 4.3 (parametrik tetikleme),
+              CRITICAL_DETUNING_HZ = 0.003 Hz (TISE buluşu).
+    """
+    if not PLOTLY_AVAILABLE:
+        print("[UYARI] Plotly yok — animasyon atlanıyor")
+        return None
+
+    from src.core.constants import (
+        F_HEART, F_S1, G_EFF, GAMMA_K, KAPPA_EFF,
+        RABI_FREQ_HZ, RABI_PERIOD_S, CRITICAL_DETUNING_HZ,
+        C_THRESHOLD, BETA_GATE,
+    )
+
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+
+    t_arr = np.linspace(0, t_end, n_frames)
+    dt = t_arr[1] - t_arr[0]
+
+    # Frekans yakınsama: kalp frekansı F_HEART, Schumann 2. harmonik fark küçük
+    # Simüle et: kalp frekansı F_HEART'dan yavaşça f_s1/harmonik=0.1 Hz'e (zaten eşit)
+    # Gerçek senaryo: beyin alfa frekansı Schumann'a kilitlenir
+    # f_beyin(t): 10 Hz → f_S1=7.83 Hz geçişi t=10s civarında
+    f_brain_arr = 10.0 - 2.17 * (1 / (1 + np.exp(-0.8 * (t_arr - 10.0))))
+    f_sch = F_S1  # 7.83 Hz
+
+    # Faz farkı: Δφ(t) = 2π∫(f_brain - f_sch)dt
+    delta_f = f_brain_arr - f_sch
+    delta_phi = 2 * np.pi * np.cumsum(delta_f) * dt
+    # Faz kilitleme sonrası stabilize
+    lock_time = 10.5
+    lock_idx = np.searchsorted(t_arr, lock_time)
+    delta_phi[lock_idx:] = delta_phi[lock_idx] * np.exp(
+        -KAPPA_EFF * (t_arr[lock_idx:] - lock_time)
+    )
+
+    # Rabi salınımı — beyin-Schumann modu
+    rabi_amp = 0.5 * (1 - np.exp(-t_arr / 3.0))
+    rabi_signal = rabi_amp * np.sin(2 * np.pi * RABI_FREQ_HZ * t_arr)
+
+    # Koherans & Overlap
+    C_arr = C_THRESHOLD + 0.65 * (1 - np.exp(-t_arr / 6.0))
+    eta_arr = 0.85 * (1 - np.exp(-t_arr / 8.0)) * (np.abs(delta_phi) < np.pi / 2 + 0.1).astype(float)
+
+    # Frekans spektrumu (Gaussian pikleri)
+    f_axis = np.linspace(5.0, 15.0, 200)
+    sigma_brain = 0.8
+    sigma_sch = 0.15
+
+    fig = make_subplots(
+        rows=2, cols=2,
+        subplot_titles=[
+            "Frekans Spektrumu (Yakınsama)",
+            "Faz Portresi Δφ(t)",
+            "Rabi Salınımı (Beyin↔Schumann)",
+            "Koherans C(t) & Overlap η(t)",
+        ],
+    )
+
+    # Arka plan izler
+    fig.add_trace(
+        go.Scatter(x=f_axis,
+                   y=np.exp(-0.5 * ((f_axis - f_sch) / sigma_sch) ** 2),
+                   mode="lines", line=dict(color="#ff4444", width=2, dash="dash"),
+                   name=f"Schumann {f_sch}Hz"),
+        row=1, col=1,
+    )
+    fig.add_trace(
+        go.Scatter(x=[f_brain_arr[0]],
+                   y=[1.0],
+                   mode="lines", line=dict(color="#00d4ff", width=2),
+                   name="Beyin alfa piki"),
+        row=1, col=1,
+    )
+    fig.add_trace(
+        go.Scatter(x=t_arr, y=np.zeros(n_frames),
+                   mode="lines", line=dict(color="rgba(100,100,100,0.3)", width=1),
+                   showlegend=False),
+        row=1, col=2,
+    )
+    fig.add_trace(
+        go.Scatter(x=[t_arr[0]], y=[delta_phi[0]],
+                   mode="lines", line=dict(color="#ffdd00", width=2),
+                   name="Δφ(t) [rad]"),
+        row=1, col=2,
+    )
+    fig.add_trace(
+        go.Scatter(x=t_arr, y=np.zeros(n_frames),
+                   mode="lines", line=dict(color="rgba(100,100,100,0.3)", width=1),
+                   showlegend=False),
+        row=2, col=1,
+    )
+    fig.add_trace(
+        go.Scatter(x=[t_arr[0]], y=[rabi_signal[0]],
+                   mode="lines", line=dict(color="#44ff88", width=2),
+                   name="Rabi salınımı"),
+        row=2, col=1,
+    )
+    fig.add_trace(
+        go.Scatter(x=t_arr, y=C_arr,
+                   mode="lines", line=dict(color="rgba(100,100,100,0.3)", width=1),
+                   showlegend=False),
+        row=2, col=2,
+    )
+    fig.add_trace(
+        go.Scatter(x=[t_arr[0]], y=[C_arr[0]],
+                   mode="lines", line=dict(color="#ff8c00", width=2),
+                   name="C(t) koherans"),
+        row=2, col=2,
+    )
+    fig.add_trace(
+        go.Scatter(x=[t_arr[0]], y=[eta_arr[0]],
+                   mode="lines", line=dict(color="#00d4ff", width=2, dash="dot"),
+                   name="η(t) overlap"),
+        row=2, col=2,
+    )
+
+    # Animasyon frame'leri
+    frames = []
+    for fi in range(n_frames):
+        t_now = t_arr[fi]
+        f_brain_now = f_brain_arr[fi]
+        locked = abs(f_brain_now - f_sch) < 0.1
+
+        brain_spectrum = np.exp(-0.5 * ((f_axis - f_brain_now) / sigma_brain) ** 2)
+        lock_color = "#ff6b35" if locked else "#00d4ff"
+        lock_label = "REZONANS KİLİT!" if locked else "Beyin alfa piki"
+
+        frame_traces = [
+            # Schumann spektrum (sabit)
+            go.Scatter(x=f_axis,
+                       y=np.exp(-0.5 * ((f_axis - f_sch) / sigma_sch) ** 2),
+                       line=dict(color="#ff4444", width=2, dash="dash")),
+            # Beyin spektrum (kayıyor)
+            go.Scatter(x=f_axis, y=brain_spectrum,
+                       line=dict(color=lock_color, width=3),
+                       name=lock_label),
+            # Δφ referans
+            go.Scatter(x=t_arr, y=np.zeros(n_frames),
+                       line=dict(color="rgba(100,100,100,0.3)", width=1)),
+            # Δφ kümülatif
+            go.Scatter(x=t_arr[:fi + 1], y=delta_phi[:fi + 1],
+                       line=dict(color="#ffdd00", width=2)),
+            # Rabi referans
+            go.Scatter(x=t_arr, y=np.zeros(n_frames),
+                       line=dict(color="rgba(100,100,100,0.3)", width=1)),
+            # Rabi kümülatif
+            go.Scatter(x=t_arr[:fi + 1], y=rabi_signal[:fi + 1],
+                       line=dict(color="#44ff88", width=2)),
+            # C tam
+            go.Scatter(x=t_arr, y=C_arr,
+                       line=dict(color="rgba(100,100,100,0.3)", width=1)),
+            # C kümülatif
+            go.Scatter(x=t_arr[:fi + 1], y=C_arr[:fi + 1],
+                       line=dict(color="#ff8c00", width=2)),
+            # η kümülatif
+            go.Scatter(x=t_arr[:fi + 1], y=eta_arr[:fi + 1],
+                       line=dict(color="#00d4ff", width=2, dash="dot")),
+        ]
+
+        status = "🔒 KİLİT" if locked else f"Δf={f_brain_now - f_sch:+.3f}Hz"
+        frames.append(go.Frame(data=frame_traces, name=str(fi),
+                                layout=go.Layout(title_text=(
+                                    f"Rezonans Anı | t={t_now:.1f}s | "
+                                    f"f_beyin={f_brain_now:.2f}Hz | {status}"
+                                ))))
+
+    fig.frames = frames
+
+    sliders = [dict(
+        steps=[dict(args=[[str(fi)], dict(frame=dict(duration=150, redraw=True),
+                                          mode="immediate")],
+                    method="animate", label=f"{t_arr[fi]:.1f}s")
+               for fi in range(n_frames)],
+        active=0, x=0.1, len=0.8, y=0, yanchor="top",
+    )]
+    menus = [dict(type="buttons", showactive=False, y=1.07, x=0,
+                  buttons=[
+                      dict(label="▶", method="animate",
+                           args=[None, dict(frame=dict(duration=180, redraw=True),
+                                            fromcurrent=True, mode="immediate")]),
+                      dict(label="⏸", method="animate",
+                           args=[[None], dict(frame=dict(duration=0), mode="immediate")]),
+                  ])]
+
+    # Rezonans anı dikey çizgisi
+    fig.add_vline(x=lock_time, line=dict(color="#ff6b35", width=2, dash="dot"),
+                  row=1, col=2)
+    fig.add_annotation(x=lock_time, y=max(abs(delta_phi)) * 0.8,
+                       text="REZONANS", showarrow=True,
+                       font=dict(color="#ff6b35", size=10), row=1, col=2)
+
+    fig.update_layout(
+        title=dict(text=(
+            "BVT — Rezonans Anı: Beyin Alfa → Schumann f_S1=7.83 Hz Kilitleme | "
+            f"TISE Δf_krit={CRITICAL_DETUNING_HZ}Hz"
+        ), font=dict(size=12, color="white")),
+        paper_bgcolor="#0a0e17",
+        plot_bgcolor="#0d1117",
+        font=dict(color="white"),
+        sliders=sliders, updatemenus=menus,
+        height=600,
+    )
+    fig.update_xaxes(gridcolor="#222", zeroline=False)
+    fig.update_yaxes(gridcolor="#222", zeroline=False)
+    fig.update_xaxes(title_text="f (Hz)", row=1, col=1)
+    fig.update_xaxes(title_text="t (s)", row=1, col=2)
+    fig.update_xaxes(title_text="t (s)", row=2, col=1)
+    fig.update_xaxes(title_text="t (s)", row=2, col=2)
+    fig.update_yaxes(title_text="Genlik (norm.)", row=1, col=1)
+    fig.update_yaxes(title_text="Δφ (rad)", row=1, col=2)
+    fig.update_yaxes(title_text="Salınım (norm.)", row=2, col=1)
+    fig.update_yaxes(title_text="C / η", row=2, col=2, range=[0, 1.05])
+
+    fig.write_html(output_path, include_plotlyjs="cdn")
+    print(f"  Rezonans anı animasyon: {output_path}")
+    try:
+        png_path = output_path.replace(".html", ".png")
+        try:
+            fig.update_layout(paper_bgcolor="white", plot_bgcolor="#f0f4f8", font=dict(color="#111111"))
+        except Exception:
+            pass
+        fig.write_image(png_path, width=1400, height=600)
+        print(f"  PNG: {png_path}")
+    except Exception:
+        pass
+    return output_path
 
 
 # ============================================================
@@ -551,5 +1018,21 @@ if __name__ == "__main__":
         )
         assert result2 is not None and os.path.exists(result2)
         print(f"   OK: {result2}")
+
+        print("3. Psi_Sonsuz etkilesim animasyon (hizli test)...")
+        result3 = animasyon_psi_sonsuz_etkilesim(
+            n_frames=10, t_end=10.0,
+            output_path="output/animations/test_psi_sonsuz.html",
+        )
+        assert result3 is not None and os.path.exists(result3)
+        print(f"   OK: {result3}")
+
+        print("4. Rezonans anı animasyon (hızlı test)...")
+        result4 = animasyon_rezonans_ani(
+            n_frames=15, t_end=20.0,
+            output_path="output/animations/test_rezonans_ani.html",
+        )
+        assert result4 is not None and os.path.exists(result4)
+        print(f"   OK: {result4}")
 
         print("Self-test BASARILI OK")

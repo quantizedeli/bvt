@@ -344,11 +344,19 @@ def main() -> None:
         html_3d = os.path.join(args.output, "L10_3d_surfaces.html")
         fig_3d.write_html(html_3d, include_plotlyjs="cdn")
         try:
+            try:
+                fig_3d.update_layout(paper_bgcolor="white", plot_bgcolor="#f0f4f8", font=dict(color="#111111"))
+            except Exception:
+                pass
             fig_3d.write_image(html_3d.replace(".html", ".png"))
         except Exception:
             pass
         print(f"  HTML (3D): {html_3d}")
         try:
+            try:
+                fig_3d.update_layout(paper_bgcolor="white", plot_bgcolor="#f0f4f8", font=dict(color="#111111"))
+            except Exception:
+                pass
             fig_3d.write_image(
                 os.path.join(args.output, "L10_3d_surfaces_plotly.png"),
                 width=1920, height=1080
@@ -414,11 +422,19 @@ def main() -> None:
         html_env = os.path.join(args.output, "L10_cevre_spektrum.html")
         fig_env.write_html(html_env, include_plotlyjs="cdn")
         try:
+            try:
+                fig_env.update_layout(paper_bgcolor="white", plot_bgcolor="#f0f4f8", font=dict(color="#111111"))
+            except Exception:
+                pass
             fig_env.write_image(html_env.replace(".html", ".png"))
         except Exception:
             pass
         print(f"  HTML (çevre+spektrum): {html_env}")
         try:
+            try:
+                fig_env.update_layout(paper_bgcolor="white", plot_bgcolor="#f0f4f8", font=dict(color="#111111"))
+            except Exception:
+                pass
             fig_env.write_image(
                 os.path.join(args.output, "L10_cevre_spektrum_plotly.png"),
                 width=1920, height=1080

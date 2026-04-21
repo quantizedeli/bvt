@@ -212,9 +212,15 @@ def çevre_kontrol() -> dict:
 
     # MATLAB
     try:
-        import matlab.engine
-        print(f"    {renk('✓', 'yeşil')} matlab.engine")
-        durum["matlab"] = True
+        from src.matlab_bridge import matlab_durumu_kontrol
+        matlab_durum = matlab_durumu_kontrol()
+        if matlab_durum.get("engine_aktif"):
+            versiyon = matlab_durum.get("versiyon", "")
+            print(f"    {renk('✓', 'yeşil')} matlab.engine — {versiyon}")
+            durum["matlab"] = True
+        else:
+            print(f"    {renk('!', 'sarı')} matlab.engine — import OK ama engine başlatılamadı")
+            durum["matlab"] = False
     except ImportError:
         print(f"    {renk('!', 'sarı')} matlab.engine — bulunamadı (Python fallback kullanılır)")
         durum["matlab"] = False
@@ -285,6 +291,8 @@ def animasyon_üret(output_dir: str, hizli: bool = False) -> None:
         from src.viz.animations import (
             animasyon_kalp_koherant_vs_inkoherant,
             animasyon_halka_kolektif_em,
+            animasyon_psi_sonsuz_etkilesim,
+            animasyon_rezonans_ani,
         )
         anim_dir = os.path.join(output_dir, "animations")
         os.makedirs(anim_dir, exist_ok=True)
@@ -335,8 +343,26 @@ def animasyon_üret(output_dir: str, hizli: bool = False) -> None:
         if p4:
             print(f"  GIF 2: {p4}")
 
-        uretilen = sum(1 for p in [p1, p2, p3, p4] if p is not None)
-        print(f"  {uretilen}/4 animasyon/GIF üretildi → {anim_dir}")
+        # 5. Psi_Sonsuz etkilesim animasyonu
+        p5 = animasyon_psi_sonsuz_etkilesim(
+            n_frames=20 if hizli else 50,
+            t_end=15.0 if hizli else 30.0,
+            output_path=os.path.join(anim_dir, "psi_sonsuz_etkilesim.html"),
+        )
+        if p5:
+            print(f"  Animasyon 5 (Psi_Sonsuz): {p5}")
+
+        # 6. Rezonans ani animasyonu
+        p6 = animasyon_rezonans_ani(
+            n_frames=20 if hizli else 60,
+            t_end=20.0,
+            output_path=os.path.join(anim_dir, "rezonans_ani.html"),
+        )
+        if p6:
+            print(f"  Animasyon 6 (Rezonans): {p6}")
+
+        uretilen = sum(1 for p in [p1, p2, p3, p4, p5, p6] if p is not None)
+        print(f"  {uretilen}/6 animasyon/GIF üretildi → {anim_dir}")
     except Exception as exc:
         print(f"  [UYARI] Animasyon üretim hatası: {exc}")
 

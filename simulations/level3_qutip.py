@@ -144,6 +144,10 @@ def main() -> None:
                 html_path = os.path.join(args.output, "B1_lindblad_evolution.html")
                 fig_html.write_html(html_path, include_plotlyjs="cdn")
                 try:
+                    try:
+                        fig_html.update_layout(paper_bgcolor="white", plot_bgcolor="#f0f4f8", font=dict(color="#111111"))
+                    except Exception:
+                        pass
                     fig_html.write_image(html_path.replace(".html", ".png"))
                 except Exception:
                     pass

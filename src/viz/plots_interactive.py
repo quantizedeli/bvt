@@ -93,6 +93,10 @@ def _html_kaydet(fig: Any, path: str, png: bool = True) -> None:
         png_path = os.path.splitext(path)[0] + ".png"
         try:
             # Animasyonlu sekillerde (frames var) sadece ilk kareyi PNG olarak kaydet
+            try:
+                fig.update_layout(paper_bgcolor="white", plot_bgcolor="#f0f4f8", font=dict(color="#111111"))
+            except Exception:
+                pass
             fig.write_image(png_path, width=fig.layout.width or W_HD,
                             height=fig.layout.height or H_HD, scale=1)
             print(f"  PNG:        {png_path}")

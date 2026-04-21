@@ -299,6 +299,10 @@ def main() -> None:
         html_path = os.path.join(args.output, "L11_topology.html")
         fig.write_html(html_path, include_plotlyjs="cdn")
         try:
+            try:
+                fig.update_layout(paper_bgcolor="white", plot_bgcolor="#f0f4f8", font=dict(color="#111111"))
+            except Exception:
+                pass
             fig.write_image(html_path.replace(".html", ".png"))
         except Exception:
             pass

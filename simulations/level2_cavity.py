@@ -233,6 +233,10 @@ def sekil_kaydet(sonuc: dict, t: np.ndarray, P_exc: np.ndarray,
             html_yol = os.path.join(output_dir, "level2_kavite.html")
             fig_html.write_html(html_yol, include_plotlyjs="cdn")
             try:
+                try:
+                    fig_html.update_layout(paper_bgcolor="white", plot_bgcolor="#f0f4f8", font=dict(color="#111111"))
+                except Exception:
+                    pass
                 fig_html.write_image(html_yol.replace(".html", ".png"))
             except Exception:
                 pass
