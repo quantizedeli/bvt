@@ -247,6 +247,65 @@ def main() -> None:
     for isim, veri in sonuclar.items():
         print(f"  {isim:15s}: r(son)={veri['r_son']:.4f}, N_c_etkin={veri['N_c_etkin']:.1f}")
 
+    # 4. Plotly interaktif HTML
+    print("\n4. Plotly HTML üretiliyor...")
+    try:
+        import plotly.graph_objects as go
+        from plotly.subplots import make_subplots
+
+        renkler_plotly = {"Duz": "gray", "Yarim Halka": "dodgerblue",
+                          "Tam Halka": "lime", "Halka+Temas": "gold"}
+        fig = make_subplots(
+            rows=2, cols=2,
+            subplot_titles=["r(t) — Kuramoto Düzen Parametresi",
+                            "Son Senkronizasyon r(son)",
+                            "Ortalama Koherans <C>(t)",
+                            "Etkin Süperradyans Eşiği N_c"],
+            vertical_spacing=0.12, horizontal_spacing=0.1,
+        )
+
+        isim_listesi = list(sonuclar.keys())
+        for isim, veri in sonuclar.items():
+            renk = renkler_plotly.get(isim, "white")
+            C_ort = np.mean(veri["C_t"], axis=0)
+            fig.add_trace(go.Scatter(x=veri["t"].tolist(), y=veri["r_t"].tolist(),
+                mode="lines", name=isim, line=dict(color=renk, width=3),
+                legendgroup=isim), row=1, col=1)
+            fig.add_trace(go.Scatter(x=veri["t"].tolist(), y=C_ort.tolist(),
+                mode="lines", name=isim, line=dict(color=renk, width=2),
+                showlegend=False, legendgroup=isim), row=2, col=1)
+
+        fig.add_hline(y=0.8, line_dash="dot", line_color="white", opacity=0.5,
+                      annotation_text="r=0.8 esigi", row=1, col=1)
+
+        r_sonlar = [sonuclar[i]["r_son"] for i in isim_listesi]
+        n_c_vals = [sonuclar[i]["N_c_etkin"] for i in isim_listesi]
+        bar_renkler = [renkler_plotly.get(i, "white") for i in isim_listesi]
+
+        fig.add_trace(go.Bar(x=isim_listesi, y=r_sonlar, marker_color=bar_renkler,
+            text=[f"{v:.3f}" for v in r_sonlar], textposition="outside",
+            showlegend=False), row=1, col=2)
+        fig.add_trace(go.Bar(x=isim_listesi, y=n_c_vals, marker_color=bar_renkler,
+            text=[f"{v:.1f}" for v in n_c_vals], textposition="outside",
+            showlegend=False), row=2, col=2)
+        fig.add_hline(y=11, line_dash="dot", line_color="red",
+                      annotation_text="N_c=11 (literatur)", row=2, col=2)
+
+        fig.update_layout(
+            title=dict(text=f"BVT Level 11 — Topoloji Karsilastirmasi (N={args.N})",
+                       font=dict(size=18)),
+            width=1400, height=900, template="plotly_dark",
+        )
+        html_path = os.path.join(args.output, "L11_topology.html")
+        fig.write_html(html_path, include_plotlyjs="cdn")
+        try:
+            fig.write_image(html_path.replace(".html", ".png"))
+        except Exception:
+            pass
+        print(f"  HTML: {html_path}")
+    except ImportError:
+        print("  [UYARI] Plotly yok — HTML atlanıyor.")
+
     print("\nLevel 11 tamamlandı ✓")
 
 

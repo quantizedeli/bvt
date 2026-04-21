@@ -313,8 +313,30 @@ def animasyon_üret(output_dir: str, hizli: bool = False) -> None:
         if p2:
             print(f"  Animasyon 2: {p2}")
 
-        uretilen = sum(1 for p in [p1, p2] if p is not None)
-        print(f"  {uretilen}/2 animasyon üretildi → {anim_dir}")
+        # 3. GIF: Kalp EM zamanla değişimi
+        from src.viz.animations import kalp_em_gif, n_kisi_em_gif
+        p3 = kalp_em_gif(
+            n_frames=20 if hizli else 30,
+            t_end=5.0 if hizli else 10.0,
+            grid_n=20 if hizli else 40,
+            output_path=os.path.join(anim_dir, "kalp_em_zaman.gif"),
+        )
+        if p3:
+            print(f"  GIF 1: {p3}")
+
+        # 4. GIF: N-kişi kolektif EM
+        p4 = n_kisi_em_gif(
+            N=4 if hizli else 8,
+            n_frames=15 if hizli else 25,
+            t_end=10.0 if hizli else 20.0,
+            grid_n=20 if hizli else 30,
+            output_path=os.path.join(anim_dir, "n_kisi_em.gif"),
+        )
+        if p4:
+            print(f"  GIF 2: {p4}")
+
+        uretilen = sum(1 for p in [p1, p2, p3, p4] if p is not None)
+        print(f"  {uretilen}/4 animasyon/GIF üretildi → {anim_dir}")
     except Exception as exc:
         print(f"  [UYARI] Animasyon üretim hatası: {exc}")
 

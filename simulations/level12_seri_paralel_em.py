@@ -201,6 +201,79 @@ def main() -> None:
     print(f"  r(t_son) = {r_t[-1]:.3f}  [{labels[-1]}]")
     print(f"  N_c_etkin = {sonuc['N_c_etkin']:.1f}  (literatur: {N_C_SUPERRADIANCE})")
     print(f"  Kolektif güç artışı: {kolektif_guc[-1]/kolektif_guc[0]:.1f}×")
+    # 8. Plotly interaktif HTML
+    print("\n8. Plotly HTML üretiliyor...")
+    try:
+        import plotly.graph_objects as go
+        from plotly.subplots import make_subplots
+
+        fig_html = make_subplots(
+            rows=2, cols=3,
+            subplot_titles=[
+                f"EM Alan t={list(snap_data.keys())[0]:.0f}s [{list(snap_data.values())[0]['label']}]",
+                f"EM Alan t={list(snap_data.keys())[1]:.0f}s [{list(snap_data.values())[1]['label']}]",
+                f"EM Alan t={list(snap_data.keys())[2]:.0f}s [{list(snap_data.values())[2]['label']}]",
+                "r(t) Faz Gecisi",
+                f"Bireysel Koherans C_i(t)",
+                "Kolektif Guc: Seri vs Paralel",
+            ],
+            vertical_spacing=0.12, horizontal_spacing=0.08,
+        )
+
+        x_ax = np.linspace(-3, 3, 25).tolist()
+        for col_idx, (t_snap, data) in enumerate(snap_data.items()):
+            B_slice = np.log10(data["B_mag"][:, :, 25 // 2] + 1e-2)
+            fig_html.add_trace(go.Heatmap(
+                z=B_slice.T.tolist(), x=x_ax, y=x_ax,
+                colorscale="Hot", zmin=-2, zmax=float(np.max(B_slice)),
+                showscale=(col_idx == 2),
+                colorbar=dict(title="log10|B|(pT)") if col_idx == 2 else None,
+            ), row=1, col=col_idx + 1)
+            fig_html.add_trace(go.Scatter(
+                x=konumlar[:, 0].tolist(), y=konumlar[:, 1].tolist(),
+                mode="markers", marker=dict(size=10, color="cyan"),
+                showlegend=False,
+            ), row=1, col=col_idx + 1)
+
+        # r(t)
+        fig_html.add_hrect(y0=0.8, y1=1.0, fillcolor="green", opacity=0.1, row=2, col=1)
+        fig_html.add_hrect(y0=0.3, y1=0.8, fillcolor="orange", opacity=0.08, row=2, col=1)
+        fig_html.add_hrect(y0=0.0, y1=0.3, fillcolor="red", opacity=0.08, row=2, col=1)
+        fig_html.add_trace(go.Scatter(x=t_arr.tolist(), y=r_t.tolist(),
+            mode="lines", line=dict(color="white", width=3), name="r(t)"), row=2, col=1)
+
+        # C_i(t)
+        for i in range(args.N):
+            fig_html.add_trace(go.Scatter(x=t_arr.tolist(), y=C_t[i].tolist(),
+                mode="lines", opacity=0.3, line=dict(color="cyan", width=1),
+                showlegend=False), row=2, col=2)
+        fig_html.add_trace(go.Scatter(x=t_arr.tolist(), y=np.mean(C_t, axis=0).tolist(),
+            mode="lines", line=dict(color="lime", width=4), name="<C>(t)"), row=2, col=2)
+
+        # Kolektif güç
+        C_mean = np.mean(C_t, axis=0)
+        fig_html.add_trace(go.Scatter(x=t_arr.tolist(), y=kolektif_guc.tolist(),
+            mode="lines", line=dict(color="magenta", width=3), name="BVT Guc"), row=2, col=3)
+        fig_html.add_trace(go.Scatter(x=t_arr.tolist(), y=(args.N**2 * C_mean).tolist(),
+            mode="lines", line=dict(color="lime", width=2, dash="dash"), name=f"Seri N²"), row=2, col=3)
+        fig_html.add_trace(go.Scatter(x=t_arr.tolist(), y=(args.N * C_mean).tolist(),
+            mode="lines", line=dict(color="tomato", width=2, dash="dot"), name=f"Paralel N"), row=2, col=3)
+
+        fig_html.update_layout(
+            title=dict(text=f"BVT Level 12 — Seri-Paralel EM Faz Gecisi (N={args.N})",
+                       font=dict(size=18)),
+            width=1600, height=950, template="plotly_dark",
+        )
+        html_path = os.path.join(args.output, "L12_seri_paralel.html")
+        fig_html.write_html(html_path, include_plotlyjs="cdn")
+        try:
+            fig_html.write_image(html_path.replace(".html", ".png"))
+        except Exception:
+            pass
+        print(f"  HTML: {html_path}")
+    except ImportError:
+        print("  [UYARI] Plotly yok — HTML atlanıyor.")
+
     print("\nLevel 12 tamamlandı ✓")
 
 

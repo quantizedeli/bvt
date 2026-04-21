@@ -16,9 +16,10 @@ HD boyutlarda (1920×1080 veya 1080×1080) etkileşimli Plotly HTML şekilleri.
     10. sekil_hkv_dagılım          — Pre-stimulus ES dağılımı
     11. sekil_berry_faz            — Berry fazı analizi
     12. sekil_entropi_dinamigi     — Entropi dinamiği
-    13. sekil_3d_em_alan           — EM alan haritası
+    13. sekil_3d_em_alan           — EM alan haritası (2D ısı haritası)
     14. sekil_topoloji_karsilastirma — N_c_etkin & senkronizasyon (level11)
     15. sekil_seri_paralel_em      — PARALEL→HİBRİT→SERİ faz geçişi (level12)
+    16. sekil_3d_kalp_isosurface   — Kalp EM alanı 3D isosurface (interaktif)
 
 Kullanım:
     from src.viz.plots_interactive import tum_sekilleri_kaydet
@@ -1667,6 +1668,116 @@ def sekil_seri_paralel_em(output_path: Optional[str] = None) -> Optional[Any]:
 
 
 # ============================================================
+# YENİ: 3D KALP EM ALANI İSOSURFACE
+# ============================================================
+
+def sekil_3d_kalp_isosurface(output_path: Optional[str] = None) -> Optional[Any]:
+    """
+    Kalp manyetik dipol alaninin 3D isosurface + hacimsel görselleştirmesi.
+
+    go.Isosurface ile |B|(x,y,z) için 3 yüzey seviyesi:
+      - dış: 1 pT  (uzak alan)
+      - orta: 10 pT (ara alan)
+      - iç: 100 pT (yakın alan, kalp çevresinde yoğunlaşır)
+
+    Referans: BVT_Makale.docx Bölüm 2; BVT Level 1.
+    """
+    if not PLOTLY_OK:
+        return None
+
+    # 3D ızgara: kalp orijinde, z-yönünde dipol
+    n = 25
+    extent = 0.5  # m
+    ax_lin = np.linspace(-extent, extent, n)
+    X, Y, Z = np.meshgrid(ax_lin, ax_lin, ax_lin, indexing="ij")
+
+    mu0_4pi = 1e-7
+    mu_heart = MU_HEART   # 1e-4 A·m²
+    m_hat = np.array([0, 0, 1])  # z-yönünde dipol
+
+    Rx, Ry, Rz = X, Y, Z
+    R = np.sqrt(Rx**2 + Ry**2 + Rz**2) + 1e-4
+
+    m_dot_r = m_hat[0] * Rx/R + m_hat[1] * Ry/R + m_hat[2] * Rz/R
+    Bx = mu0_4pi * mu_heart / R**3 * (3 * m_dot_r * Rx/R - m_hat[0])
+    By = mu0_4pi * mu_heart / R**3 * (3 * m_dot_r * Ry/R - m_hat[1])
+    Bz = mu0_4pi * mu_heart / R**3 * (3 * m_dot_r * Rz/R - m_hat[2])
+    B_mag = np.sqrt(Bx**2 + By**2 + Bz**2) / 1e-12   # pT
+
+    # Beyin dipol (30 cm yukarıda, 1000× zayıf)
+    mu_brain = MU_BRAIN  # 1e-7 A·m²
+    brain_z = 0.3
+    Rb = np.sqrt(Rx**2 + Ry**2 + (Rz - brain_z)**2) + 1e-4
+    m_dot_rb = m_hat[2] * (Rz - brain_z) / Rb
+    B_brain = mu0_4pi * mu_brain / Rb**3 * np.sqrt(
+        (3*m_dot_rb*Rx/Rb)**2 + (3*m_dot_rb*Ry/Rb)**2 +
+        (3*m_dot_rb*(Rz-brain_z)/Rb - 1)**2
+    ) / 1e-12
+    B_total = B_mag + B_brain
+
+    # Flatten for Plotly
+    x_flat = X.flatten().tolist()
+    y_flat = Y.flatten().tolist()
+    z_flat = Z.flatten().tolist()
+    v_flat = np.clip(B_total, 0.01, 5000).flatten().tolist()
+
+    fig = go.Figure()
+
+    # Isosurface: 3 seviye
+    fig.add_trace(go.Isosurface(
+        x=x_flat, y=y_flat, z=z_flat, value=v_flat,
+        isomin=1.0, isomax=500.0,
+        surface_count=5,
+        colorscale="Hot",
+        caps=dict(x_show=False, y_show=False, z_show=False),
+        opacity=0.35,
+        colorbar=dict(title="|B| (pT)", tickvals=[1, 10, 100, 500],
+                      ticktext=["1", "10", "100", "500"]),
+        name="|B| isosurface",
+    ))
+
+    # Kalp ve beyin konumlarını işaretle
+    fig.add_trace(go.Scatter3d(
+        x=[0], y=[0], z=[0],
+        mode="markers+text",
+        marker=dict(size=12, color="red", symbol="circle"),
+        text=["Kalp (μ=10⁻⁴ A·m²)"],
+        textposition="top center",
+        name="Kalp",
+    ))
+    fig.add_trace(go.Scatter3d(
+        x=[0], y=[0], z=[brain_z],
+        mode="markers+text",
+        marker=dict(size=10, color="dodgerblue", symbol="diamond"),
+        text=["Beyin (μ=10⁻⁷ A·m²)"],
+        textposition="top center",
+        name="Beyin",
+    ))
+
+    fig.update_layout(
+        title=dict(
+            text="BVT — Kalp + Beyin 3D Manyetik Dipol Alani |B| (pT)",
+            font=dict(size=20),
+        ),
+        scene=dict(
+            xaxis_title="x (m)", yaxis_title="y (m)", zaxis_title="z (m)",
+            bgcolor="#0a0e17",
+            xaxis=dict(backgroundcolor="#0a0e17"),
+            yaxis=dict(backgroundcolor="#0a0e17"),
+            zaxis=dict(backgroundcolor="#0a0e17"),
+            camera=dict(eye=dict(x=1.5, y=1.5, z=1.0)),
+        ),
+        width=W_SQ, height=W_SQ,
+        template=TMPL,
+        paper_bgcolor="#0a0e17",
+    )
+
+    if output_path:
+        _html_kaydet(fig, output_path)
+    return fig
+
+
+# ============================================================
 # ANA FONKSİYON: TÜM ŞEKİLLERİ KAYDET
 # ============================================================
 
@@ -1708,6 +1819,7 @@ def tum_sekilleri_kaydet(output_dir: str = "output/html") -> Dict[str, str]:
         ("em_alan",                 sekil_3d_em_alan),
         ("topoloji_karsilastirma",  sekil_topoloji_karsilastirma),
         ("seri_paralel_em",         sekil_seri_paralel_em),
+        ("3d_kalp_isosurface",      sekil_3d_kalp_isosurface),
     ]
 
     print(f"HTML sekilleri {output_dir} dizinine kaydediliyor...")

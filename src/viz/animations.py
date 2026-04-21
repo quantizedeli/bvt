@@ -324,6 +324,208 @@ def animasyon_halka_kolektif_em(
 
 
 # ============================================================
+# 3. KALP EM ALANI GIF VİDEO
+# ============================================================
+
+def kalp_em_gif(
+    n_frames: int = 30,
+    t_end: float = 10.0,
+    grid_n: int = 40,
+    grid_extent: float = 0.4,
+    output_path: str = "output/animations/kalp_em_zaman.gif",
+    fps: int = 8,
+) -> Optional[str]:
+    """
+    Kalp EM alaninin zamanla değişimini GIF olarak kaydeder.
+
+    Tek koherant kalp (C=0.85) z=0 kesitinde |B|(x,y,t) animasyonu.
+    Matplotlib FuncAnimation + PillowWriter kullanır.
+
+    Parametreler
+    -----------
+    n_frames    : int   — kare sayısı
+    t_end       : float — simülasyon süresi (s)
+    grid_n      : int   — ızgara nokta sayısı
+    grid_extent : float — ızgara yarı-boyutu (m)
+    output_path : str   — çıktı GIF dosyası
+    fps         : int   — kare hızı
+
+    Dönüş
+    -----
+    output_path ya da None (hata durumunda)
+    """
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    from matplotlib.animation import FuncAnimation, PillowWriter
+    from matplotlib.colors import LogNorm
+
+    os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
+
+    pos = np.array([[0.0, 0.0, 0.0]])
+    C_arr = np.array([0.85])
+    phi_arr = np.array([0.0])
+    t_arr = np.linspace(0, t_end, n_frames)
+
+    momentler = dipol_moment_zaman(t_arr, C_arr, phi_arr)
+
+    # Tüm frame'leri hesapla
+    frames_B = []
+    for t_idx in range(n_frames):
+        _, _, _, B_mag = toplam_em_alan_3d(
+            t_idx, pos, momentler,
+            grid_extent=grid_extent, grid_n=grid_n,
+        )
+        frames_B.append(B_mag[:, :, grid_n // 2])
+
+    B_max = max(float(np.max(f)) for f in frames_B)
+    B_min = max(float(np.min(np.concatenate([f.flatten() for f in frames_B]))), 0.01)
+    extent_cm = grid_extent * 100
+
+    fig, ax = plt.subplots(figsize=(6, 5), facecolor="#0a0e17")
+    ax.set_facecolor("#0a0e17")
+    norm = LogNorm(vmin=B_min, vmax=B_max)
+    im = ax.imshow(
+        frames_B[0].T, origin="lower", cmap="hot", norm=norm,
+        extent=[-extent_cm, extent_cm, -extent_cm, extent_cm],
+        interpolation="bilinear",
+    )
+    cbar = fig.colorbar(im, ax=ax)
+    cbar.set_label("|B| (pT)", color="white", fontsize=11)
+    cbar.ax.yaxis.set_tick_params(color="white")
+    plt.setp(cbar.ax.yaxis.get_ticklabels(), color="white")
+    ax.set_xlabel("x (cm)", color="white")
+    ax.set_ylabel("y (cm)", color="white")
+    ax.tick_params(colors="white")
+    for spine in ax.spines.values():
+        spine.set_edgecolor("white")
+    title = ax.set_title("", color="white", fontsize=12)
+
+    def update(i):
+        im.set_data(frames_B[i].T)
+        title.set_text(f"BVT — Kalp EM Alani |B| (pT)  t = {t_arr[i]:.1f}s")
+        return [im, title]
+
+    anim = FuncAnimation(fig, update, frames=n_frames, interval=1000 // fps, blit=True)
+    try:
+        anim.save(output_path, writer=PillowWriter(fps=fps))
+        plt.close(fig)
+        print(f"  GIF: {output_path}")
+
+        # PNG thumbnail (ilk kare)
+        png_path = output_path.replace(".gif", "_thumbnail.png")
+        fig2, ax2 = plt.subplots(figsize=(6, 5), facecolor="#0a0e17")
+        ax2.set_facecolor("#0a0e17")
+        im2 = ax2.imshow(frames_B[0].T, origin="lower", cmap="hot", norm=norm,
+                         extent=[-extent_cm, extent_cm, -extent_cm, extent_cm])
+        ax2.set_title("BVT — Kalp EM Alani (t=0)", color="white")
+        ax2.set_xlabel("x (cm)", color="white"); ax2.set_ylabel("y (cm)", color="white")
+        ax2.tick_params(colors="white")
+        fig2.colorbar(im2, ax=ax2, label="|B| (pT)")
+        plt.tight_layout()
+        fig2.savefig(png_path, dpi=150, bbox_inches="tight", facecolor="#0a0e17")
+        plt.close(fig2)
+        print(f"  PNG thumbnail: {png_path}")
+        return output_path
+    except Exception as exc:
+        plt.close(fig)
+        print(f"  [HATA] GIF kaydedilemedi: {exc}")
+        return None
+
+
+def n_kisi_em_gif(
+    N: int = 8,
+    n_frames: int = 25,
+    t_end: float = 20.0,
+    grid_n: int = 30,
+    grid_extent: float = 3.0,
+    output_path: str = "output/animations/n_kisi_em.gif",
+    fps: int = 6,
+) -> Optional[str]:
+    """
+    N kişi halka topolojisinde kolektif EM alaninin GIF animasyonu.
+
+    Kuramoto senkronizasyonu sırasında B alan merkezde güçlenişini gösterir.
+    """
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    from matplotlib.animation import FuncAnimation, PillowWriter
+    from matplotlib.colors import LogNorm
+
+    os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
+
+    konumlar = kisiler_yerlestir(N, "tam_halka", radius=1.5)
+    rng = np.random.default_rng(42)
+    C0 = rng.uniform(0.2, 0.5, N)
+    phi0 = rng.uniform(0, 2 * np.pi, N)
+
+    sonuc = N_kisi_tam_dinamik(
+        konumlar=konumlar, C_baslangic=C0, phi_baslangic=phi0,
+        t_span=(0, t_end), dt=t_end / (n_frames * 4), f_geometri=0.35,
+    )
+
+    t_eval = np.linspace(0, t_end, n_frames)
+    t_indices = np.minimum(np.searchsorted(sonuc["t"], t_eval), len(sonuc["t"]) - 1)
+    C_per_person = np.mean(sonuc["C_t"], axis=1)
+    momentler = dipol_moment_zaman(sonuc["t"], C_per_person, phi0)
+
+    frames_B = []
+    for t_idx in t_indices:
+        _, _, _, B_mag = toplam_em_alan_3d(
+            int(t_idx), konumlar, momentler,
+            grid_extent=grid_extent, grid_n=grid_n,
+        )
+        frames_B.append(B_mag[:, :, grid_n // 2])
+
+    B_max = max(float(np.max(f)) for f in frames_B)
+    B_min = max(0.01, float(np.percentile(np.concatenate([f.flatten() for f in frames_B]), 5)))
+    norm = LogNorm(vmin=B_min, vmax=B_max)
+    r_arr = sonuc["r_t"]
+    ax_vals = np.linspace(-grid_extent, grid_extent, grid_n)
+
+    fig, ax = plt.subplots(figsize=(6, 6), facecolor="#0a0e17")
+    ax.set_facecolor("#0a0e17")
+    im = ax.imshow(frames_B[0].T, origin="lower", cmap="hot", norm=norm,
+                   extent=[-grid_extent, grid_extent, -grid_extent, grid_extent],
+                   interpolation="bilinear")
+    scatter = ax.scatter(konumlar[:, 0], konumlar[:, 1], c="cyan", s=60, zorder=5)
+    fig.colorbar(im, ax=ax, label="|B| (pT)")
+    ax.set_xlabel("x (m)", color="white"); ax.set_ylabel("y (m)", color="white")
+    ax.tick_params(colors="white")
+    title = ax.set_title("", color="white", fontsize=11)
+
+    def update(i):
+        im.set_data(frames_B[i].T)
+        t_idx = int(t_indices[i])
+        r_val = float(r_arr[min(t_idx, len(r_arr)-1)])
+        label = "SERI" if r_val > 0.8 else ("HIBRIT" if r_val > 0.3 else "PARALEL")
+        title.set_text(f"BVT N={N} Halka | t={t_eval[i]:.1f}s | r={r_val:.3f} [{label}]")
+        return [im, title]
+
+    anim = FuncAnimation(fig, update, frames=n_frames, interval=1000 // fps, blit=True)
+    try:
+        anim.save(output_path, writer=PillowWriter(fps=fps))
+        plt.close(fig)
+        print(f"  GIF: {output_path}")
+        png_path = output_path.replace(".gif", "_thumbnail.png")
+        fig2, ax2 = plt.subplots(figsize=(6, 6), facecolor="#0a0e17")
+        ax2.imshow(frames_B[-1].T, origin="lower", cmap="hot", norm=norm,
+                   extent=[-grid_extent, grid_extent, -grid_extent, grid_extent])
+        ax2.scatter(konumlar[:, 0], konumlar[:, 1], c="cyan", s=60, zorder=5)
+        ax2.set_title(f"BVT N={N} Halka — Son Kare (t={t_end:.0f}s)", color="white")
+        plt.tight_layout()
+        fig2.savefig(png_path, dpi=150, bbox_inches="tight", facecolor="#0a0e17")
+        plt.close(fig2)
+        print(f"  PNG thumbnail: {png_path}")
+        return output_path
+    except Exception as exc:
+        plt.close(fig)
+        print(f"  [HATA] GIF kaydedilemedi: {exc}")
+        return None
+
+
+# ============================================================
 # SELF-TEST
 # ============================================================
 
