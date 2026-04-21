@@ -37,6 +37,7 @@ from src.core.constants import (
 from src.models.pre_stimulus import (
     monte_carlo_prestimulus, ef_büyüklüğü_eğrisi,
     monte_carlo_prestimulus_advanced,
+    monte_carlo_iki_populasyon,
 )
 
 
@@ -384,6 +385,122 @@ def main() -> None:
 
 ---
 """)
+
+    # === YENİ: İKİ POPÜLASYON MODELİ ===
+    try:
+        import matplotlib
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+
+        print("\n=== BVT v4.0 IKI POPULASYON MODELI ===")
+        iki_pop = monte_carlo_iki_populasyon(
+            n_trials=args.trials,
+            frac_koherant=0.3,
+            rng_seed=42,
+        )
+        print(f"Populasyon A (koherant, n={iki_pop['n_A']}):")
+        print(f"  Ortalama pre-stim : {iki_pop['mean_prestim_A']:.2f} s")
+        print(f"  Ortalama ES       : {iki_pop['mean_ES_A']:.3f}")
+        print(f"Populasyon B (normal, n={iki_pop['n_B']}):")
+        print(f"  Ortalama pre-stim : {iki_pop['mean_prestim_B']:.2f} s")
+        print(f"  Ortalama ES       : {iki_pop['mean_ES_B']:.3f}")
+        print(f"KS testi p-degeri   : {iki_pop['kolmogorov_smirnov_p']:.2e}")
+
+        # D2 — 4 panel
+        fig2, axs = plt.subplots(2, 2, figsize=(14, 10))
+        colors_A, colors_B = "#2ecc71", "#3498db"
+
+        ax = axs[0, 0]
+        ax.hist(iki_pop["prestimulus_times_A"], bins=40, color=colors_A, alpha=0.75, edgecolor="#145a32")
+        ax.axvline(iki_pop["mean_prestim_A"], color="red", linestyle="--",
+                   label=f"BVT A ort = {iki_pop['mean_prestim_A']:.2f}s")
+        ax.axvline(4.8, color="orange", linestyle=":", label="HeartMath 4.8s")
+        ax.set_xlabel("Pre-Stimulus Zamani (s)")
+        ax.set_ylabel("Siklik")
+        ax.set_title(f"Populasyon A — Koherant (n={iki_pop['n_A']}, C~0.65)", fontweight="bold")
+        ax.legend(); ax.set_xlim(0, 10)
+        ax.set_facecolor("white")
+
+        ax = axs[0, 1]
+        ax.hist(iki_pop["prestimulus_times_B"], bins=40, color=colors_B, alpha=0.75, edgecolor="#1b4f72")
+        ax.axvline(iki_pop["mean_prestim_B"], color="red", linestyle="--",
+                   label=f"BVT B ort = {iki_pop['mean_prestim_B']:.2f}s")
+        ax.axvline(4.8, color="orange", linestyle=":", label="HeartMath 4.8s")
+        ax.set_xlabel("Pre-Stimulus Zamani (s)")
+        ax.set_ylabel("Siklik")
+        ax.set_title(f"Populasyon B — Normal (n={iki_pop['n_B']}, C~0.25)", fontweight="bold")
+        ax.legend(); ax.set_xlim(0, 10)
+        ax.set_facecolor("white")
+
+        ax = axs[1, 0]
+        ax.hist(iki_pop["effect_sizes_A"], bins=30, color=colors_A, alpha=0.6,
+                label=f"Pop A (ort={iki_pop['mean_ES_A']:.3f})")
+        ax.hist(iki_pop["effect_sizes_B"], bins=30, color=colors_B, alpha=0.6,
+                label=f"Pop B (ort={iki_pop['mean_ES_B']:.3f})")
+        ax.axvline(0.21, color="orange", linestyle=":", label="Mossbridge 0.21")
+        ax.axvline(0.28, color="red", linestyle=":", label="Duggan 0.28")
+        ax.set_xlabel("Efekt Buyuklugu (ES)")
+        ax.set_title("ES Dagilimi — Iki Populasyon", fontweight="bold")
+        ax.legend()
+        ax.set_facecolor("white")
+
+        ax = axs[1, 1]
+        karma = np.concatenate([iki_pop["prestimulus_times_A"], iki_pop["prestimulus_times_B"]])
+        ax.hist(karma, bins=50, color="purple", alpha=0.7, edgecolor="black")
+        ax.axvline(np.mean(karma), color="red", linestyle="--",
+                   label=f"Karma ort = {np.mean(karma):.2f}s")
+        ax.axvline(4.8, color="orange", linestyle=":", label="HeartMath 4.8s")
+        ax.axvline(iki_pop["mean_prestim_A"], color=colors_A, linestyle="-.", alpha=0.5)
+        ax.axvline(iki_pop["mean_prestim_B"], color=colors_B, linestyle="-.", alpha=0.5)
+        ax.set_xlabel("Pre-Stimulus Zamani (s)")
+        ax.set_title("Karma Populasyon — HeartMath Ne Goruyor?", fontweight="bold")
+        ax.legend(); ax.set_xlim(0, 10)
+        ax.set_facecolor("white")
+
+        fig2.patch.set_facecolor("white")
+        fig2.suptitle(
+            f"BVT v4.0 — HKV Iki Populasyon Modeli\n"
+            f"KS test p = {iki_pop['kolmogorov_smirnov_p']:.2e} "
+            f"(iki dagilim istatistiksel olarak ayrik)",
+            fontsize=13, fontweight="bold",
+        )
+        plt.tight_layout()
+        d2_path = os.path.join(args.output, "D2_iki_populasyon_prestim.png")
+        fig2.savefig(d2_path, dpi=150, bbox_inches="tight")
+        plt.close(fig2)
+        print(f"  D2 PNG: {d2_path}")
+
+        # D3 — scatter
+        fig3, ax3 = plt.subplots(figsize=(10, 7))
+        ax3.set_facecolor("white")
+        fig3.patch.set_facecolor("white")
+        ax3.scatter(iki_pop["C_A"], iki_pop["prestimulus_times_A"],
+                    s=25, c=colors_A, alpha=0.6, label=f"Populasyon A (n={iki_pop['n_A']})")
+        ax3.scatter(iki_pop["C_B"], iki_pop["prestimulus_times_B"],
+                    s=25, c=colors_B, alpha=0.6, label=f"Populasyon B (n={iki_pop['n_B']})")
+        ax3.axvline(0.3, color="red", linestyle="--", label="C0 = 0.3 (kapi esigi)")
+        ax3.axhline(4.8, color="orange", linestyle=":", label="HeartMath 4.8s")
+        ax3.set_xlabel("Koherans C", fontsize=12)
+        ax3.set_ylabel("Pre-Stimulus Zamani (s)", fontsize=12)
+        ax3.set_title("BVT Ongorusu: Koherans-Bagiml Pre-Stimulus Penceresi",
+                      fontsize=13, fontweight="bold")
+        ax3.legend(); ax3.grid(alpha=0.3); ax3.set_ylim(0, 10)
+        d3_path = os.path.join(args.output, "D3_C_vs_prestim_scatter.png")
+        fig3.savefig(d3_path, dpi=150, bbox_inches="tight")
+        plt.close(fig3)
+        print(f"  D3 PNG: {d3_path}")
+
+        # Veri kaydet
+        npz_path = os.path.join(args.output, "iki_populasyon_data.npz")
+        np.savez(npz_path,
+                 C_A=iki_pop["C_A"], C_B=iki_pop["C_B"],
+                 prestim_A=iki_pop["prestimulus_times_A"],
+                 prestim_B=iki_pop["prestimulus_times_B"],
+                 ES_A=iki_pop["effect_sizes_A"], ES_B=iki_pop["effect_sizes_B"])
+        print(f"  NPZ: {npz_path}")
+
+    except Exception as e:
+        print(f"  [UYARI] Iki populasyon figuru uretilirken hata: {e}")
 
     print(f"\n{'=' * 65}")
     print(f"Level 6 tamamlandı: {elapsed/60:.1f} dakika")

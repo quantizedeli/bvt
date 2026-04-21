@@ -5,6 +5,78 @@ Bu dosya projedeki her önemli değişikliği kaydeder.
 
 ---
 
+## [2026-04-22] — Oturum 5: TODO v2+v3 Kapsamlı İyileştirme Turu
+
+### Eklendi
+- `src/viz/theme.py` — BVT görsel tema sistemi:
+  - `BVT_TEMA` dict (light/dark mod, background/grid/text/axes/line_width/palette)
+  - `apply_theme(ax, mode)`, `get_palette(context, mode)`
+  - `ensure_visibility(color, background)` — WCAG kontrast garantisi
+  - `apply_plotly_theme(fig, mode)` — Plotly dashboard entegrasyonu
+  - Palette: koherant/inkoherant/duz/tam_halka/schumann/heartmath/psi_sonsuz
+- `src/models/population_hkv.py` — Analitik iki-popülasyon HKV modeli:
+  - `karma_dagilim_pdf()` — Gaussian karışım PDF
+  - `karma_dagilim_beklenen()` — ⟨t⟩ = p_A·τ_A + (1-p_A)·τ_B
+  - `heartmath_uyumu_tahmin()` — HeartMath 4.8s hedefine p_A kalibrasyonu
+  - `bimodalite_indeksi()` — Ashman's D bimodality indeksi
+  - `guc_analizi()` — Bootstrap güç analizi
+  - `analiz_tam()` — Kapsamlı HKV analiz raporu
+- `simulations/level13_uclu_rezonans.py` — Kalp↔Beyin↔Schumann↔Ψ_Sonsuz dörtlü rezonans:
+  - 4 osilatör ODE sistemi (kappa_KB, g_BS, lambda_KS bağlaşımları)
+  - pump_profil: 'kademeli', 'ani', 'sigmoid' seçenekleri
+  - R_total metriği, 6-panel figür çıktısı
+- `simulations/level14_merkez_birey.py` — Halka+merkez birey senaryosu:
+  - N_halka kişi + merkez birey (C_merkez=1.0)
+  - Δr ve Δ⟨C⟩_halka ölçümü (kontrol vs aktif merkez)
+  - 4-panel figür + NPZ kayıt
+- `simulations/level15_iki_kisi_em_etkilesim.py` — İki kişi EM etkileşim modeli:
+  - Mesafeye bağlı κ: kappa_scale = max(0.1, min(1.0, 1/(1+d)))
+  - 3 senaryo: PARALEL (3m), HeartMath (0.9m), SERİ temas (0.3m)
+  - Uzaklık taraması (logspace 0.1-5m), 9-panel + uzaklık etkisi figürleri
+- `scripts/bvt_literatur_karsilastirma.py` — BVT öngörü↔literatür karşılaştırma:
+  - 19 öngörü, 8 kategori (Kalp EM, HKV, Koherans, N-kisi, Psi_Sonsuz, Kuantum, Grup, Kalp-Beyin)
+  - PNG matris tablosu, kapsam bar chart, Markdown tablo
+- `tests/test_theme.py` — Tema sistemi testleri (7 test, tümü geçiyor)
+- `tests/test_population_hkv.py` — Popülasyon HKV testleri (7 test, tümü geçiyor)
+- `tests/test_pre_stimulus.py` — Pre-stimulus testleri (8 test, tümü geçiyor):
+  - İki popülasyon KS testi (p<0.001), boyut doğrulama, ES karşılaştırma
+
+### Güncellendi
+- `src/models/pre_stimulus.py` — `monte_carlo_iki_populasyon()` eklendi:
+  - Pop A (koherant): C~0.65, τ≈1-2s (erken deteksiyon)
+  - Pop B (normal): C~0.25, τ≈4.8s (standart biyolojik zincir)
+  - scipy.stats.ks_2samp KS testi, deneysel_karsilastirma raporu
+- `src/models/multi_person_em_dynamics.py` — `N_kisi_tam_dinamik()` güncellendi:
+  - `cooperative_robustness: bool = True` parametresi eklendi
+  - γ_etkin = γ_eff × (1 - 0.5 × f_geometri) (Celardo et al. 2014)
+  - Return dict'e `gamma_etkin` alanı eklendi
+- `tests/test_multi_person_em.py` — 2 yeni test eklendi:
+  - `test_cooperative_robustness_gamma_azalir()`: robustness=True → γ_etkin < γ_eff
+  - `test_cooperative_robustness_false_gamma_ayni()`: robustness=False → γ_etkin = γ_eff
+- `simulations/level6_hkv_montecarlo.py` — İki popülasyon modeli entegrasyonu:
+  - D2 figür: 4-panel (Pop A/B histogram, ES karşılaştırma, karma dağılım)
+  - D3 figür: C vs pre-stimulus scatter, iki popülasyon renklendirilmiş
+- `simulations/level11_topology.py` — C0 aralığı düşürüldü (0.15-0.40, daha gerçekçi başlangıç)
+  - `cooperative_robustness=True` eklendi
+- `simulations/level12_seri_paralel_em.py` — 3-faz senaryo yeniden tasarımı:
+  - Faz 1 PARALEL: κ×0.3, Faz 2 HİBRİT: κ×1.0, Faz 3 SERİ: κ×2.0
+  - Her faz önceki faz bitiş durumundan başlar
+  - EM snapshots faz ortalarında (t_faz×0.5, 1.5, 2.5)
+- `simulations/level9_v2_kalibrasyon.py` — Dürüstluk notu eklendi:
+  - "Model eta tahminleri deneysel değerlerden 5-20× yüksek" uyarısı
+- `simulations/level1_em_3d.py` — r_max varsayılanı 1.0→3.0 m (McCraty 2003)
+- `simulations/uret_zaman_em_dalga.py` — r_max 0.4→3.0 m, N_grid 80→60
+
+### Düzeltildi
+- `ensure_visibility()` beyaz-üstüne-beyaz tespiti: hex parse + luminance hesabı
+- Level12 faz geçişi görünürlüğü: bağımsız κ değerleri ile 3 ayrı simülasyon
+
+### Test Durumu
+- Toplam: 148 test | Geçen: 142 | Başarısız: 6 (önceki oturumdan gelen, bu oturumda dokunulmadı)
+- Yeni testler: 22 test eklendi, tümü geçiyor
+
+---
+
 ## [2026-04-21] — Oturum 4: Görsel Audit Düzeltmeleri + Yeni Modüller
 
 ### Eklendi

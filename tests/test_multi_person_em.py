@@ -168,3 +168,39 @@ class TestNKisiTamDinamik:
         if mask.sum() > 0:
             rel_err = np.abs(B_toplam[mask] - (B1[mask] + B2[mask])) / (B1[mask] + B2[mask] + 1e-10)
             assert np.mean(rel_err) < 0.5
+
+    def test_cooperative_robustness_gamma_azalir(self):
+        """cooperative_robustness=True ile halka topolojisinde γ_etkin < γ_eff olmalı."""
+        N = 5
+        pos = kisiler_yerlestir(N, "tam_halka", radius=1.0)
+        C0 = np.full(N, 0.5)
+        phi0 = np.linspace(0, 2 * np.pi, N, endpoint=False)
+        from src.core.constants import GAMMA_DEC
+
+        sonuc_robustness = N_kisi_tam_dinamik(
+            pos, C0.copy(), phi0.copy(),
+            t_span=(0, 5), dt=0.1, f_geometri=0.35,
+            cooperative_robustness=True,
+        )
+        sonuc_norobust = N_kisi_tam_dinamik(
+            pos, C0.copy(), phi0.copy(),
+            t_span=(0, 5), dt=0.1, f_geometri=0.35,
+            cooperative_robustness=False,
+        )
+        # Robustness aktifken γ daha küçük → koherans daha yavaş düşer
+        assert sonuc_robustness["gamma_etkin"] < sonuc_norobust["gamma_etkin"]
+        assert sonuc_robustness["gamma_etkin"] < GAMMA_DEC
+
+    def test_cooperative_robustness_false_gamma_ayni(self):
+        """cooperative_robustness=False → γ_etkin = γ_eff olmalı."""
+        N = 4
+        pos = kisiler_yerlestir(N, "tam_halka", radius=1.0)
+        C0 = np.full(N, 0.5)
+        phi0 = np.zeros(N)
+        from src.core.constants import GAMMA_DEC
+
+        sonuc = N_kisi_tam_dinamik(
+            pos, C0, phi0, t_span=(0, 5), dt=0.1,
+            f_geometri=0.35, cooperative_robustness=False,
+        )
+        assert abs(sonuc["gamma_etkin"] - GAMMA_DEC) < 1e-10

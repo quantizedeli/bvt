@@ -238,20 +238,25 @@ def N_kisi_tam_dinamik(
     kappa_eff: float = KAPPA_EFF,
     gamma_eff: float = GAMMA_DEC,
     f_geometri: float = 0.0,
+    cooperative_robustness: bool = True,
 ) -> Dict:
     """
     N kişi için zamana bağlı koherans ve faz dinamiği.
 
     Kuramoto + dipol-dipol etkileşimi + koherans difüzyon dinamiği:
         dφ_i/dt = ω + (K_bonus/N) Σ_j sin(φ_j − φ_i)
-        dC_i/dt = -γ_eff C_i + K_bonus/N Σ_j V_ij (C_j − C_i)
+        dC_i/dt = -γ_etkin C_i + K_bonus/N Σ_j V_ij (C_j − C_i)
 
     Parametreler
     -----------
-    konumlar      : (N, 3) 3D konumlar (m)
-    C_baslangic   : (N,) başlangıç koherans değerleri
-    phi_baslangic : (N,) başlangıç fazları (rad)
-    f_geometri    : halka bonusu katsayısı (0.0 düz, 0.35 tam halka, 0.50 halka+temas)
+    konumlar              : (N, 3) 3D konumlar (m)
+    C_baslangic           : (N,) başlangıç koherans değerleri
+    phi_baslangic         : (N,) başlangıç fazları (rad)
+    f_geometri            : halka bonusu katsayısı (0.0 düz, 0.35 tam halka, 0.50 halka+temas)
+    cooperative_robustness : True ise halka topolojisi γ_eff'i azaltır (Celardo et al. 2014).
+                            γ_etkin = γ_eff × (1 - 0.5 × f_geometri)
+                            f_geometri=0.35 → γ_eff %17.5 azalır
+                            f_geometri=0.50 → γ_eff %25 azalır
 
     Dönüş
     -----
@@ -262,20 +267,29 @@ def N_kisi_tam_dinamik(
         'r_t': (n_t,) Kuramoto düzen parametresi r(t)
         'N_c_etkin': etkin kritik süperradyans eşiği
         'V_matrix': (N, N) dipol-dipol etkileşim matrisi
+        'gamma_etkin': kullanılan etkin gamma değeri
 
     Referans: BVT_Makale, Bölüm 11 — N-kişi kolektif dinamiği.
+              Celardo et al. 2014 — Cooperative robustness to dephasing.
     """
     N_p = len(konumlar)
     t_eval = np.arange(t_span[0], t_span[1], dt)
 
     V = dipol_dipol_etkilesim_matrisi(konumlar)
     K_bonus = kappa_eff * (1 + f_geometri)
+
+    # Cooperative robustness: halka topolojisi dephasing'e karşı koruma sağlar
+    if cooperative_robustness:
+        gamma_etkin = gamma_eff * (1 - 0.5 * f_geometri)
+    else:
+        gamma_etkin = gamma_eff
+
     omega = 2 * np.pi * f_kalp
 
     def rhs(t_val: float, y: np.ndarray) -> np.ndarray:
         C = y[:N_p]
         phi = y[N_p:]
-        dC = -gamma_eff * C + K_bonus / N_p * np.sum(
+        dC = -gamma_etkin * C + K_bonus / N_p * np.sum(
             V * (C[np.newaxis, :] - C[:, np.newaxis]), axis=1
         )
         dphi = omega + K_bonus / N_p * np.sum(
@@ -297,6 +311,7 @@ def N_kisi_tam_dinamik(
         "r_t": r_t,
         "N_c_etkin": N_C_SUPERRADIANCE / (1 + f_geometri),
         "V_matrix": V,
+        "gamma_etkin": gamma_etkin,
     }
 
 

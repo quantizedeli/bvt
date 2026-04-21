@@ -135,8 +135,8 @@ def main() -> None:
                         help="Radyal nokta sayısı (varsayılan: 80)")
     parser.add_argument("--n-theta", type=int, default=90,
                         help="Açısal nokta sayısı (varsayılan: 90)")
-    parser.add_argument("--r-max", type=float, default=1.0,
-                        help="Maksimum yarıçap (m) (varsayılan: 1.0)")
+    parser.add_argument("--r-max", type=float, default=3.0,
+                        help="Maksimum yarıçap (m) (varsayılan: 3.0 — McCraty 2003: 8-10 ft)")
     parser.add_argument("--html", action="store_true",
                         help="HTML çıktısı da üret")
     args = parser.parse_args()

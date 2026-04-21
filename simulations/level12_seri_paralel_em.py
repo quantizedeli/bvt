@@ -89,43 +89,79 @@ def main() -> None:
 
     # 2. Başlangıç: rastgele fazlar (PARALEL), düşük koherans
     rng = np.random.default_rng(42)
-    C_0 = rng.uniform(0.15, 0.35, args.N)
-    phi_0 = rng.uniform(0, 2 * np.pi, args.N)
-    print(f"  Başlangıç koherans: ort={np.mean(C_0):.2f}, r_0 ≈ {abs(np.mean(np.exp(1j*phi_0))):.2f}")
 
-    # 3. N-kişi tam dinamik (halka bonusu aktif)
-    print("  Dinamik entegrasyon...")
-    sonuc = N_kisi_tam_dinamik(
-        konumlar=konumlar,
-        C_baslangic=C_0,
-        phi_baslangic=phi_0,
-        t_span=(0, args.t_end),
-        dt=args.dt,
-        f_geometri=0.35,
+    # FAZ 1 — PARALEL (t=0-20s): zayıf bağlaşım, rastgele fazlar
+    C_0_paralel = rng.uniform(0.15, 0.25, args.N)
+    phi_0_paralel = rng.uniform(0, 2 * np.pi, args.N)
+    t_faz = min(20.0, args.t_end / 3)
+    print(f"  FAZ 1 PARALEL: ort_C={np.mean(C_0_paralel):.2f}, r_0 ≈ {abs(np.mean(np.exp(1j*phi_0_paralel))):.2f}")
+
+    from src.core.constants import KAPPA_EFF
+    print("  FAZ 1 dinamik entegrasyon...")
+    sonuc_p = N_kisi_tam_dinamik(
+        konumlar=konumlar, C_baslangic=C_0_paralel, phi_baslangic=phi_0_paralel,
+        t_span=(0, t_faz), dt=args.dt, f_geometri=0.35,
+        kappa_eff=KAPPA_EFF * 0.3,  # Zayıf bağlaşım — senkron zor
+        cooperative_robustness=True,
     )
-    t_arr = sonuc["t"]
-    C_t = sonuc["C_t"]
-    r_t = sonuc["r_t"]
+
+    # FAZ 2 — HİBRİT (t=20-40s): tam bağlaşım
+    phi_0_hibrit = sonuc_p["phi_t"][:, -1]
+    C_0_hibrit = sonuc_p["C_t"][:, -1]
+    print(f"  FAZ 2 HİBRİT: ort_C={np.mean(C_0_hibrit):.2f}, r ≈ {sonuc_p['r_t'][-1]:.2f}")
+    sonuc_h = N_kisi_tam_dinamik(
+        konumlar=konumlar, C_baslangic=C_0_hibrit, phi_baslangic=phi_0_hibrit,
+        t_span=(0, t_faz), dt=args.dt, f_geometri=0.35,
+        kappa_eff=KAPPA_EFF * 1.0,
+        cooperative_robustness=True,
+    )
+
+    # FAZ 3 — SERİ (t=40-60s): güçlü pump
+    phi_0_seri = sonuc_h["phi_t"][:, -1]
+    C_0_seri = sonuc_h["C_t"][:, -1]
+    print(f"  FAZ 3 SERİ: ort_C={np.mean(C_0_seri):.2f}, r ≈ {sonuc_h['r_t'][-1]:.2f}")
+    sonuc_s = N_kisi_tam_dinamik(
+        konumlar=konumlar, C_baslangic=C_0_seri, phi_baslangic=phi_0_seri,
+        t_span=(0, t_faz), dt=args.dt, f_geometri=0.50,
+        kappa_eff=KAPPA_EFF * 2.0,
+        cooperative_robustness=True,
+    )
+
+    # Birleştir: 3 faz
+    t_arr = np.concatenate([sonuc_p["t"], sonuc_h["t"] + t_faz, sonuc_s["t"] + 2 * t_faz])
+    C_t = np.concatenate([sonuc_p["C_t"], sonuc_h["C_t"], sonuc_s["C_t"]], axis=1)
+    r_t = np.concatenate([sonuc_p["r_t"], sonuc_h["r_t"], sonuc_s["r_t"]])
+    phi_full = np.concatenate([sonuc_p["phi_t"], sonuc_h["phi_t"], sonuc_s["phi_t"]], axis=1)
+
+    # FAZ snap zamanları
+    snap_labels_overwrite = {}
+    snap_labels_overwrite[t_faz * 0.5] = "PARALEL"
+    snap_labels_overwrite[t_faz * 1.5] = "HİBRİT"
+    snap_labels_overwrite[t_faz * 2.5] = "SERİ"
 
     # 4. Seri-paralel indeks ve kolektif güç
     labels = seri_paralel_indeks(r_t)
     kolektif_guc = kolektif_guc_hesapla(C_t, r_t)
+    # eski snapshot zamanları için birleşik phi_0 kullan
+    phi_0 = phi_0_paralel
 
-    # 5. EM alan snapshot'ları (t=5s, t_mid, t_end-5)
-    t_snaps = [5.0, args.t_end * 0.4, args.t_end - 5.0]
-    t_snaps = [max(0.1, min(t, args.t_end - 0.1)) for t in t_snaps]
-    print(f"  EM alan snapshot: t={t_snaps}")
+    # 5. EM alan snapshot'ları — 3 faz için birer snap (FAZ ortasından)
+    t_snaps = [t_faz * 0.5, t_faz * 1.5, t_faz * 2.5]
+    faz_etiketleri = {t_faz * 0.5: "PARALEL", t_faz * 1.5: "HİBRİT", t_faz * 2.5: "SERİ"}
+    t_snaps = [max(t_arr[0] + 0.1, min(t, t_arr[-1] - 0.1)) for t in t_snaps]
+    print(f"  EM alan snapshot: t={[f'{t:.1f}s' for t in t_snaps]}")
 
-    momentler = dipol_moment_zaman(t_arr, np.mean(C_t, axis=1), phi_0)
+    momentler = dipol_moment_zaman(t_arr, np.mean(C_t, axis=0), phi_0)
     snap_data = {}
     for t_snap in t_snaps:
         t_idx = int(np.searchsorted(t_arr, t_snap))
         t_idx = min(t_idx, len(t_arr) - 1)
         _, _, _, B_mag = toplam_em_alan_3d(t_idx, konumlar, momentler,
                                             grid_extent=3.0, grid_n=25)
+        faz_label = faz_etiketleri.get(t_snap, labels[t_idx])
         snap_data[t_snap] = {
             "B_mag": B_mag,
-            "label": labels[t_idx],
+            "label": faz_label,
             "r_val": float(r_t[t_idx]),
         }
 

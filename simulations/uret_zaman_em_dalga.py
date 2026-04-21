@@ -111,9 +111,9 @@ def uret_grafik(output_path: str, t: float = 1.0) -> None:
     """
     rng = np.random.default_rng(0)
 
-    # Izgara: ±40 cm, vücut ölçeği
-    r_max = 0.40  # m
-    N_grid = 80
+    # Izgara: ±3m menzil (McCraty 2003: 8-10 ft = 2.4-3.0 m)
+    r_max = 3.0  # m — literatür referansı
+    N_grid = 60
     x_arr = np.linspace(-r_max, r_max, N_grid)
     y_arr = np.linspace(-r_max, r_max, N_grid)
     X, Y = np.meshgrid(x_arr, y_arr)
@@ -182,8 +182,8 @@ def uret_grafik(output_path: str, t: float = 1.0) -> None:
     # ── Başlık ─────────────────────────────────────────────────────
     fig.suptitle(
         f"Kalp–Beyin 3D EM Dalgası — Anlık Görüntü  (t = {t:.1f} s)\n"
-        f"f_kalp = {F_HEART} Hz  |  ω_kalp = {OMEGA_HEART:.4f} rad/s  |"
-        f"  μ_kalp = {MU_HEART_MCG:.2e} A·m²",
+        f"r_max = {r_max}m (McCraty 2003: 8-10 ft)  |  "
+        f"f_kalp = {F_HEART} Hz  |  μ_kalp = {MU_HEART_MCG:.2e} A·m²",
         fontsize=11, y=1.01,
     )
 

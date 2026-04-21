@@ -272,6 +272,114 @@ def monte_carlo_prestimulus_advanced(
     }
 
 
+def monte_carlo_iki_populasyon(
+    n_trials: int = 1000,
+    frac_koherant: float = 0.3,
+    C_koherant_mean: float = 0.65,
+    C_koherant_std: float = 0.08,
+    C_normal_mean: float = 0.25,
+    C_normal_std: float = 0.08,
+    noise_std: float = 0.5,
+    advanced_wave_amplitude: float = 1e-14,
+    rng_seed: int = 42,
+) -> Dict[str, np.ndarray]:
+    """
+    İki popülasyonlu pre-stimulus Monte Carlo.
+
+    Popülasyon A: Koherant bireyler (meditasyoncular, klerikal grup)
+        - C ~ N(0.65, 0.08), C > C_threshold
+        - Advanced wave ile erken detection (1-2 s)
+        - Fraksiyon: frac_koherant (varsayılan %30)
+
+    Popülasyon B: Normal bireyler (genel popülasyon)
+        - C ~ N(0.25, 0.08), çoğunluk C < C_threshold
+        - Sadece biyolojik zincir (4-5 s)
+        - Fraksiyon: 1 - frac_koherant (varsayılan %70)
+
+    Parametreler
+    -----------
+    n_trials              : toplam deneme sayısı
+    frac_koherant         : koherant popülasyon oranı [0, 1]
+    C_koherant_mean/std   : koherant grup koherans dağılımı
+    C_normal_mean/std     : normal grup koherans dağılımı
+    noise_std             : ölçüm gürültüsü (s)
+    advanced_wave_amplitude : ψ_adv genliği (T)
+    rng_seed              : tekrarlanabilirlik
+
+    Dönüş
+    -----
+    results : dict
+
+    Referans: BVT_Makale_v4.0, Bölüm 9.4 — Hiss-i Kablel Vuku
+              Wheeler-Feynman (1945) advanced wave modulation
+    """
+    from scipy.stats import ks_2samp
+    from src.core.operators import kapı_vektör
+
+    rng = np.random.default_rng(rng_seed)
+
+    n_A = int(n_trials * frac_koherant)
+    n_B = n_trials - n_A
+
+    C_A = np.clip(rng.normal(C_koherant_mean, C_koherant_std, n_A), 0, 1)
+    C_B = np.clip(rng.normal(C_normal_mean, C_normal_std, n_B), 0, 1)
+
+    gate_A = kapı_vektör(C_A)
+    tau_early_A = 5.0 - 4.0 * gate_A  # C=1 → τ=1s; C=0.4 → τ=3s
+    prestim_A = tau_early_A + rng.normal(0, noise_std, n_A)
+    prestim_A = np.clip(prestim_A, 0.2, HKV_WINDOW_MAX)
+
+    prestim_B = TAU_VAGAL + rng.normal(0, noise_std, n_B)
+    prestim_B = np.clip(prestim_B, 0.2, HKV_WINDOW_MAX + 5.0)
+
+    C_ref = 0.35
+    scale = ES_MOSSBRIDGE / C_ref
+    ES_A = np.where(C_A > C_THRESHOLD,
+                    np.minimum(C_A * scale, ES_DUGGAN * 1.5), 0.0)
+    ES_B = np.where(C_B > C_THRESHOLD,
+                    np.minimum(C_B * scale, ES_DUGGAN), 0.0)
+
+    ks_stat, ks_pval = ks_2samp(prestim_A, prestim_B)
+
+    deneysel = {
+        "HeartMath_4.8s_karsilastirma": {
+            "bvt_A": float(np.mean(prestim_A)),
+            "bvt_B": float(np.mean(prestim_B)),
+            "deneysel": 4.8,
+            "aciklama": "HeartMath muhtemelen karma popülasyondan ortalama veriyor",
+        },
+        "Mossbridge_ES_0.21": {
+            "bvt_A": float(np.mean(ES_A)),
+            "bvt_B": float(np.mean(ES_B)),
+            "bvt_karma": float(np.mean(np.concatenate([ES_A, ES_B]))),
+            "deneysel": ES_MOSSBRIDGE,
+        },
+        "Duggan_Tressoldi_ES_0.28": {
+            "bvt_koherant_max": float(np.max(ES_A)) if len(ES_A) > 0 else 0.0,
+            "deneysel_max": ES_DUGGAN,
+            "aciklama": "Duggan-Tressoldi preregistered ES=0.31 koherant grupla uyumlu",
+        },
+    }
+
+    return {
+        "C_A": C_A,
+        "C_B": C_B,
+        "prestimulus_times_A": prestim_A,
+        "prestimulus_times_B": prestim_B,
+        "effect_sizes_A": ES_A,
+        "effect_sizes_B": ES_B,
+        "mean_prestim_A": float(np.mean(prestim_A)),
+        "mean_prestim_B": float(np.mean(prestim_B)),
+        "mean_ES_A": float(np.mean(ES_A)),
+        "mean_ES_B": float(np.mean(ES_B)),
+        "n_A": n_A,
+        "n_B": n_B,
+        "kolmogorov_smirnov_stat": float(ks_stat),
+        "kolmogorov_smirnov_p": float(ks_pval),
+        "deneysel_karsilastirma": deneysel,
+    }
+
+
 if __name__ == "__main__":
     print("=" * 55)
     print("BVT pre_stimulus.py self-test")

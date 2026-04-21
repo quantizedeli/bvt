@@ -64,8 +64,9 @@ def topolo_karsilastir(
     Dict: topoloji ismi → {'t', 'r_t', 'C_t', 'r_son', 'N_c_etkin'}
     """
     rng = np.random.default_rng(seed)
-    C0 = rng.uniform(0.2, 0.5, N)
-    phi0 = rng.uniform(0, 2 * np.pi, N)
+    # Düşük-orta başlangıç koherans + tam rastgele faz (Audit v2 düzeltmesi)
+    C0 = rng.uniform(0.15, 0.40, N)
+    phi0 = rng.uniform(0, 2 * np.pi, N)  # Tam rastgele: r(0) ≈ 0
 
     sonuclar = {}
     for kfg in TOPOLOJILER:
@@ -78,6 +79,7 @@ def topolo_karsilastir(
             t_span=(0, t_end),
             dt=dt,
             f_geometri=kfg["f_geo"],
+            cooperative_robustness=True,  # γ_eff topolojiye bağlı (Celardo 2014)
         )
         sonuclar[kfg["isim"]] = {
             "t": sonuc["t"],

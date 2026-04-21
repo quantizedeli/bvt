@@ -264,6 +264,15 @@ def main() -> None:
         ax.set_ylabel("Örtüşme integrali η")
         ax.set_title("BVT Tahmini vs Deneysel Gözlem")
         ax.legend()
+        # Dürüstlük notu — model kalibrasyonu hakkında
+        ax.text(0.98, 0.97,
+                "NOT: Model eta tahminleri deneysel eta\n"
+                "degerlerinden sistematik 5-20x yuksek.\n"
+                "V3 kalibrasyonda duzeltilecek.",
+                transform=ax.transAxes,
+                fontsize=9, color="darkred",
+                verticalalignment="top", horizontalalignment="right",
+                bbox=dict(boxstyle="round", facecolor="wheat", alpha=0.8))
 
         # Panel 5: κ_eff güven aralığı
         ax = fig.add_subplot(gs[1, 2])
