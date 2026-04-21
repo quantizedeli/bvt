@@ -5,6 +5,48 @@ Bu dosya projedeki her önemli değişikliği kaydeder.
 
 ---
 
+## [2026-04-21] — Oturum 4: Görsel Audit Düzeltmeleri + Yeni Modüller
+
+### Eklendi
+- `src/models/multi_person_em_dynamics.py` — N-kişi zaman bağımlı EM dinamiği:
+  - `kisiler_yerlestir()` (5 topoloji), `dipol_moment_zaman()`, `toplam_em_alan_3d()`
+  - `dipol_dipol_etkilesim_matrisi()`, `N_kisi_tam_dinamik()` (Kuramoto+geometri)
+- `tests/test_multi_person_em.py` — 19 test (4 sınıf), tümü geçiyor
+- `simulations/level11_topology.py` — 4 topoloji karşılaştırması (N_c_etkin analizi)
+- `simulations/level12_seri_paralel_em.py` — PARALEL→HİBRİT→SERİ faz geçişi animasyonu
+- `src/viz/animations.py` — Plotly frame-tabanlı HTML animasyonlar:
+  - `animasyon_kalp_koherant_vs_inkoherant()` (yan yana C=0.85 vs C=0.15)
+  - `animasyon_halka_kolektif_em()` (N-kişi halka topolojisi)
+- `matlab_scripts/matlab_pde_em_3d.m` — MATLAB 3D harmonik Maxwell denklem çözücü
+  (Jefimenko formülasyonu, yakın+uzak alan, pT çıktısı)
+- `archive/old_py_notebooks/` — Eski Python betikleri arşivlendi (29 dosya)
+
+### Güncellendi
+- `src/matlab_bridge.py` — Yeni fonksiyonlar:
+  - `bvt_pde_3d_solve()` — matlab_pde_em_3d.m çağırır, Python fallback destekli
+  - `matlab_animate_N_person()` — VideoWriter mp4, Matplotlib gif fallback
+  - `matlab_symbolic_derivation()` — Sembolik türetim → LaTeX string
+- `simulations/level6_hkv_montecarlo.py` — `--advanced-wave` flag eklendi
+  (Wheeler-Feynman advanced wave modülasyonu, C-ES korelasyon r=0.887)
+- `src/models/pre_stimulus.py` — `advanced_wave_modulation()` ve
+  `monte_carlo_prestimulus_advanced()` fonksiyonları eklendi
+- `simulations/level2_cavity.py` — θ_mix tablosu hardcoded "2.10"→dinamik değer
+- `simulations/level7_tek_kisi.py` — |α| aks etiketi düzeltildi
+- `src/viz/plots_static.py` — LogNorm ile doğru log-ölçek kontur grafiği
+- `src/solvers/tise.py` — `Optional` import eksikliği giderildi
+- `old py/BVT_v2_kalibrasyon.py` — N_c=0 hatası düzeltildi (literature N_c=11)
+- `old py/BVT_tek_kisi_tamamlama.py` — |α| aks etiketi düzeltildi
+
+### Düzeltildi
+- N_c=0 kök neden: kappa_12_raw = V_dd/ℏ ≈ 9.5e18 rad/s çok büyük →
+  literatür değeri N_c=11 sabitlendi, kappa_12_eff = gamma_group/N_c = 0.00909 rad/s
+- θ_mix 2.10° vs 18.29° açıklandı: kod doğru (18.3°), belgedeki 2.10° rad/derece
+  karışıklığından kaynaklanıyordu
+- `animations.py` broadcast hatası: C_mean_t şekil uyumsuzluğu giderildi
+- `animations.py` UnicodeEncodeError: "✓" → "OK" değiştirildi
+
+---
+
 ## [2026-04-11] — Oturum 3: Tüm Eksik Modüller + main.py Tamamlandı
 
 ### Eklendi

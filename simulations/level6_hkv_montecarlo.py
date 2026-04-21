@@ -34,7 +34,10 @@ from src.core.constants import (
     ES_MOSSBRIDGE, ES_DUGGAN, HKV_WINDOW_MIN, HKV_WINDOW_MAX,
     C_THRESHOLD, TAU_VAGAL
 )
-from src.models.pre_stimulus import monte_carlo_prestimulus, ef_büyüklüğü_eğrisi
+from src.models.pre_stimulus import (
+    monte_carlo_prestimulus, ef_büyüklüğü_eğrisi,
+    monte_carlo_prestimulus_advanced,
+)
 
 
 def _batch_monte_carlo(args: tuple) -> Dict:
@@ -191,13 +194,16 @@ def main() -> None:
                         help="Çıktı dizini")
     parser.add_argument("--html", action="store_true",
                         help="HTML çıktısı da üret (her zaman üretilir)")
+    parser.add_argument("--advanced-wave", action="store_true",
+                        help="Wheeler-Feynman advanced wave modeli kullan (Katman 1 gerçek dinamik)")
     args = parser.parse_args()
 
     print("=" * 65)
     print("BVT Level 6 — Pre-Stimulus (Hiss-i Kablel Vuku) Monte Carlo")
     print("=" * 65)
+    adv_label = " [advanced-wave MOD]" if args.advanced_wave else ""
     print(f"Parametreler: trials={args.trials}, parallel={args.parallel}, "
-          f"C_mean={args.C_mean}")
+          f"C_mean={args.C_mean}{adv_label}")
     print()
 
     os.makedirs(args.output, exist_ok=True)
@@ -206,13 +212,24 @@ def main() -> None:
     t_start = time.time()
 
     # Monte Carlo
-    print(f"Monte Carlo simülasyonu başlıyor ({args.trials} deneme)...")
-    results = paralel_monte_carlo(
-        total_trials=args.trials,
-        n_workers=args.parallel,
-        C_mean=args.C_mean,
-        C_std=args.C_std
-    )
+    if args.advanced_wave:
+        print(f"Monte Carlo simülasyonu başlıyor (ADVANCED WAVE modu, {args.trials} deneme)...")
+        results = monte_carlo_prestimulus_advanced(
+            n_trials=args.trials,
+            C_mean=args.C_mean,
+            C_std=args.C_std,
+            rng_seed=42,
+        )
+        det_frac = results.get("detection_fraction", 0)
+        print(f"  Advanced wave tespit oranı: {det_frac:.1%}")
+    else:
+        print(f"Monte Carlo simülasyonu başlıyor ({args.trials} deneme)...")
+        results = paralel_monte_carlo(
+            total_trials=args.trials,
+            n_workers=args.parallel,
+            C_mean=args.C_mean,
+            C_std=args.C_std
+        )
 
     elapsed = time.time() - t_start
 

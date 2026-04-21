@@ -79,10 +79,15 @@ def em_alan_3d_kaydet(
     X = R_mesh * np.sin(T_mesh) * 100  # m → cm
     Z = R_mesh * np.cos(T_mesh) * 100
 
+    from matplotlib.colors import LogNorm
+    vmin = max(float(np.nanmin(B_pT[B_pT > 0])), 0.1)
+    vmax = float(np.nanmax(B_pT))
+    norm = LogNorm(vmin=vmin, vmax=vmax)
+
     fig, ax = plt.subplots(1, 1, figsize=FIGSIZE_SINGLE)
-    cf = ax.contourf(X, Z, B_pT, levels=50, cmap="hot_r")
+    cf = ax.contourf(X, Z, np.clip(B_pT, vmin, vmax), levels=50, cmap="hot_r", norm=norm)
     cbar = fig.colorbar(cf, ax=ax)
-    cbar.set_label("|B| (pT)", fontsize=12)
+    cbar.set_label("|B| (pT, log-scale)", fontsize=12)
     ax.set_xlabel("x (cm)", fontsize=12)
     ax.set_ylabel("z (cm)", fontsize=12)
     ax.set_title("Kalp Manyetik Dipol Alanı (2D Kesit)", fontsize=13)

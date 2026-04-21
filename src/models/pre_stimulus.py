@@ -190,6 +190,88 @@ def monte_carlo_prestimulus(
     }
 
 
+def monte_carlo_prestimulus_advanced(
+    n_trials: int = 1000,
+    C_mean: float = 0.35,
+    C_std: float = 0.1,
+    noise_std: float = 0.5,
+    rng_seed: int = 42,
+    stim_time: float = 30.0,
+    t_end: float = 60.0,
+    n_t: int = 600,
+) -> Dict[str, np.ndarray]:
+    """
+    Advanced-wave tabanlı pre-stimulus Monte Carlo simülasyonu.
+
+    Wheeler-Feynman advanced_wave_modulation kullanır: her denemede
+    ψ_adv(t)'nin eşiği geçtiği an tespit edilerek pre-stimulus süresi
+    belirlenir. Kapı mekanizması: C < C₀ → ψ_adv=0 → tespit yok.
+
+    Parametreler
+    -----------
+    n_trials  : int   — deneme sayısı
+    stim_time : float — uyaranın meydana geldiği zaman (s)
+    t_end     : float — simülasyon bitiş zamanı (s)
+    n_t       : int   — zaman ızgarası nokta sayısı
+
+    Döndürür
+    --------
+    results : dict — monte_carlo_prestimulus ile aynı format +
+        'advanced_wave_peak_t': her deneme için ψ_adv tepe zamanı
+        'detection_fraction': eşik-aşan deneme oranı
+
+    Referans: BVT_Makale, Bölüm 9.4; Wheeler & Feynman (1945).
+    """
+    rng = np.random.default_rng(rng_seed)
+    t_grid = np.linspace(0, t_end, n_t)
+
+    C_values = np.clip(rng.normal(C_mean, C_std, n_trials), 0.0, 1.0)
+    prestimulus_times = np.zeros(n_trials)
+    peak_times = np.zeros(n_trials)
+    detected = np.zeros(n_trials, dtype=bool)
+
+    for i, C in enumerate(C_values):
+        psi_adv = advanced_wave_modulation(t_grid, stim_time, C)
+        peak_val = np.max(psi_adv)
+
+        if peak_val > 0:
+            threshold = peak_val * 0.1  # %10 eşiği
+            det_idx = np.where(psi_adv > threshold)[0]
+            if len(det_idx) > 0:
+                t_det = t_grid[det_idx[0]]
+                prestimulus_times[i] = stim_time - t_det
+                peak_times[i] = t_grid[np.argmax(psi_adv)]
+                detected[i] = True
+            else:
+                # Eşik aşılmadı: standart gecikme modeli
+                prestimulus_times[i] = TAU_VAGAL
+        else:
+            # C < C₀: kapı kapalı, standart gecikme
+            prestimulus_times[i] = TAU_VAGAL
+
+    prestimulus_times += rng.normal(0, noise_std, n_trials)
+    prestimulus_times = np.clip(prestimulus_times, 0, HKV_WINDOW_MAX + 5.0)
+
+    effect_sizes = ef_büyüklüğü_eğrisi(C_values)
+    coherence_corr = float(np.corrcoef(C_values, effect_sizes)[0, 1])
+
+    return {
+        "C_values": C_values,
+        "prestimulus_times": prestimulus_times,
+        "effect_sizes": effect_sizes,
+        "coherence_corr": coherence_corr,
+        "mean_prestimulus_s": float(np.mean(prestimulus_times)),
+        "std_prestimulus_s": float(np.std(prestimulus_times)),
+        "mean_ES": float(np.mean(effect_sizes)),
+        "std_ES": float(np.std(effect_sizes)),
+        "n_above_threshold": int(np.sum(C_values > C_THRESHOLD)),
+        "n_trials": n_trials,
+        "fraction_above": float(np.mean(C_values > C_THRESHOLD)),
+        "advanced_wave_peak_t": peak_times,
+        "detection_fraction": float(np.mean(detected)),
+    }
+
+
 if __name__ == "__main__":
     print("=" * 55)
     print("BVT pre_stimulus.py self-test")
@@ -229,4 +311,55 @@ if __name__ == "__main__":
 
     assert 3.0 <= results['mean_prestimulus_s'] <= 8.0, "Pre-stimulus aralık dışı!"
     assert results['coherence_corr'] > 0.3, "C-ES korelasyonu çok düşük!"
+
+
+# ============================================================
+# ADVANCED WAVE MODÜLASYONU (Wheeler-Feynman absorber teorisi)
+# ============================================================
+
+def advanced_wave_modulation(
+    t: np.ndarray,
+    stimulus_time: float,
+    coherence: float,
+    r_det: float = 1.0,
+    wave_speed: float = 3e8,
+    amplitude: float = 1e-14,
+) -> np.ndarray:
+    """
+    Uyaran-öncesi advanced wave modülasyonunu modelle.
+
+    Wheeler-Feynman advanced component:
+        ψ_adv(r, t) = A × f(C) × exp(-(t - t_stim + r/c)² / 2σ²)
+
+    Uyaran t_stim'de meydana gelecekse, kalbe (r=r_det mesafede) ulaşacak
+    advanced sinyal en kuvvetli olarak t ≈ t_stim - r/c anında hissedilir.
+    r_det/c << 1 s olduğundan pratikte t ≈ t_stim anında tepe yapar.
+
+    BVT yorumu:
+        - Ψ_Sonsuz retarded+advanced karışık yapısından doğar
+        - Sadece C > C₀ ise kalp algılayabilir — f(C) kapısı
+        - Bu, anlık nedensellik ihlali değil; geçmiş Ψ_Sonsuz durumundan
+          türevlenen istatistiksel ön-hazırlık
+
+    Parametreler
+    -----------
+    t              : np.ndarray — zaman dizisi (s)
+    stimulus_time  : uyaranın meydana geleceği mutlak zaman (s)
+    coherence      : kişinin o andaki koherans değeri C ∈ [0, 1]
+    r_det          : kalp-Ψ_Sonsuz kaynak arası etkin mesafe (m)
+    wave_speed     : EM dalga hızı (m/s)
+    amplitude      : sinyal genliği (T) — Schumann skalasında
+
+    Dönüş
+    -----
+    psi_adv : np.ndarray — uyaran öncesi advanced modülasyon (T)
+
+    Referans: Wheeler & Feynman (1945); Cramer (1986); BVT_Makale, Bölüm 9.4.
+    """
+    from src.core.operators import kapı_fonksiyonu
+    sigma = 0.5  # Gaussian pencere genişliği (s)
+    t_arr = t - stimulus_time + r_det / wave_speed
+    gaussian_envelope = np.exp(-t_arr**2 / (2 * sigma**2))
+    gate_factor = kapı_fonksiyonu(coherence)
+    return amplitude * gate_factor * gaussian_envelope
     print("\npre_stimulus.py self-test: BAŞARILI ✓")

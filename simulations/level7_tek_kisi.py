@@ -294,9 +294,9 @@ def main() -> None:
         ax = axes[1, 1]
         ax.plot(alpha_vals, eta_max_vals, "o-", color="purple", lw=2.5, ms=8)
         ax.fill_between(alpha_vals, eta_max_vals, alpha=0.2, color="purple")
-        ax.set_xlabel("Koherans Parametresi |alpha|")
+        ax.set_xlabel("Termal Sapma |alpha|  (dusuk = koherant)")
         ax.set_ylabel("eta_max")
-        ax.set_title("Koherans → Ortusme  (Daha fazla koherans = daha fazla birlik)")
+        ax.set_title("Termal sapma artikca ortusme dustu")
 
         fig.suptitle("BVT Level 7 — Tek Kisi Tam Modeli", fontsize=15)
         plt.tight_layout()
