@@ -142,8 +142,8 @@ FAZ_BİLGİ = {
         "açıklama": "Düz/yarım-halka/tam-halka/temas — N_c_etkin & N ölçekleme analizi",
         "betik": "simulations/level11_topology.py",
         "tahmini_süre": "~2 dk",
-        "hizli_args": ["--N-max", "12", "--t-end", "20"],
-        "tam_args": ["--N-max", "20", "--t-end", "60"],
+        "hizli_args": ["--N", "12", "--t-end", "20"],
+        "tam_args": ["--N", "20", "--t-end", "60"],
     },
     12: {
         "isim": "Seri-Paralel EM Faz Geçişi",

@@ -221,6 +221,7 @@ def main() -> None:
     parser.add_argument("--N", type=int, default=10, help="Kişi sayısı")
     parser.add_argument("--t-end", type=float, default=60.0, help="Simülasyon süresi (s)")
     parser.add_argument("--output", default="output/level11", help="Çıktı dizini")
+    parser.add_argument("--html", action="store_true", help="HTML çıktı (her zaman üretilir)")
     args = parser.parse_args()
 
     os.makedirs(args.output, exist_ok=True)
