@@ -29,14 +29,12 @@ import numpy as np
 from scipy import integrate
 
 from src.core.constants import (
-    MU_HEART, KAPPA_EFF, N_C_SUPERRADIANCE, HBAR
+    MU_HEART, KAPPA_EFF, N_C_SUPERRADIANCE, HBAR,
+    MU_0, K_B, T_BODY,
 )
 
-MU_0     = 4 * np.pi * 1e-7   # T·m/A
-K_B      = 1.381e-23            # J/K
-T_BODY   = 310.0                # K
-KT       = K_B * T_BODY
-MU_KALP  = 1e-4                 # A·m²
+KT      = K_B * T_BODY
+MU_KALP = MU_HEART   # alias — kalp dipol momenti (A·m²)
 
 
 def dipol_potansiyel(r: np.ndarray) -> np.ndarray:

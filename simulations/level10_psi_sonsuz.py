@@ -33,27 +33,29 @@ from scipy.optimize import curve_fit
 
 from src.core.constants import (
     G_EFF, KAPPA_EFF, N_C_SUPERRADIANCE,
-    ES_MOSSBRIDGE, ES_DUGGAN, C_THRESHOLD, HBAR
+    ES_MOSSBRIDGE, ES_DUGGAN, C_THRESHOLD, HBAR,
+    F_S1, Q_S1, SCHUMANN_FREQS_HZ, SCHUMANN_Q_FACTORS,
+    B_SCHUMANN, B_EARTH_SURFACE,
 )
 
-F_SCH      = 7.83     # Hz
-Q_SCH      = 3.5
-GAMMA_SCH  = 2 * np.pi * (F_SCH / Q_SCH)
-G_EFF_V2   = 5.06
-KAPPA_V2   = 21.9
+F_SCH      = F_S1                           # 7.83 Hz
+Q_SCH      = Q_S1                           # 4.0 — GCI (eski değer 3.5 yanlıştı)
+GAMMA_SCH  = 2 * np.pi * (F_SCH / Q_SCH)   # ~12.29 rad/s (eski 14.06 yanlıştı)
+G_EFF_V2   = G_EFF                          # 5.06 rad/s
+KAPPA_V2   = KAPPA_EFF                      # 21.9 rad/s
 
 # Ψ_Sonsuz bileşenleri
 PSI_COMPONENTS = {
     "Schumann": {
-        "B":           1e-12,
+        "B":           B_SCHUMANN,                    # 1e-12 T
         "B_burst":     20e-12,
-        "freqs":       [7.83, 14.3, 20.8, 27.3, 33.8],
-        "Q_vals":      [3.5,  5.2,  6.8,  7.5,  8.2],
+        "freqs":       list(SCHUMANN_FREQS_HZ),        # [7.83, 14.3, ...] Hz
+        "Q_vals":      list(SCHUMANN_Q_FACTORS),       # [4.0, 5.0, 6.0, 7.0, 8.0] — GCI
         "g_coupling":  1.000,
         "tier":        1,
     },
     "Jeomanyetik": {
-        "B_static":    50e-6,
+        "B_static":    B_EARTH_SURFACE,               # 50e-6 T
         "dB_storm":    1000e-9,
         "dB_daily":    50e-9,
         "g_coupling":  0.100,

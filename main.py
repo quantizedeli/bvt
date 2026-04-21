@@ -2,15 +2,18 @@
 BVT — Tek Giriş Noktası (main.py)
 ====================================
 Birliğin Varlığı Teoremi — 12 Fazlı Simülasyon Yöneticisi
+Güncelleme: Nisan 2026 — Q_S1=4.0 düzeltmesi, sabit merkezi yönetim
 
 Kullanım:
-    python main.py                      # Tüm fazları çalıştır
+    python main.py                      # Tüm fazları + HTML + animasyon üret
     python main.py --phases 1 2 3       # Belirli fazları çalıştır
-    python main.py --faz 1              # Tek faz
+    python main.py --faz 9              # Tek faz
     python main.py --hizli              # Tüm fazlar, kısa parametreler
-    python main.py --html               # HTML çıktıları da üret
-    python main.py --animasyon          # Plotly animasyonlarını üret
+    python main.py --html               # Yalnızca etkileşimli HTML şekilleri
+    python main.py --animasyon          # Yalnızca Plotly animasyonları
     python main.py --listele            # Faz listesini göster
+    python main.py --kontrol            # Bağımlılık + BVT sabitleri kontrolü
+    python main.py --zaman-em-dalga     # Kalp EM dalga grafiğini yeniden üret
 
 12 Faz:
     Faz 1:  3D EM Alan Haritası (kalp+beyin+Ψ_Sonsuz)
@@ -18,19 +21,19 @@ Kullanım:
     Faz 3:  Tam Kuantum Lindblad Dinamiği (QuTiP)
     Faz 4:  N-Kişi Senkronizasyon & Süperradyans
     Faz 5:  Hibrit Maxwell+Schrödinger
-    Faz 6:  Pre-stimulus Hiss-i Kablel Vuku Monte Carlo (--advanced-wave)
+    Faz 6:  Pre-stimulus Hiss-i Kablel Vuku Monte Carlo
     Faz 7:  Tek Kişi Tam Modeli (Lindblad + Kalp Anteni)
     Faz 8:  İki Kişi + Pil Analojisi (Dipol-Dipol + Batarya ODE)
     Faz 9:  V2 Parametre Kalibrasyonu (κ_eff, g_eff, Q_kalp)
     Faz 10: Ψ_Sonsuz Yapısı + 3D Yüzeyler (Çevre & Spektrum)
-    Faz 11: Topoloji Karşılaştırması (düz/halka/temas, N_c_etkin analizi)
+    Faz 11: Topoloji Karşılaştırması (düz/halka/temas, N_c_etkin)
     Faz 12: Seri-Paralel EM Faz Geçişi (PARALEL→HİBRİT→SERİ)
 
-Tamamlandıktan sonra sonuçlar:
+Çıktılar:
     output/level{N}/       ← Her fazın PNG+HTML çıktıları
     output/html/           ← İnteraktif HTML şekilleri (plots_interactive.py)
-    output/animations/     ← Plotly HTML animasyonları (animations.py)
-    output/RESULTS_LOG.md  ← otomatik güncellenen log
+    output/animations/     ← Plotly HTML animasyonları + GIF + MP4
+    output/RESULTS_LOG.md  ← Otomatik güncellenen çalıştırma logu
 """
 import argparse
 import os
@@ -189,14 +192,14 @@ def faz_listele() -> None:
 
 
 def çevre_kontrol() -> dict:
-    """Python bağımlılıklarını kontrol eder."""
+    """Python bağımlılıklarını ve BVT fiziksel sabitlerini kontrol eder."""
     durum = {}
     bağımlılıklar = [
-        ("numpy", "numpy"),
-        ("scipy", "scipy"),
+        ("numpy",      "numpy"),
+        ("scipy",      "scipy"),
         ("matplotlib", "matplotlib"),
-        ("plotly", "plotly"),
-        ("qutip", "qutip"),
+        ("plotly",     "plotly"),
+        ("qutip",      "qutip"),
     ]
 
     print("\n  Bağımlılık kontrolü:")
@@ -225,6 +228,36 @@ def çevre_kontrol() -> dict:
         print(f"    {renk('!', 'sarı')} matlab.engine — bulunamadı (Python fallback kullanılır)")
         durum["matlab"] = False
 
+    # BVT fiziksel sabitler özeti
+    print("\n  BVT fiziksel sabitler (constants.py):")
+    try:
+        from src.core.constants import (
+            F_HEART, OMEGA_HEART, F_S1, Q_S1,
+            KAPPA_EFF, G_EFF, Q_HEART,
+            MU_HEART_MCG, B_SCHUMANN,
+            GAMMA_K, GAMMA_B, GAMMA_PUMP,
+            N_C_SUPERRADIANCE,
+        )
+        sabitleri = [
+            ("F_HEART",         F_HEART,         "Hz",    0.1),
+            ("OMEGA_HEART",     OMEGA_HEART,      "rad/s", 0.6283),
+            ("F_S1",            F_S1,             "Hz",    7.83),
+            ("Q_S1",            Q_S1,             "",      4.0),
+            ("KAPPA_EFF",       KAPPA_EFF,        "rad/s", 21.9),
+            ("G_EFF",           G_EFF,            "rad/s", 5.06),
+            ("Q_HEART",         Q_HEART,          "",      21.7),
+            ("GAMMA_K",         GAMMA_K,          "s⁻¹",  0.01),
+            ("GAMMA_B",         GAMMA_B,          "s⁻¹",  1.0),
+            ("N_C_SUPERRADIANCE", N_C_SUPERRADIANCE, "kişi", 11),
+        ]
+        for isim, deger, birim, beklenen in sabitleri:
+            uyum = abs(deger - beklenen) < abs(beklenen) * 0.01 + 1e-15
+            simge = renk("✓", "yeşil") if uyum else renk("!", "sarı")
+            birim_str = f" {birim}" if birim else ""
+            print(f"    {simge} {isim:<22} = {deger}{birim_str}")
+    except Exception as e:
+        print(f"    {renk('✗', 'kırmızı')} constants.py yüklenemedi: {e}")
+
     return durum
 
 
@@ -252,11 +285,9 @@ def faz_çalıştır(
     args_ek = bilgi["hizli_args"] if hizli else bilgi["tam_args"]
     faz_output = os.path.join(output_dir, f"level{faz_no}")
 
-    cmd = [
-        sys.executable, betik,
-        "--output", faz_output,
-        "--html",
-    ] + args_ek
+    cmd = [sys.executable, betik, "--output", faz_output] + args_ek
+    if html:
+        cmd.append("--html")
 
     print(f"\n  Komut: {' '.join(cmd)}")
 
@@ -460,14 +491,17 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Örnekler:
-  python main.py                       # Tüm 12 faz (tam)
-  python main.py --hizli               # Tüm 12 faz (hızlı test)
-  python main.py --phases 1 2          # Yalnızca faz 1 ve 2
-  python main.py --phases 11 12        # Yeni topoloji fazları
-  python main.py --faz 6 --html        # Faz 6 (advanced-wave) + HTML
-  python main.py --animasyon --hizli   # Sadece animasyonlar (hızlı)
-  python main.py --listele             # Faz listesi
-  python main.py --kontrol             # Bağımlılık kontrolü
+  python main.py                         # Tüm 12 faz + HTML + animasyon
+  python main.py --hizli                 # Tüm 12 faz (hızlı test parametreleri)
+  python main.py --phases 9 10           # Yalnızca faz 9 ve 10
+  python main.py --faz 7                 # Tek faz (HTML/animasyon atlanır)
+  python main.py --faz 7 --html          # Tek faz + HTML şekilleri
+  python main.py --phases 11 12          # Topoloji + seri-paralel fazları
+  python main.py --interaktif            # Yalnızca HTML şekilleri (plots_interactive)
+  python main.py --animasyon --hizli     # Yalnızca animasyonlar (hızlı)
+  python main.py --zaman-em-dalga        # Kalp-Beyin EM dalga grafiği (fiziksel)
+  python main.py --listele               # Faz listesi
+  python main.py --kontrol               # Bağımlılık + BVT sabitleri kontrolü
 """
     )
     parser.add_argument("--phases", nargs="+", type=int,
@@ -488,6 +522,8 @@ def main():
                         help="Yalnızca etkileşimli HTML şekillerini üret")
     parser.add_argument("--animasyon", action="store_true",
                         help="Plotly HTML animasyonlarını üret (animations.py)")
+    parser.add_argument("--zaman-em-dalga", action="store_true",
+                        help="Kalp-Beyin 3D EM dalga grafiğini fiziksel parametrelerle üret")
     args = parser.parse_args()
 
     # ---- Özel modlar ----
@@ -510,13 +546,27 @@ def main():
         animasyon_üret(args.output, hizli=args.hizli)
         return 0
 
+    if getattr(args, "zaman_em_dalga", False):
+        import subprocess
+        başlık_yazdır("Kalp-Beyin 3D EM Dalga Grafiği")
+        betik = os.path.join(ROOT, "simulations", "uret_zaman_em_dalga.py")
+        cikti = os.path.join(args.output, "level11", "zaman_em_dalga.png")
+        print(f"  Formül: B = -(μ₀/4π)·μ_kalp·cos(ω_kalp·t) / r³  (quasi-statik dipol)")
+        print(f"  Çıktı : {cikti}")
+        sys.stdout.flush()
+        proc = subprocess.run(
+            [sys.executable, betik, "--output", cikti],
+            cwd=ROOT
+        )
+        return proc.returncode
+
     # ---- Faz seçimi ----
     if args.faz:
         fazlar = [args.faz]
     elif args.phases:
         fazlar = sorted(set(args.phases))
     else:
-        fazlar = list(FAZ_BİLGİ.keys())  # 1..6
+        fazlar = list(FAZ_BİLGİ.keys())  # 1..12
 
     # Geçersiz faz kontrolü
     geçersiz = [f for f in fazlar if f not in FAZ_BİLGİ]
@@ -568,13 +618,22 @@ def main():
             hata = sonuç.get("hata", "Bilinmeyen hata")
             print(f"\n  {renk('✗ FAZ ' + str(faz_no) + ' BAŞARISIZ', 'kırmızı')}: {hata}")
 
-    # ---- HTML ŞEKİLLER (her zaman üret) ----
-    başlık_yazdır("Etkileşimli HTML Şekilleri", "-")
-    interaktif_görselleştirme(args.output)
+    # ---- HTML ŞEKİLLER (--html veya tüm fazlar çalıştırıldığında üret) ----
+    üret_html = args.html or (not args.faz and not args.phases)
+    if üret_html:
+        başlık_yazdır("Etkileşimli HTML Şekilleri", "-")
+        interaktif_görselleştirme(args.output)
+    else:
+        print(f"\n  {renk('ℹ HTML şekilleri atlandı', 'sarı')} (--html ile üret)")
 
-    # ---- ANİMASYONLAR (her zaman üret) ----
-    başlık_yazdır("Animasyonlar (HTML + GIF + MP4)", "-")
-    anim_dosyalar = animasyon_üret(args.output, hizli=args.hizli)
+    # ---- ANİMASYONLAR (--animasyon veya tüm fazlar çalıştırıldığında üret) ----
+    üret_anim = args.animasyon or (not args.faz and not args.phases)
+    if üret_anim:
+        başlık_yazdır("Animasyonlar (HTML + GIF + MP4)", "-")
+        anim_dosyalar = animasyon_üret(args.output, hizli=args.hizli)
+    else:
+        print(f"\n  {renk('ℹ Animasyonlar atlandı', 'sarı')} (--animasyon ile üret)")
+        anim_dosyalar = []
 
     # ---- ÖZET ----
     toplam_süre = time.time() - toplam_t0

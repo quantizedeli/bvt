@@ -57,6 +57,7 @@ from src.core.constants import (
     ES_MOSSBRIDGE, ES_DUGGAN,
     C_THRESHOLD,
     HBAR,
+    F_S1, Q_S1,
 )
 
 # ─── Boyut sabitleri ──────────────────────────────────────────
@@ -70,12 +71,12 @@ TMPL   = "plotly_dark"
 HM_CR_MID   = np.array([0.5, 1.5, 2.5, 3.5, 4.5, 5.5])
 HM_SIGMA_F  = np.array([0.0533, 0.0362, 0.0158, 0.0075, 0.0041, 0.0023])
 
-# BVT V2 kalibre parametreler (BVT_v2_final.py)
-KAPPA_EFF_V2 = 21.9   # rad/s
-G_EFF_V2     = 5.06   # rad/s
-F_SCH        = 7.83   # Hz
-Q_SCH        = 3.5
-GAMMA_SCH    = 2 * np.pi * (F_SCH / Q_SCH)   # ~14.06 rad/s
+# BVT V2 kalibre parametreler — constants.py'den
+KAPPA_EFF_V2 = KAPPA_EFF                          # 21.9 rad/s
+G_EFF_V2     = G_EFF                              # 5.06 rad/s
+F_SCH        = F_S1                               # 7.83 Hz
+Q_SCH        = Q_S1                               # 4.0 — GCI (eski değer 3.5 yanlıştı)
+GAMMA_SCH    = 2 * np.pi * (F_SCH / Q_SCH)       # ~12.29 rad/s
 
 
 def _html_kaydet(fig: Any, path: str, png: bool = True) -> None:

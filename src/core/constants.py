@@ -43,6 +43,9 @@ SCHUMANN_FREQS_HZ: Final[tuple] = (F_S1, F_S2, F_S3, F_S4, F_S5)
 SCHUMANN_Q_FACTORS: Final[tuple] = (4.0, 5.0, 6.0, 7.0, 8.0)
 SCHUMANN_AMPLITUDES_PT: Final[tuple] = (1.0, 0.7, 0.5, 0.4, 0.3)
 
+# S1 kalite faktörü — tek sabit olarak erişim kolaylığı için (GCI literatürü: ~4)
+Q_S1: Final[float] = SCHUMANN_Q_FACTORS[0]   # 4.0
+
 # Açısal frekanslar (rad/s) — TEORİDEN DOĞRUDAN (TISE dok.)
 OMEGA_HEART: Final[float] = 2.0 * np.pi * F_HEART    # 0.6283 rad/s
 OMEGA_ALPHA: Final[float] = 2.0 * np.pi * F_ALPHA    # 62.83 rad/s

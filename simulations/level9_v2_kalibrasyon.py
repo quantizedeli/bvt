@@ -32,16 +32,17 @@ from scipy.optimize import fsolve, curve_fit
 
 from src.core.constants import (
     KAPPA_EFF, G_EFF, N_C_SUPERRADIANCE, HBAR,
-    ES_MOSSBRIDGE, ES_DUGGAN, C_THRESHOLD
+    ES_MOSSBRIDGE, ES_DUGGAN, C_THRESHOLD,
+    MU_HEART, B_SCHUMANN, F_HEART, F_S1, Q_S1,
+    MU_0, K_B,
 )
 
-HBAR_SI  = 1.0546e-34
-MU_0     = 4 * np.pi * 1e-7
-MU_KALP  = 1e-4      # A·m²
-B_SCH    = 1e-12     # T
-F_K      = 0.1       # Hz
-F_SCH    = 7.83      # Hz
-Q_SCH    = 3.5
+HBAR_SI   = HBAR
+MU_KALP   = MU_HEART    # alias — kalp dipol momenti (A·m²)
+B_SCH     = B_SCHUMANN  # alias
+F_K       = F_HEART     # alias
+F_SCH     = F_S1        # alias
+Q_SCH     = Q_S1        # 4.0 — GCI literatürü (eski değer 3.5 yanlıştı)
 GAMMA_SCH = 2 * np.pi * (F_SCH / Q_SCH)
 
 # HeartMath 1.8M seans verisi

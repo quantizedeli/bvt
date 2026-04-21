@@ -33,7 +33,10 @@ import numpy as np
 from scipy import integrate, linalg
 from scipy.special import factorial
 
-from src.core.constants import HBAR, KAPPA_EFF, G_EFF, OMEGA_HEART, OMEGA_ALPHA
+from src.core.constants import (
+    HBAR, KAPPA_EFF, G_EFF, OMEGA_HEART, OMEGA_ALPHA,
+    GAMMA_K, GAMMA_B, GAMMA_PUMP,
+)
 
 
 def annihilation_op(n: int) -> np.ndarray:
@@ -117,10 +120,10 @@ def main() -> None:
     H_int_    = kappa_n * (A_K_d @ A_B + A_K @ A_B_d)
     H_total   = H_free + H_int_
 
-    # ─── Lindblad oranları ────────────────────────────────────────
-    gamma_kalp    = 0.01
-    gamma_beyin   = 1.0
-    gamma_pompa   = 0.005
+    # ─── Lindblad oranları (constants.py'den) ─────────────────────
+    gamma_kalp  = GAMMA_K     # 0.01 s⁻¹
+    gamma_beyin = GAMMA_B     # 1.0  s⁻¹
+    gamma_pompa = GAMMA_PUMP  # 0.005 s⁻¹
 
     L_ops = [
         (gamma_kalp,  A_K),       # Kalp decoherence
@@ -340,7 +343,7 @@ def main() -> None:
                 "Koherans ||Ĉ||_F Evrimi",
                 "η(t) — Ψ_Sonsuz Örtüşmesi",
                 "Kalp-Anten: Dipol Moment Karşılaştırması",
-                "Koherans → η_max İlişkisi"
+                "Termal Sapma |α| → η_max Azalışı  (büyük |α| = inkoherant)"
             ]
         )
 
@@ -377,6 +380,8 @@ def main() -> None:
             marker=dict(size=10, color="gold")
         ), row=2, col=2)
 
+        fig_h.update_xaxes(title_text="|α| (düşük = koherant)", row=2, col=2)
+        fig_h.update_yaxes(title_text="η_max", row=2, col=2)
         fig_h.update_layout(
             title=dict(text="BVT Level 7 — Tek Kisi Tam Modeli", font=dict(size=20)),
             width=1920, height=1080,
@@ -415,13 +420,13 @@ def main() -> None:
     ok = 0
     eta_increase = eta_t[-1] > eta_t[0]
     coh_stable   = coherence_t[-1] > 0
-    eta_max_mono = all(eta_max_vals[i] <= eta_max_vals[i+1]
-                       for i in range(len(eta_max_vals)-1))
+    eta_max_mono = all(eta_max_vals[i] >= eta_max_vals[i+1]
+                       for i in range(len(eta_max_vals)-1))  # büyük |α| → küçük η_max
 
     for crit, val, label in [
         (eta_increase, eta_t[-1], "η kalici artiş"),
         (coh_stable, coherence_t[-1], "Koherans > 0 (NESS)"),
-        (eta_max_mono, alpha_vals[-1], "η_max vs alpha monoton artiş"),
+        (eta_max_mono, alpha_vals[-1], "η_max vs alpha monoton azalis (termal sapma)"),
     ]:
         status = "BASARILI" if crit else "UYARI"
         print(f"  {status}: {label}  (deger={val:.4f})")
