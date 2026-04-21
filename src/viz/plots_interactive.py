@@ -17,6 +17,8 @@ HD boyutlarda (1920×1080 veya 1080×1080) etkileşimli Plotly HTML şekilleri.
     11. sekil_berry_faz            — Berry fazı analizi
     12. sekil_entropi_dinamigi     — Entropi dinamiği
     13. sekil_3d_em_alan           — EM alan haritası
+    14. sekil_topoloji_karsilastirma — N_c_etkin & senkronizasyon (level11)
+    15. sekil_seri_paralel_em      — PARALEL→HİBRİT→SERİ faz geçişi (level12)
 
 Kullanım:
     from src.viz.plots_interactive import tum_sekilleri_kaydet
@@ -1430,6 +1432,241 @@ def sekil_em_koherans_karsilastirma(output_path: Optional[str] = None) -> Option
 
 
 # ============================================================
+# YENİ: TOPOLOJİ KARŞILAŞTIRMASI
+# ============================================================
+
+def sekil_topoloji_karsilastirma(output_path: Optional[str] = None) -> Optional[Any]:
+    """
+    3 panel: topoloji vs N_c_etkin / senkronizasyon / N ölçekleme.
+
+    Veri kaynağı: src.models.multi_person_em_dynamics.N_kisi_tam_dinamik
+    Referans: BVT_Makale.docx Bölüm 7; simulations/level11_topology.py
+    """
+    if not PLOTLY_OK:
+        return None
+
+    from src.models.multi_person_em_dynamics import kisiler_yerlestir, N_kisi_tam_dinamik
+
+    topolojiler = [
+        ("Duz",        0.00),
+        ("Yarim-halka", 0.15),
+        ("Tam-halka",  0.35),
+        ("Halka+temas", 0.50),
+    ]
+    renkler = ["gray", "dodgerblue", "lime", "gold"]
+    N_sabit = 8
+    t_end   = 30.0
+
+    N_c_etkin_vals = []
+    r_son_vals     = []
+
+    for isim, f_geo in topolojiler:
+        konumlar = kisiler_yerlestir(N_sabit, "tam_halka" if f_geo > 0 else "duz", radius=1.5)
+        rng = np.random.default_rng(0)
+        sonuc = N_kisi_tam_dinamik(
+            konumlar=konumlar,
+            C_baslangic=rng.uniform(0.2, 0.5, N_sabit),
+            phi_baslangic=rng.uniform(0, 2 * np.pi, N_sabit),
+            t_span=(0, t_end),
+            dt=0.5,
+            f_geometri=f_geo,
+        )
+        N_c_etkin_vals.append(float(sonuc["N_c_etkin"]))
+        r_son_vals.append(float(sonuc["r_t"][-1]))
+
+    isimler = [t[0] for t in topolojiler]
+
+    # N ölçekleme: Tam-halka vs Düz
+    N_arr = np.arange(4, 20, 2)
+    N_c_halka = []
+    N_c_duz   = []
+    for N in N_arr:
+        rng = np.random.default_rng(1)
+        for f_geo, liste in [(0.35, N_c_halka), (0.0, N_c_duz)]:
+            konumlar = kisiler_yerlestir(N, "tam_halka" if f_geo > 0 else "duz", radius=1.5)
+            sonuc = N_kisi_tam_dinamik(
+                konumlar=konumlar,
+                C_baslangic=rng.uniform(0.2, 0.5, N),
+                phi_baslangic=rng.uniform(0, 2 * np.pi, N),
+                t_span=(0, 20.0), dt=0.5, f_geometri=f_geo,
+            )
+            liste.append(float(sonuc["N_c_etkin"]))
+
+    fig = make_subplots(
+        rows=1, cols=3,
+        subplot_titles=[
+            "N_c_etkin (N=8, t=30s)",
+            "Senkronizasyon r_son (N=8)",
+            "N Olcekleme: Halka vs Duz"
+        ],
+        horizontal_spacing=0.1,
+    )
+
+    # Panel 1: N_c_etkin bar
+    fig.add_trace(go.Bar(
+        x=isimler, y=N_c_etkin_vals,
+        marker_color=renkler,
+        text=[f"{v:.1f}" for v in N_c_etkin_vals],
+        textposition="outside",
+        name="N_c_etkin",
+    ), row=1, col=1)
+    fig.add_hline(y=N_C_SUPERRADIANCE, line_dash="dot", line_color="red",
+                  annotation=dict(text=f"N_c literatur={N_C_SUPERRADIANCE}",
+                                  font=dict(size=11, color="red")), row=1, col=1)
+
+    # Panel 2: r_son bar
+    fig.add_trace(go.Bar(
+        x=isimler, y=r_son_vals,
+        marker_color=renkler,
+        text=[f"{v:.3f}" for v in r_son_vals],
+        textposition="outside",
+        name="r_son",
+        showlegend=False,
+    ), row=1, col=2)
+    fig.add_hline(y=0.8, line_dash="dot", line_color="cyan",
+                  annotation=dict(text="r>0.8=Seri", font=dict(size=11, color="cyan")),
+                  row=1, col=2)
+
+    # Panel 3: N ölçekleme
+    fig.add_trace(go.Scatter(
+        x=N_arr.tolist(), y=N_c_halka, mode="lines+markers",
+        name="Tam-halka", line=dict(color="lime", width=3),
+    ), row=1, col=3)
+    fig.add_trace(go.Scatter(
+        x=N_arr.tolist(), y=N_c_duz, mode="lines+markers",
+        name="Duz", line=dict(color="gray", width=3, dash="dash"),
+    ), row=1, col=3)
+
+    fig.update_layout(
+        title=dict(text="BVT — Topoloji Karsilastirmasi: N_c_etkin & Senkronizasyon",
+                   font=dict(size=18)),
+        width=W_HD, height=600,
+        template=TMPL,
+    )
+    fig.update_yaxes(title_text="N_c_etkin", row=1, col=1)
+    fig.update_yaxes(title_text="r_son (Kuramoto)", row=1, col=2)
+    fig.update_yaxes(title_text="N_c_etkin", row=1, col=3)
+    fig.update_xaxes(title_text="Kisi sayisi N", row=1, col=3)
+
+    if output_path:
+        _html_kaydet(fig, output_path)
+    return fig
+
+
+# ============================================================
+# YENİ: SERİ-PARALEL EM FAZ GEÇİŞİ
+# ============================================================
+
+def sekil_seri_paralel_em(output_path: Optional[str] = None) -> Optional[Any]:
+    """
+    3 panel: r(t) faz gecisi / kolektif guc / ortalama koherans C(t).
+
+    Veri kaynagi: src.models.multi_person_em_dynamics.N_kisi_tam_dinamik
+    Referans: BVT_Makale.docx Bolum 7; simulations/level12_seri_paralel_em.py
+    """
+    if not PLOTLY_OK:
+        return None
+
+    from src.models.multi_person_em_dynamics import kisiler_yerlestir, N_kisi_tam_dinamik
+
+    N = 8
+    t_end = 40.0
+    rng = np.random.default_rng(42)
+    konumlar = kisiler_yerlestir(N, "tam_halka", radius=1.5)
+
+    sonuc = N_kisi_tam_dinamik(
+        konumlar=konumlar,
+        C_baslangic=rng.uniform(0.1, 0.35, N),
+        phi_baslangic=rng.uniform(0, 2 * np.pi, N),
+        t_span=(0, t_end),
+        dt=0.3,
+        f_geometri=0.35,
+    )
+
+    t_arr = sonuc["t"]
+    r_arr = sonuc["r_t"]
+    C_t   = sonuc["C_t"]   # (N, n_t)
+    C_ort = np.mean(C_t, axis=0)
+
+    # Kolektif güç: P = N*<C> + N(N-1)*<C>*r
+    P_arr = N * C_ort + N * (N - 1) * C_ort * r_arr
+
+    # Faz etiketi
+    def faz_rengi(r):
+        if r > 0.8:
+            return "gold"
+        elif r > 0.3:
+            return "dodgerblue"
+        return "tomato"
+
+    fig = make_subplots(
+        rows=1, cols=3,
+        subplot_titles=[
+            "Kuramoto Sira Parametresi r(t)",
+            "Kolektif Guc P(t)",
+            "Ortalama Koherans <C>(t)",
+        ],
+        horizontal_spacing=0.1,
+    )
+
+    # Panel 1: r(t) + faz bantları
+    fig.add_hrect(y0=0.8, y1=1.0, fillcolor="gold", opacity=0.12, line_width=0,
+                  annotation_text="SERİ", annotation_position="top right", row=1, col=1)
+    fig.add_hrect(y0=0.3, y1=0.8, fillcolor="dodgerblue", opacity=0.08, line_width=0,
+                  annotation_text="HİBRİT", row=1, col=1)
+    fig.add_hrect(y0=0.0, y1=0.3, fillcolor="tomato", opacity=0.08, line_width=0,
+                  annotation_text="PARALEL", row=1, col=1)
+    fig.add_trace(go.Scatter(
+        x=t_arr.tolist(), y=r_arr.tolist(),
+        mode="lines", name="r(t)",
+        line=dict(color="white", width=3),
+    ), row=1, col=1)
+
+    # Panel 2: Kolektif güç
+    fig.add_trace(go.Scatter(
+        x=t_arr.tolist(), y=P_arr.tolist(),
+        mode="lines", name="P(t)",
+        line=dict(color="magenta", width=3),
+        fill="tozeroy", fillcolor="rgba(200,0,200,0.15)",
+    ), row=1, col=2)
+
+    # Panel 3: <C>(t) bireysel + ortalama
+    for i in range(N):
+        fig.add_trace(go.Scatter(
+            x=t_arr.tolist(), y=C_t[i].tolist(),
+            mode="lines", opacity=0.35,
+            line=dict(color="cyan", width=1),
+            showlegend=(i == 0),
+            name="C_i(t)" if i == 0 else None,
+        ), row=1, col=3)
+    fig.add_trace(go.Scatter(
+        x=t_arr.tolist(), y=C_ort.tolist(),
+        mode="lines", name="<C>(t) ortalama",
+        line=dict(color="lime", width=4),
+    ), row=1, col=3)
+
+    r_son = float(r_arr[-1])
+    label = "SERİ" if r_son > 0.8 else ("HİBRİT" if r_son > 0.3 else "PARALEL")
+    fig.update_layout(
+        title=dict(
+            text=f"BVT — Seri-Paralel EM Faz Gecisi (N={N}, t_son r={r_son:.3f} [{label}])",
+            font=dict(size=18),
+        ),
+        width=W_HD, height=600,
+        template=TMPL,
+    )
+    fig.update_yaxes(title_text="r (Kuramoto)", range=[0, 1.05], row=1, col=1)
+    fig.update_yaxes(title_text="P (a.u.)", row=1, col=2)
+    fig.update_yaxes(title_text="Koherans C", row=1, col=3)
+    for col in range(1, 4):
+        fig.update_xaxes(title_text="Zaman (s)", row=1, col=col)
+
+    if output_path:
+        _html_kaydet(fig, output_path)
+    return fig
+
+
+# ============================================================
 # ANA FONKSİYON: TÜM ŞEKİLLERİ KAYDET
 # ============================================================
 
@@ -1469,6 +1706,8 @@ def tum_sekilleri_kaydet(output_dir: str = "output/html") -> Dict[str, str]:
         ("berry_faz",               sekil_berry_faz),
         ("entropi",                 sekil_entropi_dinamigi),
         ("em_alan",                 sekil_3d_em_alan),
+        ("topoloji_karsilastirma",  sekil_topoloji_karsilastirma),
+        ("seri_paralel_em",         sekil_seri_paralel_em),
     ]
 
     print(f"HTML sekilleri {output_dir} dizinine kaydediliyor...")
