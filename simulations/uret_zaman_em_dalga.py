@@ -24,6 +24,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from src.core.constants import (
     MU_0,
     MU_HEART_MCG,
+    MU_BRAIN,
     OMEGA_HEART,
     F_HEART,
     B_SCHUMANN,
@@ -77,6 +78,41 @@ def _koherant_alan(
     return _dipol_alan_2d(X, Y, t, MU_HEART_MCG, OMEGA_HEART)
 
 
+def _kalp_beyin_ortak_alan(
+    X: np.ndarray,
+    Y: np.ndarray,
+    t: float,
+    vagal_gecikme_rad: float = 0.5,
+) -> tuple:
+    """
+    Kalp + Beyin birleşik EM alanı (süperpozisyon).
+
+    Kalp: orijinde (x=0, y=0), μ = MU_HEART_MCG
+    Beyin: (x=0, y=0.3m) — kalbin 30cm üzerinde, vagal gecikme ~0.5 rad
+    Toplam: vektörel süperpozisyon
+
+    Parametreler
+    -----------
+    vagal_gecikme_rad : kalp→beyin vagal gecikme fazı (rad), varsayılan ~0.5 rad
+
+    Döndürür
+    --------
+    B_kalp, B_beyin, B_toplam : her biri pT cinsinden
+    """
+    # Kalp alanı (orijinde)
+    B_kalp = _dipol_alan_2d(X, Y, t, MU_HEART_MCG, OMEGA_HEART)
+
+    # Beyin alanı (y=+0.3m'de, merkezi kaydırılmış)
+    Y_beyin = Y - 0.3  # beyin 30cm yukarıda
+    B_beyin = _dipol_alan_2d(
+        X, Y_beyin, t - vagal_gecikme_rad / OMEGA_HEART,
+        MU_BRAIN, OMEGA_HEART
+    )
+
+    B_toplam = B_kalp + B_beyin
+    return B_kalp, B_beyin, B_toplam
+
+
 def _inkoherant_alan(
     X: np.ndarray,
     Y: np.ndarray,
@@ -118,81 +154,89 @@ def uret_grafik(output_path: str, t: float = 1.0) -> None:
     y_arr = np.linspace(-r_max, r_max, N_grid)
     X, Y = np.meshgrid(x_arr, y_arr)
 
-    Z_coh   = _koherant_alan(X, Y, t)
+    B_kalp, B_beyin, B_toplam = _kalp_beyin_ortak_alan(X, Y, t)
     Z_incoh = _inkoherant_alan(X, Y, t, n_kaynak=50, rng=rng)
 
     # Referans çizgileri (pT)
     B_sch_pt = B_SCHUMANN * 1e12   # 1 pT
 
-    fig = plt.figure(figsize=(14, 6))
+    fig = plt.figure(figsize=(20, 6))
     fig.patch.set_facecolor("white")
 
-    # ── Sol: Koherant ──────────────────────────────────────────────
-    ax1 = fig.add_subplot(121, projection="3d")
-    v_abs = np.percentile(np.abs(Z_coh[np.isfinite(Z_coh)]), 95)
+    v_abs = np.percentile(np.abs(B_toplam[np.isfinite(B_toplam)]), 95)
+    if v_abs < 0.01:
+        v_abs = 1.0
+
+    # ── Sol: Kalp Dipol ────────────────────────────────────────────
+    ax1 = fig.add_subplot(131, projection="3d")
     norm1 = TwoSlopeNorm(vmin=-v_abs, vcenter=0.0, vmax=v_abs)
-    surf1 = ax1.plot_surface(
-        X * 100, Y * 100, Z_coh,
-        facecolors=plt.cm.RdBu_r(norm1(Z_coh)),
+    ax1.plot_surface(
+        X * 100, Y * 100, B_kalp,
+        facecolors=plt.cm.RdBu_r(norm1(np.clip(B_kalp, -v_abs, v_abs))),
         rstride=1, cstride=1, antialiased=True, shade=True,
     )
     ax1.set_title(
-        f"Koherant Dalga  (C > C₀ = 0.3)\n"
-        f"B = −(μ₀/4π)·μ·cos(ω_kalp·t) / r³",
+        f"Kalp Dipol\nμ = {MU_HEART_MCG:.1e} A·m²",
         fontsize=10,
     )
-    ax1.set_xlabel("x (cm)")
-    ax1.set_ylabel("y (cm)")
-    ax1.set_zlabel("|B| (pT)")
+    ax1.set_xlabel("x (cm)"); ax1.set_ylabel("y (cm)"); ax1.set_zlabel("|B| (pT)")
     ax1.set_zlim(-v_abs * 1.2, v_abs * 1.2)
 
+    # ── Orta: Beyin Dipol ─────────────────────────────────────────
+    ax2 = fig.add_subplot(132, projection="3d")
+    v_brain = np.percentile(np.abs(B_beyin[np.isfinite(B_beyin)]), 95)
+    if v_brain < 0.001:
+        v_brain = 0.1
+    norm2 = TwoSlopeNorm(vmin=-v_brain, vcenter=0.0, vmax=v_brain)
+    ax2.plot_surface(
+        X * 100, Y * 100, B_beyin,
+        facecolors=plt.cm.PuOr(norm2(np.clip(B_beyin, -v_brain, v_brain))),
+        rstride=1, cstride=1, antialiased=True, shade=True,
+    )
+    ax2.set_title(
+        f"Beyin Dipol  (30 cm üst, 0.5 rad gecikme)\nμ = {MU_BRAIN:.1e} A·m² (Kalp/1000)",
+        fontsize=10,
+    )
+    ax2.set_xlabel("x (cm)"); ax2.set_ylabel("y (cm)"); ax2.set_zlabel("|B| (pT)")
+    ax2.set_zlim(-v_brain * 1.2, v_brain * 1.2)
+
+    # ── Sağ: Toplam (Süperpozisyon) ───────────────────────────────
+    ax3 = fig.add_subplot(133, projection="3d")
+    norm3 = TwoSlopeNorm(vmin=-v_abs, vcenter=0.0, vmax=v_abs)
+    ax3.plot_surface(
+        X * 100, Y * 100, B_toplam,
+        facecolors=plt.cm.seismic(norm3(np.clip(B_toplam, -v_abs, v_abs))),
+        rstride=1, cstride=1, antialiased=True, shade=True,
+    )
     # Schumann referans düzlemi
-    ax1.plot_surface(
+    ax3.plot_surface(
         X * 100, Y * 100,
         np.full_like(X, B_sch_pt),
         alpha=0.12, color="blue",
     )
-    ax1.text(
-        -38, -38, B_sch_pt * 1.5,
-        f"Schumann\n{B_sch_pt:.0f} pT",
-        fontsize=7, color="blue",
-    )
-
-    # ── Sağ: İnkoherant ────────────────────────────────────────────
-    ax2 = fig.add_subplot(122, projection="3d")
-    v_abs2 = np.percentile(np.abs(Z_incoh[np.isfinite(Z_incoh)]), 95)
-    if v_abs2 < 1e-3:
-        v_abs2 = 1.0
-    norm2 = TwoSlopeNorm(vmin=-v_abs2, vcenter=0.0, vmax=v_abs2)
-    surf2 = ax2.plot_surface(
-        X * 100, Y * 100, Z_incoh,
-        facecolors=plt.cm.autumn(norm2(Z_incoh) * 0.5 + 0.5),
-        rstride=1, cstride=1, antialiased=True, shade=True,
-    )
-    ax2.set_title(
-        f"İnkoherant Durum  (C < C₀)\n"
-        f"B_incoh = (1/N)·Σ B·cos(φᵢ),  φᵢ ~ U[0, 2π]",
+    ax3.text(-r_max * 80, -r_max * 80, B_sch_pt * 1.5,
+             f"Schumann\n{B_sch_pt:.0f} pT", fontsize=7, color="blue")
+    ax3.set_title(
+        f"Kalp + Beyin Süperpozisyon\nB_toplam = B_kalp + B_beyin",
         fontsize=10,
     )
-    ax2.set_xlabel("x (cm)")
-    ax2.set_ylabel("y (cm)")
-    ax2.set_zlabel("|B| (pT)")
-    ax2.set_zlim(-v_abs * 1.2, v_abs * 1.2)   # aynı z-ölçeği — karşılaştırılabilir
+    ax3.set_xlabel("x (cm)"); ax3.set_ylabel("y (cm)"); ax3.set_zlabel("|B| (pT)")
+    ax3.set_zlim(-v_abs * 1.2, v_abs * 1.2)
 
     # ── Başlık ─────────────────────────────────────────────────────
     fig.suptitle(
-        f"Kalp–Beyin 3D EM Dalgası — Anlık Görüntü  (t = {t:.1f} s)\n"
+        f"Kalp + Beyin 3D EM Dalgası — Anlık Görüntü  (t = {t:.1f} s)\n"
         f"r_max = {r_max}m (McCraty 2003: 8-10 ft)  |  "
-        f"f_kalp = {F_HEART} Hz  |  μ_kalp = {MU_HEART_MCG:.2e} A·m²",
+        f"f_kalp = {F_HEART} Hz  |  Kalp/Beyin moment oranı = 1000×",
         fontsize=11, y=1.01,
     )
 
     # ── Fark notu ──────────────────────────────────────────────────
-    fark_oran = np.std(Z_coh) / (np.std(Z_incoh) + 1e-30)
+    fark_oran = np.std(B_kalp) / (np.std(B_beyin) + 1e-30)
     fig.text(
         0.5, -0.01,
-        f"Koherant/İnkoherant genlik oranı ≈ {fark_oran:.1f}×  |  "
-        f"Alan rejimi: quasi-statik dipol (B ∝ 1/r³)",
+        f"Kalp/Beyin genlik oranı ≈ {fark_oran:.0f}×  |  "
+        f"Alan rejimi: quasi-statik dipol (B ∝ 1/r³)  |  İnkoherant simüle edilmedi (bkz. sol panel)",
         ha="center", fontsize=9, color="gray",
     )
 

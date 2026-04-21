@@ -5,6 +5,39 @@ Bu dosya projedeki her önemli değişikliği kaydeder.
 
 ---
 
+## [2026-04-22] — Oturum 5b: TODO v2+v3 Eksik Maddeler Tamamlandı
+
+### Eklendi
+- `tests/test_inkoherant_patern.py` — 7 test (tümü geçiyor):
+  - İnkoherant EM alan homojen değil, gürültülü desen
+  - Koherant > inkoherant ortalama genlik (BVT öngörüsü)
+  - Farklı t → farklı patern (dinamik seed)
+  - Animasyon görünürlük testleri
+
+### Güncellendi
+- `src/viz/plots_interactive.py`:
+  - `sekil_rabi_animasyon`: statik çizgiler artık opak (opacity=1.0), legend 4 satır (8 değil)
+  - `sekil_seri_paralel_em`: r(t) çizgisi "white"→"royalblue", y-axis range=[0,1.1] eklendi
+  - `sekil_3d_kalp_isosurface`: colorbar "1 pT, 10 pT, 100 pT, 500 pT" okunabilir etiket
+  - `sekil_topoloji_karsilastirma`: "gray"→"orangered" (beyaz zeminde görünür)
+  - `sekil_overlap_evrimi`: sol panel formül düzeltildi — yüksek koherans HIZLI yükselir ve
+    YÜKSEK η_ss'e ulaşır (önceki: ters davranış, BVT'ye zıt)
+  - `sekil_lindblad_animasyon`: `full_dim` parametresi eklendi — True ise N=9 (dim=81, BVT alt-uzay)
+  - `tum_sekilleri_kaydet`: `full_dim` parametresi geçiyor
+- `simulations/uret_zaman_em_dalga.py`: beyin dipolu eklendi (3 panel: Kalp / Beyin / Toplam)
+  - Beyin: (0, 0.3m), μ_B=1e-7 A·m², vagal gecikme 0.5 rad
+  - Figsize (14,6)→(20,6), 3 ayrı subplot
+- `src/viz/animations.py`:
+  - `animasyon_kalp_koherant_vs_inkoherant`: inkoherant panel artık 50 alt-dipol rastgele
+    fazlı süperpozisyon (homojen sarı değil, gürültülü desen — BVT öngörüsü)
+  - PNG snapshot t=0 yerine orta zamandan (mid_idx = len(frames)//2)
+
+### Test Durumu
+- Toplam: 155 test | Geçen: 149 | Başarısız: 6 (önceki oturumlardan)
+- Bu oturumda eklenen: 7 yeni test, tümü geçiyor
+
+---
+
 ## [2026-04-22] — Oturum 5: TODO v2+v3 Kapsamlı İyileştirme Turu
 
 ### Eklendi

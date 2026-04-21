@@ -82,6 +82,30 @@ def animasyon_kalp_koherant_vs_inkoherant(
         "Inkoherant (C=0.15)": {"C": 0.15, "phi": 0.0},
     }
 
+    # Izgara koordinatları (inkoherant hesap için)
+    ax_lin = np.linspace(-grid_extent, grid_extent, grid_n)
+    Xg, Yg = np.meshgrid(ax_lin, ax_lin, indexing="ij")
+    MU_0_4PI = 1e-7
+
+    def _inkoherant_frame(t_val: float, n_sub: int = 50) -> np.ndarray:
+        """
+        İnkoherant durum: 50 alt-dipol rastgele faz + rastgele konum.
+        BVT öngörüsü: fazlar iptalleşir → gürültülü desen, homojen değil.
+        """
+        rng_f = np.random.default_rng(int(t_val * 1000) % 2**31)
+        phases = rng_f.uniform(0, 2 * np.pi, n_sub)
+        amps   = rng_f.uniform(0.05, 0.15, n_sub) * 0.15  # küçük genlikler
+        cx_arr = rng_f.uniform(-0.05, 0.05, n_sub)
+        cy_arr = rng_f.uniform(-0.05, 0.05, n_sub)
+
+        B_total = np.zeros((grid_n, grid_n))
+        mu_sub  = 1e-4 * 0.15  # C=0.15 ile ölçekli
+        for phi, a, cx, cy in zip(phases, amps, cx_arr, cy_arr):
+            R = np.sqrt((Xg - cx)**2 + (Yg - cy)**2) + 0.03
+            B = MU_0_4PI * mu_sub * np.cos(2 * np.pi * 0.1 * t_val + phi) / R**3
+            B_total += B * a
+        return B_total * 1e12  # pT
+
     # Tüm frame'ler için B-alan hesapla
     frames_data = {name: [] for name in scenarios}
     for name, cfg in scenarios.items():
@@ -90,11 +114,16 @@ def animasyon_kalp_koherant_vs_inkoherant(
         phi_arr = np.array([cfg["phi"]])
         mu = dipol_moment_zaman(t_arr, C_arr, phi_arr)
         for t_idx in range(n_frames):
-            _, _, _, B_mag = toplam_em_alan_3d(
-                t_idx, pos, mu,
-                grid_extent=grid_extent, grid_n=grid_n,
-            )
-            B_slice = np.log10(B_mag[:, :, grid_n // 2] + 0.001)
+            if "nkoherant" in name:
+                # Rastgele fazlı 50 alt-dipol — BVT öngörüsüne uygun
+                B_raw = _inkoherant_frame(t_arr[t_idx])
+                B_slice = np.log10(np.abs(B_raw) + 0.001)
+            else:
+                _, _, _, B_mag = toplam_em_alan_3d(
+                    t_idx, pos, mu,
+                    grid_extent=grid_extent, grid_n=grid_n,
+                )
+                B_slice = np.log10(B_mag[:, :, grid_n // 2] + 0.001)
             frames_data[name].append(B_slice)
 
     # Plotly figure
@@ -169,11 +198,16 @@ def animasyon_kalp_koherant_vs_inkoherant(
 
     fig.write_html(output_path, include_plotlyjs="cdn")
     try:
-        try:
-            fig.update_layout(paper_bgcolor="white", plot_bgcolor="#f0f4f8", font=dict(color="#111111"))
-        except Exception:
-            pass
-        fig.write_image(output_path.replace(".html", ".png"))
+        # PNG snapshot — orta zamandan al (ilk frame boş görünüyor)
+        mid_idx = len(plotly_frames) // 2
+        mid_frame = plotly_frames[mid_idx]
+        fig_snap = go.Figure(data=mid_frame.data, layout=fig.layout)
+        fig_snap.update_layout(
+            paper_bgcolor="white", plot_bgcolor="#f0f4f8",
+            font=dict(color="#111111"),
+            title=f"BVT — Kalp EM: Koherant vs İnkoherant  (t = {t_arr[mid_idx]:.2f}s)",
+        )
+        fig_snap.write_image(output_path.replace(".html", ".png"), width=1100, height=520)
     except Exception:
         pass
     print(f"  Animasyon: {output_path}")

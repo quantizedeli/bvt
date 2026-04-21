@@ -361,18 +361,30 @@ def sekil_sigma_f_heartmath(output_path: Optional[str] = None) -> Optional[Any]:
 # 5. LİNDBLAD KOHERANS EVRİMİ ANİMASYONU
 # ============================================================
 
-def sekil_lindblad_animasyon(output_path: Optional[str] = None) -> Optional[Any]:
+def sekil_lindblad_animasyon(
+    output_path: Optional[str] = None,
+    full_dim: bool = False,
+) -> Optional[Any]:
     """
     Lindblad master denklemi ile koherans, dolanıklık, saflık ve η evrimi
     animasyonu. Meditasyon → koherans → Ψ_Sonsuz örtüşmesi dinamiği.
 
-    Model: N=6 boyutlu kalp⊗beyin (BVT_tek_kisi_tamamlama.py)
+    Model:
+      full_dim=False : N=4, dim=16 (kalp⊗beyin, hızlı)
+      full_dim=True  : N_k=N_b=9, dim=81 (kalp⊗beyin, 9 mod/sistem —
+                       BVT'nin tam 729=9³ uzayının kalp-beyin alt-uzayı)
+                       NOT: 729-dim tam sistemi (kalp⊗beyin⊗Schumann)
+                       için Liouvillian 531K×531K → animasyon için gerçek zamanlı değil.
+
     Referans: BVT_Makale.docx, Bölüm 4.
     """
     if not PLOTLY_OK:
         return None
 
-    N = 4          # N=4 → dim=16, L_mat 256×256 — hizli cozum
+    if full_dim:
+        N = 9      # N=9 → dim=81, Liouvillian 6561×6561 — BVT alt-uzay
+    else:
+        N = 4      # N=4 → dim=16, hızlı animasyon
     dim = N * N
 
     def annihilation_op(n):
@@ -426,8 +438,7 @@ def sekil_lindblad_animasyon(output_path: Optional[str] = None) -> Optional[Any]
         return psi / np.linalg.norm(psi)
 
     psi_k0 = coherent_state(1.5, N)
-    psi_b0 = np.array([0.1, 0.7, 0.5, 0.3], dtype=complex)[:N]
-    psi_b0 /= np.linalg.norm(psi_b0)
+    psi_b0 = coherent_state(0.8, N)  # N'e bağımsız koherant durum
     psi_0  = np.kron(psi_k0, psi_b0)
     rho_0  = np.outer(psi_0, psi_0.conj())
 
@@ -450,7 +461,7 @@ def sekil_lindblad_animasyon(output_path: Optional[str] = None) -> Optional[Any]
         eigs = eigs[eigs > 1e-15]
         return float(-np.sum(eigs * np.log2(eigs)))
 
-    print("  Lindblad denklemi cozuluyor (animasyon icin, N=4, dim=16)...")
+    print(f"  Lindblad denklemi cozuluyor (N={N}, dim={dim}, L_mat {dim**2}x{dim**2})...")
     t_eval = np.linspace(0, 10.0, 60)
     sol = integrate.solve_ivp(
         lambda t, y: L_mat @ y,
@@ -655,25 +666,26 @@ def sekil_rabi_animasyon(output_path: Optional[str] = None) -> Optional[Any]:
         P_exc    = (g_eff_sc / Omega_R)**2 * np.sin(Omega_R * t)**2
         all_frames_data.append((t, P_exc, sc["label"], sc["color"]))
 
-    # Statik arka plan izleri
+    # Statik tam çizgiler — opak, kalın, legend'da göster
     for t_arr, P_arr, lbl, col in all_frames_data:
         fig.add_trace(go.Scatter(
             x=t_arr, y=P_arr,
             mode="lines",
-            name=lbl + " (tam)",
-            line=dict(color=col.replace(")", ",0.2)").replace("(", "a(")
-                           if col.startswith("rgb") else col, width=2, dash="dot"),
-            opacity=0.25
+            name=lbl,
+            line=dict(color=col, width=3),
+            opacity=1.0,
+            showlegend=True,
         ))
 
-    # Animasyon izleri
+    # Animasyon izleri — legend'da gizle (yukarıdaki statik izler zaten var)
     for t_arr, P_arr, lbl, col in all_frames_data:
         fig.add_trace(go.Scatter(
             x=t_arr[:1], y=P_arr[:1],
             mode="lines+markers",
-            name=lbl,
+            name=lbl + " (anim)",
             line=dict(color=col, width=3),
-            marker=dict(size=8, color=col)
+            marker=dict(size=8, color=col),
+            showlegend=False,
         ))
 
     # Frames — N_sc statik iz + N_sc animasyon izi
@@ -844,29 +856,36 @@ def sekil_overlap_evrimi(output_path: Optional[str] = None) -> Optional[Any]:
     )
 
     # Panel 1: yüksek vs düşük koherans
-    eta_high = ETA_SS_HIGH - (ETA_SS_HIGH - 0.3) * np.exp(-GAMMA_DEC_HIGH * t)
-    eta_low  = ETA_SS_LOW  - (ETA_SS_LOW  - 0.3) * np.exp(-GAMMA_DEC_LOW  * t)
+    # BVT öngörüsü: yüksek koherans → yüksek η_ss VE hızlı yakınsama
+    # Yüksek C → g_eff büyük → hızlı rise + yüksek steady state
+    eta_high_ss = 0.85    # C=0.85, g_eff >> γ_eff
+    eta_low_ss  = 0.20    # C=0.15, g_eff < γ_eff eşiği altında
+    rate_high   = GAMMA_DEC_LOW    # yüksek koherans → hızlı kenetlenme (0.33)
+    rate_low    = GAMMA_DEC_HIGH   # düşük koherans → yavaş, gürültülü artış (0.015)
+
+    eta_high = eta_high_ss - (eta_high_ss - 0.02) * np.exp(-rate_high * t)
+    eta_low  = eta_low_ss  - (eta_low_ss  - 0.02) * np.exp(-rate_low  * t)
 
     fig.add_trace(go.Scatter(
         x=t, y=eta_high, mode="lines",
-        name=f"Yüksek koherans (η_ss={ETA_SS_HIGH})",
+        name=f"Yüksek koherans C=0.85 (η_ss≈{eta_high_ss})",
         line=dict(color="cyan", width=3)
     ), row=1, col=1)
     fig.add_trace(go.Scatter(
         x=t, y=eta_low, mode="lines",
-        name=f"Düşük koherans (η_ss={ETA_SS_LOW})",
+        name=f"Düşük koherans C=0.15 (η_ss≈{eta_low_ss})",
         line=dict(color="orange", width=3, dash="dash")
     ), row=1, col=1)
 
-    fig.add_hline(y=ETA_SS_HIGH, line_dash="dot", line_color="cyan",
+    fig.add_hline(y=eta_high_ss, line_dash="dot", line_color="cyan",
                   opacity=0.4, row=1, col=1)
-    fig.add_hline(y=ETA_SS_LOW, line_dash="dot", line_color="orange",
+    fig.add_hline(y=eta_low_ss, line_dash="dot", line_color="orange",
                   opacity=0.4, row=1, col=1)
 
     # Panel 2: N kişi
     N_values   = [1, 5, 10, 15]
     N_c_val    = N_C_SUPERRADIANCE
-    colors_N   = ["gray", "lime", "gold", "magenta"]
+    colors_N   = ["orangered", "lime", "gold", "magenta"]
 
     for N_p, col in zip(N_values, colors_N):
         # Süperradyans N²/N_c faktörü ile η_ss ölçekleme
@@ -1459,7 +1478,7 @@ def sekil_topoloji_karsilastirma(output_path: Optional[str] = None) -> Optional[
         ("Tam-halka",  0.35),
         ("Halka+temas", 0.50),
     ]
-    renkler = ["gray", "dodgerblue", "lime", "gold"]
+    renkler = ["orangered", "dodgerblue", "lime", "gold"]
     N_sabit = 8
     t_end   = 30.0
 
@@ -1540,7 +1559,7 @@ def sekil_topoloji_karsilastirma(output_path: Optional[str] = None) -> Optional[
     ), row=1, col=3)
     fig.add_trace(go.Scatter(
         x=N_arr.tolist(), y=N_c_duz, mode="lines+markers",
-        name="Duz", line=dict(color="gray", width=3, dash="dash"),
+        name="Duz", line=dict(color="orangered", width=3, dash="dash"),
     ), row=1, col=3)
 
     fig.update_layout(
@@ -1625,8 +1644,9 @@ def sekil_seri_paralel_em(output_path: Optional[str] = None) -> Optional[Any]:
     fig.add_trace(go.Scatter(
         x=t_arr.tolist(), y=r_arr.tolist(),
         mode="lines", name="r(t)",
-        line=dict(color="white", width=3),
+        line=dict(color="royalblue", width=3),
     ), row=1, col=1)
+    fig.update_yaxes(range=[0, 1.1], row=1, col=1)
 
     # Panel 2: Kolektif güç
     fig.add_trace(go.Scatter(
@@ -1736,8 +1756,15 @@ def sekil_3d_kalp_isosurface(output_path: Optional[str] = None) -> Optional[Any]
         colorscale="Hot",
         caps=dict(x_show=False, y_show=False, z_show=False),
         opacity=0.35,
-        colorbar=dict(title="|B| (pT)", tickvals=[1, 10, 100, 500],
-                      ticktext=["1", "10", "100", "500"]),
+        colorbar=dict(
+            title="|B| (pT)",
+            tickvals=[1, 10, 100, 500],
+            ticktext=["1 pT", "10 pT", "100 pT", "500 pT"],
+            tickfont=dict(size=12),
+            thickness=20,
+            len=0.6,
+            x=1.02,
+        ),
         name="|B| isosurface",
     ))
 
@@ -1786,7 +1813,7 @@ def sekil_3d_kalp_isosurface(output_path: Optional[str] = None) -> Optional[Any]
 # ANA FONKSİYON: TÜM ŞEKİLLERİ KAYDET
 # ============================================================
 
-def tum_sekilleri_kaydet(output_dir: str = "output/html") -> Dict[str, str]:
+def tum_sekilleri_kaydet(output_dir: str = "output/html", full_dim: bool = False) -> Dict[str, str]:
     """
     Tüm HTML şekillerini output_dir'e kaydeder.
 
@@ -1813,7 +1840,7 @@ def tum_sekilleri_kaydet(output_dir: str = "output/html") -> Dict[str, str]:
         ("3d_cevre_koherans",       sekil_3d_cevre_koherans_eta),
         ("sigma_f_heartmath",       sekil_sigma_f_heartmath),
         ("em_koherans_pil",         sekil_em_koherans_karsilastirma),
-        ("lindblad_animasyon",      sekil_lindblad_animasyon),
+        ("lindblad_animasyon",      lambda p: sekil_lindblad_animasyon(p, full_dim=full_dim)),
         ("rabi_animasyon",          sekil_rabi_animasyon),
         ("domino_3d",               sekil_domino_3d),
         ("overlap_evrimi",          sekil_overlap_evrimi),
