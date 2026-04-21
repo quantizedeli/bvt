@@ -1,0 +1,463 @@
+"""
+BVT — Tek Giriş Noktası (main.py)
+====================================
+Birliğin Varlığı Teoremi — 10 Fazlı Simülasyon Yöneticisi
+
+Kullanım:
+    python main.py                      # Tüm fazları çalıştır
+    python main.py --phases 1 2 3       # Belirli fazları çalıştır
+    python main.py --faz 1              # Tek faz
+    python main.py --hizli              # Tüm fazlar, kısa parametreler
+    python main.py --html               # HTML çıktıları da üret
+    python main.py --listele            # Faz listesini göster
+
+10 Faz:
+    Faz 1:  3D EM Alan Haritası (kalp+beyin+Ψ_Sonsuz)
+    Faz 2:  Schumann Kavite Etkileşimi
+    Faz 3:  Tam Kuantum Lindblad Dinamiği (QuTiP)
+    Faz 4:  N-Kişi Senkronizasyon & Süperradyans
+    Faz 5:  Hibrit Maxwell+Schrödinger
+    Faz 6:  Pre-stimulus Hiss-i Kablel Vuku Monte Carlo
+    Faz 7:  Tek Kişi Tam Modeli (Lindblad + Kalp Anteni)
+    Faz 8:  İki Kişi + Pil Analojisi (Dipol-Dipol + Batarya ODE)
+    Faz 9:  V2 Parametre Kalibrasyonu (κ_eff, g_eff, Q_kalp)
+    Faz 10: Ψ_Sonsuz Yapısı + 3D Yüzeyler (Çevre & Spektrum)
+
+Tamamlandıktan sonra sonuçlar:
+    output/level{N}/   ← Her fazın PNG+HTML çıktıları
+    output/html/       ← 14 interaktif HTML şekli (plots_interactive.py)
+    output/RESULTS_LOG.md  ← otomatik güncellenen log
+"""
+import argparse
+import os
+import sys
+import time
+import traceback
+from datetime import datetime
+from typing import List, Optional
+
+# Windows Unicode fix
+if sys.platform == "win32":
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")  # type: ignore[union-attr]
+    if hasattr(sys.stderr, "reconfigure"):
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")  # type: ignore[union-attr]
+
+# Proje kökü PATH'e ekle
+ROOT = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, ROOT)
+
+
+# ============================================================
+# FAZ TANIMLARI
+# ============================================================
+
+FAZ_BİLGİ = {
+    1: {
+        "isim": "3D EM Alan Haritası",
+        "açıklama": "Kalp + beyin + Ψ_Sonsuz kompozit EM alan",
+        "betik": "simulations/level1_em_3d.py",
+        "tahmini_süre": "~30 dk",
+        "hizli_args": ["--n-r", "20", "--n-theta", "20"],
+        "tam_args": ["--n-r", "60", "--n-theta", "60"],
+    },
+    2: {
+        "isim": "Schumann Kavite Etkileşimi",
+        "açıklama": "g_eff, Rabi salınımı, P_max transfer analizi",
+        "betik": "simulations/level2_cavity.py",
+        "tahmini_süre": "~2 dk",
+        "hizli_args": ["--t-end", "3", "--n-points", "100"],
+        "tam_args": ["--t-end", "10", "--n-points", "500"],
+    },
+    3: {
+        "isim": "Tam Kuantum Lindblad (QuTiP)",
+        "açıklama": "NESS koherans, entropi, Rabi frekansı",
+        "betik": "simulations/level3_qutip.py",
+        "tahmini_süre": "~1 saat",
+        "hizli_args": ["--t-end", "10", "--n-points", "50"],
+        "tam_args": ["--t-end", "60", "--n-points", "200"],
+    },
+    4: {
+        "isim": "N-Kişi Senkronizasyon & Süperradyans",
+        "açıklama": "Kuramoto model, N² ölçekleme, kritik eşik",
+        "betik": "simulations/level4_multiperson.py",
+        "tahmini_süre": "~5 dk",
+        "hizli_args": ["--N", "10", "--t-end", "100"],
+        "tam_args": ["--N", "25", "--t-end", "300"],
+    },
+    5: {
+        "isim": "Hibrit Maxwell+Schrödinger",
+        "açıklama": "EM alan sürümlü TDSE, Berry fazı, entropi",
+        "betik": "simulations/level5_hybrid.py",
+        "tahmini_süre": "~15 dk (n-max=9), ~saniyeler (n-max=4)",
+        "hizli_args": ["--t-end", "5", "--n-points", "50", "--n-max", "4"],
+        "tam_args": ["--t-end", "30", "--n-points", "200", "--n-max", "9"],
+    },
+    6: {
+        "isim": "Pre-stimulus Monte Carlo (HKV)",
+        "açıklama": "Hiss-i Kablel Vuku, ES dağılımı, Mossbridge karşılaştırması",
+        "betik": "simulations/level6_hkv_montecarlo.py",
+        "tahmini_süre": "~3 saat",
+        "hizli_args": ["--trials", "50"],
+        "tam_args": ["--trials", "1000", "--parallel", "8"],
+    },
+    7: {
+        "isim": "Tek Kişi Tam Modeli",
+        "açıklama": "Lindblad koherans evrimi + kalp anteni analizi + η_max taraması",
+        "betik": "simulations/level7_tek_kisi.py",
+        "tahmini_süre": "~15s",
+        "hizli_args": ["--t-end", "5", "--N", "4"],
+        "tam_args": ["--t-end", "10", "--N", "5"],
+    },
+    8: {
+        "isim": "İki Kişi + Pil Analojisi",
+        "açıklama": "Dipol-dipol potansiyel + batarya ODE + N-kişi seri ölçekleme",
+        "betik": "simulations/level8_iki_kisi.py",
+        "tahmini_süre": "~10s",
+        "hizli_args": ["--t-end", "50"],
+        "tam_args": ["--t-end", "100"],
+    },
+    9: {
+        "isim": "V2 Parametre Kalibrasyonu",
+        "açıklama": "κ_eff, Q_kalp, g_eff türetimi + σ_f üstel fit + deneysel karşılaştırma",
+        "betik": "simulations/level9_v2_kalibrasyon.py",
+        "tahmini_süre": "~10s",
+        "hizli_args": [],
+        "tam_args": [],
+    },
+    10: {
+        "isim": "Ψ_Sonsuz Yapısı + 3D Yüzeyler",
+        "açıklama": "4-bileşen Ψ_Sonsuz + Schumann/beyin örtüşme + çevre etkisi + 3D η yüzeyleri",
+        "betik": "simulations/level10_psi_sonsuz.py",
+        "tahmini_süre": "~15s",
+        "hizli_args": [],
+        "tam_args": [],
+    },
+}
+
+
+# ============================================================
+# YARDIMCI FONKSİYONLAR
+# ============================================================
+
+def renk(metin: str, kod: str) -> str:
+    """ANSI renk kodu ile metin."""
+    kodlar = {
+        "yeşil": "\033[92m", "kırmızı": "\033[91m",
+        "sarı": "\033[93m", "mavi": "\033[94m",
+        "beyaz": "\033[97m", "sıfır": "\033[0m"
+    }
+    return f"{kodlar.get(kod, '')}{metin}{kodlar['sıfır']}"
+
+
+def başlık_yazdır(metin: str, karakter: str = "=") -> None:
+    """Başlık satırı yazdırır."""
+    genişlik = 70
+    print(f"\n{karakter * genişlik}")
+    print(f"  {metin}")
+    print(f"{karakter * genişlik}")
+
+
+def faz_listele() -> None:
+    """Tüm fazları listeler."""
+    başlık_yazdır("BVT Simülasyon Fazları")
+    for no, bilgi in FAZ_BİLGİ.items():
+        print(f"\n  Faz {no}: {renk(bilgi['isim'], 'sarı')}")
+        print(f"    {bilgi['açıklama']}")
+        print(f"    Tahmini süre: {bilgi['tahmini_süre']}")
+        print(f"    Betik: {bilgi['betik']}")
+
+
+def çevre_kontrol() -> dict:
+    """Python bağımlılıklarını kontrol eder."""
+    durum = {}
+    bağımlılıklar = [
+        ("numpy", "numpy"),
+        ("scipy", "scipy"),
+        ("matplotlib", "matplotlib"),
+        ("plotly", "plotly"),
+        ("qutip", "qutip"),
+    ]
+
+    print("\n  Bağımlılık kontrolü:")
+    for paket, import_ismi in bağımlılıklar:
+        try:
+            m = __import__(import_ismi)
+            ver = getattr(m, "__version__", "?")
+            print(f"    {renk('✓', 'yeşil')} {paket} {ver}")
+            durum[paket] = True
+        except ImportError:
+            print(f"    {renk('✗', 'kırmızı')} {paket} — YÜKLÜ DEĞİL")
+            durum[paket] = False
+
+    # MATLAB
+    try:
+        import matlab.engine
+        print(f"    {renk('✓', 'yeşil')} matlab.engine")
+        durum["matlab"] = True
+    except ImportError:
+        print(f"    {renk('!', 'sarı')} matlab.engine — bulunamadı (Python fallback kullanılır)")
+        durum["matlab"] = False
+
+    return durum
+
+
+def faz_çalıştır(
+    faz_no: int,
+    output_dir: str,
+    html: bool = False,
+    hizli: bool = False
+) -> dict:
+    """
+    Bir simülasyon fazını alt süreç olarak çalıştırır.
+
+    Döndürür
+    --------
+    sonuc : dict — 'başarı', 'süre_s', 'hata'
+    """
+    import subprocess
+
+    bilgi = FAZ_BİLGİ[faz_no]
+    betik = os.path.join(ROOT, bilgi["betik"])
+
+    if not os.path.exists(betik):
+        return {"başarı": False, "süre_s": 0, "hata": f"Betik bulunamadı: {betik}"}
+
+    args_ek = bilgi["hizli_args"] if hizli else bilgi["tam_args"]
+    faz_output = os.path.join(output_dir, f"level{faz_no}")
+
+    cmd = [
+        sys.executable, betik,
+        "--output", faz_output,
+        "--html",
+    ] + args_ek
+
+    print(f"\n  Komut: {' '.join(cmd)}")
+
+    t0 = time.time()
+    try:
+        proc = subprocess.run(
+            cmd,
+            cwd=ROOT,
+            capture_output=False,
+            timeout=3600 * 4  # max 4 saat
+        )
+        süre = time.time() - t0
+        başarı = proc.returncode == 0
+        return {"başarı": başarı, "süre_s": süre, "hata": None}
+    except subprocess.TimeoutExpired:
+        return {"başarı": False, "süre_s": time.time() - t0, "hata": "Timeout!"}
+    except Exception as e:
+        return {"başarı": False, "süre_s": time.time() - t0, "hata": str(e)}
+
+
+def interaktif_görselleştirme(output_dir: str) -> None:
+    """
+    Tüm HTML şekillerini üretir (plots_interactive.py üzerinden).
+    """
+    print("\n  Etkileşimli HTML şekilleri üretiliyor...")
+    try:
+        from src.viz.plots_interactive import tum_sekilleri_kaydet
+        html_dir = os.path.join(output_dir, "html")
+        paths = tum_sekilleri_kaydet(output_dir=html_dir)
+        print(f"  {len(paths)} HTML şekil üretildi → {html_dir}")
+    except Exception as exc:
+        print(f"  [UYARI] HTML şekil hatası: {exc}")
+
+
+def sonuç_log_güncelle(
+    sonuçlar: dict,
+    output_dir: str,
+    parametreler: dict
+) -> None:
+    """RESULTS_LOG.md dosyasını günceller."""
+    log_yolu = os.path.join(ROOT, output_dir, "RESULTS_LOG.md")
+    os.makedirs(os.path.dirname(log_yolu), exist_ok=True)
+
+    şimdi = datetime.now().strftime("%Y-%m-%d %H:%M")
+    başarılı = sum(1 for v in sonuçlar.values() if v.get("başarı"))
+    toplam = len(sonuçlar)
+
+    giriş = f"""
+---
+
+## [{şimdi}] — main.py Çalıştırması
+
+**Parametreler:** {parametreler}
+**Sonuç:** {başarılı}/{toplam} faz başarılı
+
+| Faz | İsim | Başarı | Süre |
+|-----|------|--------|------|
+"""
+    for no, sonuç in sorted(sonuçlar.items()):
+        isim = FAZ_BİLGİ[no]["isim"]
+        durum = "✓" if sonuç.get("başarı") else "✗"
+        süre = f"{sonuç.get('süre_s', 0):.0f}s"
+        giriş += f"| {no} | {isim} | {durum} | {süre} |\n"
+
+    try:
+        with open(log_yolu, "a", encoding="utf-8") as f:
+            f.write(giriş)
+        print(f"\n  Log güncellendi: {log_yolu}")
+    except Exception as exc:
+        print(f"  [UYARI] Log güncellenemedi: {exc}")
+
+
+# ============================================================
+# ANA PROGRAM
+# ============================================================
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="BVT — Birliğin Varlığı Teoremi Simülasyon Yöneticisi",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Örnekler:
+  python main.py                    # Tüm 10 faz (tam)
+  python main.py --hizli            # Tüm 10 faz (hızlı test)
+  python main.py --phases 1 2       # Yalnızca faz 1 ve 2
+  python main.py --phases 7 8 9 10  # Yeni fazlar (7-10)
+  python main.py --faz 3 --html     # Faz 3 + HTML çıktı
+  python main.py --listele          # Faz listesi
+  python main.py --kontrol          # Bağımlılık kontrolü
+"""
+    )
+    parser.add_argument("--phases", nargs="+", type=int,
+                        help="Çalıştırılacak faz numaraları (örn: 1 2 3)")
+    parser.add_argument("--faz", type=int,
+                        help="Tek bir faz numarası")
+    parser.add_argument("--hizli", action="store_true",
+                        help="Hızlı test parametreleriyle çalıştır")
+    parser.add_argument("--html", action="store_true",
+                        help="HTML çıktıları da üret")
+    parser.add_argument("--output", default="output",
+                        help="Ana çıktı dizini (varsayılan: output)")
+    parser.add_argument("--listele", action="store_true",
+                        help="Faz listesini göster ve çık")
+    parser.add_argument("--kontrol", action="store_true",
+                        help="Bağımlılık kontrolü yap ve çık")
+    parser.add_argument("--interaktif", action="store_true",
+                        help="Yalnızca etkileşimli HTML şekillerini üret")
+    args = parser.parse_args()
+
+    # ---- Özel modlar ----
+    if args.listele:
+        faz_listele()
+        return 0
+
+    if args.kontrol:
+        başlık_yazdır("BVT Bağımlılık Kontrolü")
+        çevre_kontrol()
+        return 0
+
+    if args.interaktif:
+        başlık_yazdır("BVT Etkileşimli Görselleştirme")
+        interaktif_görselleştirme(args.output)
+        return 0
+
+    # ---- Faz seçimi ----
+    if args.faz:
+        fazlar = [args.faz]
+    elif args.phases:
+        fazlar = sorted(set(args.phases))
+    else:
+        fazlar = list(FAZ_BİLGİ.keys())  # 1..6
+
+    # Geçersiz faz kontrolü
+    geçersiz = [f for f in fazlar if f not in FAZ_BİLGİ]
+    if geçersiz:
+        print(f"[HATA] Geçersiz faz numaraları: {geçersiz}")
+        print(f"Geçerli fazlar: {list(FAZ_BİLGİ.keys())}")
+        return 1
+
+    # ---- Başlık ----
+    başlık_yazdır("BVT — Birliğin Varlığı Teoremi (10 Faz)")
+    print(f"  Çalıştırılacak fazlar: {fazlar}")
+    print(f"  Mod: {'HIZLI TEST' if args.hizli else 'TAM'}")
+    print(f"  HTML: {args.html}")
+    print(f"  Çıktı dizini: {args.output}")
+
+    # Bağımlılık kontrolü
+    başlık_yazdır("Bağımlılık Kontrolü", "-")
+    bağımlılık_durumu = çevre_kontrol()
+
+    # Eski dizinleri temizle, tek temiz output dizini oluştur
+    import shutil
+    for eski_dizin in ["results", "output"]:
+        eski_yol = os.path.join(ROOT, eski_dizin)
+        if os.path.exists(eski_yol) and eski_yol != os.path.join(ROOT, args.output):
+            try:
+                shutil.rmtree(eski_yol)
+                print(f"  Silindi: {eski_yol}")
+            except Exception as exc:
+                print(f"  [UYARI] Silinemedi {eski_yol}: {exc}")
+
+    # Dizin hazırlığı
+    os.makedirs(args.output, exist_ok=True)
+    os.makedirs(os.path.join(args.output, "figures"), exist_ok=True)
+    os.makedirs(os.path.join(args.output, "html"), exist_ok=True)
+
+    # ---- FAZ DÖNGÜSÜ ----
+    sonuçlar = {}
+    toplam_t0 = time.time()
+
+    for faz_no in fazlar:
+        bilgi = FAZ_BİLGİ[faz_no]
+        başlık_yazdır(f"FAZ {faz_no}: {bilgi['isim']}", "-")
+        print(f"  {bilgi['açıklama']}")
+        print(f"  Tahmini süre: {bilgi['tahmini_süre']}")
+
+        faz_t0 = time.time()
+        sonuç = faz_çalıştır(
+            faz_no=faz_no,
+            output_dir=args.output,
+            html=args.html,
+            hizli=args.hizli
+        )
+        sonuç["süre_s"] = time.time() - faz_t0
+        sonuçlar[faz_no] = sonuç
+
+        if sonuç["başarı"]:
+            print(f"\n  {renk('✓ FAZ ' + str(faz_no) + ' BAŞARILI', 'yeşil')} "
+                  f"({sonuç['süre_s']:.0f}s)")
+        else:
+            hata = sonuç.get("hata", "Bilinmeyen hata")
+            print(f"\n  {renk('✗ FAZ ' + str(faz_no) + ' BAŞARISIZ', 'kırmızı')}: {hata}")
+
+    # ---- HTML ŞEKİLLER (her zaman üret) ----
+    başlık_yazdır("Etkileşimli HTML Şekilleri", "-")
+    interaktif_görselleştirme(args.output)
+
+    # ---- ÖZET ----
+    toplam_süre = time.time() - toplam_t0
+    başarılı = [no for no, s in sonuçlar.items() if s.get("başarı")]
+    başarısız = [no for no, s in sonuçlar.items() if not s.get("başarı")]
+
+    başlık_yazdır("ÖZET")
+    print(f"\n  Toplam süre: {toplam_süre:.0f}s ({toplam_süre/60:.1f} dk)")
+    print(f"  Başarılı: {renk(str(len(başarılı)) + '/' + str(len(fazlar)), 'yeşil')} faz")
+
+    if başarılı:
+        print(f"  Başarılı fazlar: {başarılı}")
+    if başarısız:
+        print(f"  {renk('Başarısız fazlar: ' + str(başarısız), 'kırmızı')}")
+
+    print(f"\n  Çıktı dizini: {os.path.abspath(args.output)}")
+
+    # Log güncelle
+    sonuç_log_güncelle(
+        sonuçlar, args.output,
+        {"fazlar": fazlar, "hizli": args.hizli, "html": args.html}
+    )
+
+    genel_başarı = len(başarısız) == 0
+    if genel_başarı:
+        print(f"\n  {renk('TÜM FAZLAR BAŞARILI ✓', 'yeşil')}")
+    else:
+        print(f"\n  {renk('BAZI FAZLAR BAŞARISIZ ✗', 'kırmızı')}")
+
+    return 0 if genel_başarı else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

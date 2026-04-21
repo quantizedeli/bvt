@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pip install:*)",
+      "Bash(python -c ':*)",
+      "Bash(mkdir -p results/output/figures)",
+      "Bash(mkdir -p results/output/html)",
+      "Bash(python simulations/level4_multiperson.py --N 6 --t-end 30 --output results/output/level4)",
+      "Bash(python simulations/level1_em_3d.py --n-r 20 --n-theta 20 --output results/output/level1)",
+      "Bash(python simulations/level2_cavity.py --t-end 3 --n-points 100 --output results/output/level2)",
+      "Bash(python main.py --phases 1 2 4 --hizli)",
+      "Bash(python simulations/level3_qutip.py --t-end 5 --n-points 20 --output results/output/level3)",
+      "Read(//c/Users/Hakan Yakut/Desktop/ahmet/bvt simu/**)",
+      "Bash(ls \"old py/\")",
+      "Bash(ls \"old py\")",
+      "Bash(python simulations/level6_hkv_montecarlo.py --trials 20 --output test_output/level6)",
+      "Bash(python simulations/level5_hybrid.py --t-end 5 --n-points 50 --n-max 4 --output test_output/level5)",
+      "Bash(python simulations/level5_hybrid.py --t-end 5 --n-points 20 --n-max 9 --output test_output/level5_full)",
+      "Bash(python main.py --hizli)",
+      "Bash(grep -l \"plt.savefig\\\\|fig.*subplot\\\\|Plotly\\\\|go.Figure\" \"c:\\\\Users\\\\Hakan Yakut\\\\Desktop\\\\ahmet\\\\bvt simu\\\\bvt_claude_code\\\\simulations\"/*.py)",
+      "Bash(grep -v \"^$\")"
+    ]
+  }
+}
