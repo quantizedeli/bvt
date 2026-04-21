@@ -312,7 +312,7 @@ def animasyon_üret(output_dir: str, hizli: bool = False) -> None:
 
         # 2. Halka kolektif EM
         p2 = animasyon_halka_kolektif_em(
-            N=4 if hizli else 8,
+            N=6 if hizli else 10,
             t_end=10.0 if hizli else 20.0,
             n_frames=n_frames,
             grid_n=grid_n,
@@ -334,7 +334,7 @@ def animasyon_üret(output_dir: str, hizli: bool = False) -> None:
 
         # 4. GIF: N-kişi kolektif EM
         p4 = n_kisi_em_gif(
-            N=4 if hizli else 8,
+            N=6 if hizli else 10,
             n_frames=15 if hizli else 25,
             t_end=10.0 if hizli else 20.0,
             grid_n=20 if hizli else 30,

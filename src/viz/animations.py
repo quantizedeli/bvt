@@ -185,7 +185,7 @@ def animasyon_kalp_koherant_vs_inkoherant(
 # ============================================================
 
 def animasyon_halka_kolektif_em(
-    N: int = 8,
+    N: int = 10,
     topology: str = "tam_halka",
     radius: float = 1.5,
     t_end: float = 20.0,
@@ -332,7 +332,62 @@ def animasyon_halka_kolektif_em(
 
 
 # ============================================================
-# 3. KALP EM ALANI GIF VİDEO
+# MATLAB MP4 YARDIMCI FONKSİYON
+# ============================================================
+
+def _mp4_matlab_kaydet(
+    temp_frame_dir: str,
+    output_path: str,
+    fps: int = 10,
+) -> bool:
+    """
+    temp_frame_dir klasöründeki frame_XXXX.png dosyalarını MATLAB
+    VideoWriter ile MP4'e derler. MATLAB yoksa False döner.
+
+    Parametreler
+    -----------
+    temp_frame_dir : geçici PNG frame dizini
+    output_path    : .mp4 çıktı yolu
+    fps            : kare hızı
+    """
+    try:
+        import matlab.engine
+    except ImportError:
+        return False
+    try:
+        mp4_path = output_path.replace("\\", "/")
+        frame_dir = temp_frame_dir.replace("\\", "/")
+        eng = matlab.engine.start_matlab()
+        eng.eval(f"""
+frame_dir = '{frame_dir}';
+files = dir(fullfile(frame_dir, 'frame_*.png'));
+files = sort({{files.name}});
+if isempty(files)
+    error('No frame PNGs found in %s', frame_dir);
+end
+v = VideoWriter('{mp4_path}', 'MPEG-4');
+v.FrameRate = {fps};
+v.Quality = 90;
+open(v);
+for i = 1:length(files)
+    img = imread(fullfile(frame_dir, files{{i}}));
+    writeVideo(v, img);
+end
+close(v);
+""", nargout=0)
+        eng.quit()
+        return True
+    except Exception as exc:
+        print(f"  [UYARI] MATLAB MP4 hata: {exc}")
+        try:
+            eng.quit()
+        except Exception:
+            pass
+        return False
+
+
+# ============================================================
+# 3. KALP EM ALANI GIF + MP4 VİDEO
 # ============================================================
 
 def kalp_em_gif(
@@ -419,30 +474,63 @@ def kalp_em_gif(
         anim.save(output_path, writer=PillowWriter(fps=fps))
         plt.close(fig)
         print(f"  GIF: {output_path}")
-
-        # PNG thumbnail (ilk kare)
-        png_path = output_path.replace(".gif", "_thumbnail.png")
-        fig2, ax2 = plt.subplots(figsize=(6, 5), facecolor="#0a0e17")
-        ax2.set_facecolor("#0a0e17")
-        im2 = ax2.imshow(frames_B[0].T, origin="lower", cmap="hot", norm=norm,
-                         extent=[-extent_cm, extent_cm, -extent_cm, extent_cm])
-        ax2.set_title("BVT — Kalp EM Alani (t=0)", color="white")
-        ax2.set_xlabel("x (cm)", color="white"); ax2.set_ylabel("y (cm)", color="white")
-        ax2.tick_params(colors="white")
-        fig2.colorbar(im2, ax=ax2, label="|B| (pT)")
-        plt.tight_layout()
-        fig2.savefig(png_path, dpi=150, bbox_inches="tight", facecolor="white")
-        plt.close(fig2)
-        print(f"  PNG thumbnail: {png_path}")
-        return output_path
     except Exception as exc:
         plt.close(fig)
         print(f"  [HATA] GIF kaydedilemedi: {exc}")
         return None
 
+    # PNG thumbnail (beyaz arkaplan)
+    png_path = output_path.replace(".gif", "_thumbnail.png")
+    fig2, ax2 = plt.subplots(figsize=(6, 5), facecolor="white")
+    ax2.set_facecolor("#f0f4f8")
+    im2 = ax2.imshow(frames_B[-1].T, origin="lower", cmap="hot", norm=norm,
+                     extent=[-extent_cm, extent_cm, -extent_cm, extent_cm])
+    ax2.set_title("BVT — Kalp EM Alani (son kare)", color="#111")
+    ax2.set_xlabel("x (cm)"); ax2.set_ylabel("y (cm)")
+    fig2.colorbar(im2, ax=ax2, label="|B| (pT)")
+    plt.tight_layout()
+    fig2.savefig(png_path, dpi=150, bbox_inches="tight", facecolor="white")
+    plt.close(fig2)
+    print(f"  PNG thumbnail: {png_path}")
+
+    # MP4 via MATLAB — frame'leri temp PNG olarak kaydet
+    import tempfile, shutil
+    temp_dir = tempfile.mkdtemp(prefix="bvt_kalp_frames_")
+    try:
+        fig_mp, ax_mp = plt.subplots(figsize=(8, 6), facecolor="white")
+        ax_mp.set_facecolor("#f0f4f8")
+        im_mp = ax_mp.imshow(frames_B[0].T, origin="lower", cmap="hot", norm=norm,
+                              extent=[-extent_cm, extent_cm, -extent_cm, extent_cm])
+        cbar_mp = fig_mp.colorbar(im_mp, ax=ax_mp, label="|B| (pT)")
+        ax_mp.set_xlabel("x (cm)"); ax_mp.set_ylabel("y (cm)")
+        title_mp = ax_mp.set_title("", color="#111", fontsize=12)
+        plt.tight_layout()
+        for fi, B in enumerate(frames_B):
+            im_mp.set_data(B.T)
+            title_mp.set_text(f"BVT Kalp EM Alani  t = {t_arr[fi]:.1f}s  C=0.85")
+            fig_mp.canvas.draw()
+            fig_mp.savefig(
+                os.path.join(temp_dir, f"frame_{fi:04d}.png"),
+                dpi=120, bbox_inches="tight", facecolor="white",
+            )
+        plt.close(fig_mp)
+
+        mp4_path = output_path.replace(".gif", ".mp4")
+        ok = _mp4_matlab_kaydet(temp_dir, mp4_path, fps=fps)
+        if ok:
+            print(f"  MP4: {mp4_path}")
+        else:
+            print("  [BILGI] MATLAB MP4 atlandı")
+    except Exception as exc:
+        print(f"  [UYARI] MP4 frame üretim hatası: {exc}")
+    finally:
+        shutil.rmtree(temp_dir, ignore_errors=True)
+
+    return output_path
+
 
 def n_kisi_em_gif(
-    N: int = 8,
+    N: int = 10,
     n_frames: int = 25,
     t_end: float = 20.0,
     grid_n: int = 30,
@@ -516,21 +604,65 @@ def n_kisi_em_gif(
         anim.save(output_path, writer=PillowWriter(fps=fps))
         plt.close(fig)
         print(f"  GIF: {output_path}")
-        png_path = output_path.replace(".gif", "_thumbnail.png")
-        fig2, ax2 = plt.subplots(figsize=(6, 6), facecolor="#0a0e17")
-        ax2.imshow(frames_B[-1].T, origin="lower", cmap="hot", norm=norm,
-                   extent=[-grid_extent, grid_extent, -grid_extent, grid_extent])
-        ax2.scatter(konumlar[:, 0], konumlar[:, 1], c="cyan", s=60, zorder=5)
-        ax2.set_title(f"BVT N={N} Halka — Son Kare (t={t_end:.0f}s)", color="white")
-        plt.tight_layout()
-        fig2.savefig(png_path, dpi=150, bbox_inches="tight", facecolor="white")
-        plt.close(fig2)
-        print(f"  PNG thumbnail: {png_path}")
-        return output_path
     except Exception as exc:
         plt.close(fig)
         print(f"  [HATA] GIF kaydedilemedi: {exc}")
         return None
+
+    # PNG thumbnail (beyaz arkaplan)
+    png_path = output_path.replace(".gif", "_thumbnail.png")
+    fig2, ax2 = plt.subplots(figsize=(6, 6), facecolor="white")
+    ax2.set_facecolor("#f0f4f8")
+    ax2.imshow(frames_B[-1].T, origin="lower", cmap="hot", norm=norm,
+               extent=[-grid_extent, grid_extent, -grid_extent, grid_extent])
+    ax2.scatter(konumlar[:, 0], konumlar[:, 1], c="blue", s=60, zorder=5)
+    ax2.set_title(f"BVT N={N} Halka — Son Kare (t={t_end:.0f}s)", color="#111")
+    ax2.set_xlabel("x (m)"); ax2.set_ylabel("y (m)")
+    plt.tight_layout()
+    fig2.savefig(png_path, dpi=150, bbox_inches="tight", facecolor="white")
+    plt.close(fig2)
+    print(f"  PNG thumbnail: {png_path}")
+
+    # MP4 via MATLAB
+    import tempfile, shutil
+    temp_dir = tempfile.mkdtemp(prefix="bvt_nkisi_frames_")
+    try:
+        fig_mp, ax_mp = plt.subplots(figsize=(8, 8), facecolor="white")
+        ax_mp.set_facecolor("#f0f4f8")
+        im_mp = ax_mp.imshow(frames_B[0].T, origin="lower", cmap="hot", norm=norm,
+                              extent=[-grid_extent, grid_extent, -grid_extent, grid_extent])
+        sc_mp = ax_mp.scatter(konumlar[:, 0], konumlar[:, 1], c="blue", s=80, zorder=5)
+        fig_mp.colorbar(im_mp, ax=ax_mp, label="|B| (pT)")
+        ax_mp.set_xlabel("x (m)"); ax_mp.set_ylabel("y (m)")
+        title_mp = ax_mp.set_title("", color="#111", fontsize=12)
+        plt.tight_layout()
+        for fi, B in enumerate(frames_B):
+            im_mp.set_data(B.T)
+            t_idx = int(t_indices[fi])
+            r_val = float(r_arr[min(t_idx, len(r_arr) - 1)])
+            label = "SERI" if r_val > 0.8 else ("HIBRIT" if r_val > 0.3 else "PARALEL")
+            title_mp.set_text(
+                f"BVT N={N} Halka  t={t_eval[fi]:.1f}s  r={r_val:.3f} [{label}]"
+            )
+            fig_mp.canvas.draw()
+            fig_mp.savefig(
+                os.path.join(temp_dir, f"frame_{fi:04d}.png"),
+                dpi=120, bbox_inches="tight", facecolor="white",
+            )
+        plt.close(fig_mp)
+
+        mp4_path = output_path.replace(".gif", ".mp4")
+        ok = _mp4_matlab_kaydet(temp_dir, mp4_path, fps=fps)
+        if ok:
+            print(f"  MP4: {mp4_path}")
+        else:
+            print("  [BILGI] MATLAB MP4 atlandı")
+    except Exception as exc:
+        print(f"  [UYARI] MP4 frame üretim hatası: {exc}")
+    finally:
+        shutil.rmtree(temp_dir, ignore_errors=True)
+
+    return output_path
 
 
 # ============================================================
