@@ -1,7 +1,7 @@
 """
 BVT — Tek Giriş Noktası (main.py)
 ====================================
-Birliğin Varlığı Teoremi — 10 Fazlı Simülasyon Yöneticisi
+Birliğin Varlığı Teoremi — 12 Fazlı Simülasyon Yöneticisi
 
 Kullanım:
     python main.py                      # Tüm fazları çalıştır
@@ -9,23 +9,27 @@ Kullanım:
     python main.py --faz 1              # Tek faz
     python main.py --hizli              # Tüm fazlar, kısa parametreler
     python main.py --html               # HTML çıktıları da üret
+    python main.py --animasyon          # Plotly animasyonlarını üret
     python main.py --listele            # Faz listesini göster
 
-10 Faz:
+12 Faz:
     Faz 1:  3D EM Alan Haritası (kalp+beyin+Ψ_Sonsuz)
     Faz 2:  Schumann Kavite Etkileşimi
     Faz 3:  Tam Kuantum Lindblad Dinamiği (QuTiP)
     Faz 4:  N-Kişi Senkronizasyon & Süperradyans
     Faz 5:  Hibrit Maxwell+Schrödinger
-    Faz 6:  Pre-stimulus Hiss-i Kablel Vuku Monte Carlo
+    Faz 6:  Pre-stimulus Hiss-i Kablel Vuku Monte Carlo (--advanced-wave)
     Faz 7:  Tek Kişi Tam Modeli (Lindblad + Kalp Anteni)
     Faz 8:  İki Kişi + Pil Analojisi (Dipol-Dipol + Batarya ODE)
     Faz 9:  V2 Parametre Kalibrasyonu (κ_eff, g_eff, Q_kalp)
     Faz 10: Ψ_Sonsuz Yapısı + 3D Yüzeyler (Çevre & Spektrum)
+    Faz 11: Topoloji Karşılaştırması (düz/halka/temas, N_c_etkin analizi)
+    Faz 12: Seri-Paralel EM Faz Geçişi (PARALEL→HİBRİT→SERİ)
 
 Tamamlandıktan sonra sonuçlar:
-    output/level{N}/   ← Her fazın PNG+HTML çıktıları
-    output/html/       ← 14 interaktif HTML şekli (plots_interactive.py)
+    output/level{N}/       ← Her fazın PNG+HTML çıktıları
+    output/html/           ← İnteraktif HTML şekilleri (plots_interactive.py)
+    output/animations/     ← Plotly HTML animasyonları (animations.py)
     output/RESULTS_LOG.md  ← otomatik güncellenen log
 """
 import argparse
@@ -95,11 +99,11 @@ FAZ_BİLGİ = {
     },
     6: {
         "isim": "Pre-stimulus Monte Carlo (HKV)",
-        "açıklama": "Hiss-i Kablel Vuku, ES dağılımı, Mossbridge karşılaştırması",
+        "açıklama": "Hiss-i Kablel Vuku, ES dağılımı, Mossbridge + advanced wave",
         "betik": "simulations/level6_hkv_montecarlo.py",
         "tahmini_süre": "~3 saat",
-        "hizli_args": ["--trials", "50"],
-        "tam_args": ["--trials", "1000", "--parallel", "8"],
+        "hizli_args": ["--trials", "50", "--advanced-wave"],
+        "tam_args": ["--trials", "1000", "--parallel", "8", "--advanced-wave"],
     },
     7: {
         "isim": "Tek Kişi Tam Modeli",
@@ -132,6 +136,22 @@ FAZ_BİLGİ = {
         "tahmini_süre": "~15s",
         "hizli_args": [],
         "tam_args": [],
+    },
+    11: {
+        "isim": "Topoloji Karşılaştırması",
+        "açıklama": "Düz/yarım-halka/tam-halka/temas — N_c_etkin & N ölçekleme analizi",
+        "betik": "simulations/level11_topology.py",
+        "tahmini_süre": "~2 dk",
+        "hizli_args": ["--N-max", "12", "--t-end", "20"],
+        "tam_args": ["--N-max", "20", "--t-end", "60"],
+    },
+    12: {
+        "isim": "Seri-Paralel EM Faz Geçişi",
+        "açıklama": "PARALEL→HİBRİT→SERİ geçişi, kolektif güç, EM alan animasyonu",
+        "betik": "simulations/level12_seri_paralel_em.py",
+        "tahmini_süre": "~3 dk",
+        "hizli_args": ["--N", "6", "--t-end", "20"],
+        "tam_args": ["--N", "10", "--t-end", "60"],
     },
 }
 
@@ -251,6 +271,54 @@ def faz_çalıştır(
         return {"başarı": False, "süre_s": time.time() - t0, "hata": str(e)}
 
 
+def animasyon_üret(output_dir: str, hizli: bool = False) -> None:
+    """
+    Plotly HTML animasyonlarını üretir (animations.py üzerinden).
+
+    Parametreler
+    ------------
+    output_dir : str  — ana çıktı dizini (animations/ altdizin oluşturulur)
+    hizli      : bool — hızlı modda daha az frame kullan
+    """
+    print("\n  Plotly animasyonlar üretiliyor...")
+    try:
+        from src.viz.animations import (
+            animasyon_kalp_koherant_vs_inkoherant,
+            animasyon_halka_kolektif_em,
+        )
+        anim_dir = os.path.join(output_dir, "animations")
+        os.makedirs(anim_dir, exist_ok=True)
+
+        n_frames = 15 if hizli else 40
+        grid_n = 15 if hizli else 30
+
+        # 1. Koherant vs inkoherant
+        p1 = animasyon_kalp_koherant_vs_inkoherant(
+            n_frames=n_frames,
+            t_end=3.0 if hizli else 5.0,
+            grid_n=grid_n,
+            output_path=os.path.join(anim_dir, "kalp_koherant_vs_inkoherant.html"),
+        )
+        if p1:
+            print(f"  Animasyon 1: {p1}")
+
+        # 2. Halka kolektif EM
+        p2 = animasyon_halka_kolektif_em(
+            N=4 if hizli else 8,
+            t_end=10.0 if hizli else 20.0,
+            n_frames=n_frames,
+            grid_n=grid_n,
+            output_path=os.path.join(anim_dir, "halka_kolektif_em.html"),
+        )
+        if p2:
+            print(f"  Animasyon 2: {p2}")
+
+        uretilen = sum(1 for p in [p1, p2] if p is not None)
+        print(f"  {uretilen}/2 animasyon üretildi → {anim_dir}")
+    except Exception as exc:
+        print(f"  [UYARI] Animasyon üretim hatası: {exc}")
+
+
 def interaktif_görselleştirme(output_dir: str) -> None:
     """
     Tüm HTML şekillerini üretir (plots_interactive.py üzerinden).
@@ -313,13 +381,14 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Örnekler:
-  python main.py                    # Tüm 10 faz (tam)
-  python main.py --hizli            # Tüm 10 faz (hızlı test)
-  python main.py --phases 1 2       # Yalnızca faz 1 ve 2
-  python main.py --phases 7 8 9 10  # Yeni fazlar (7-10)
-  python main.py --faz 3 --html     # Faz 3 + HTML çıktı
-  python main.py --listele          # Faz listesi
-  python main.py --kontrol          # Bağımlılık kontrolü
+  python main.py                       # Tüm 12 faz (tam)
+  python main.py --hizli               # Tüm 12 faz (hızlı test)
+  python main.py --phases 1 2          # Yalnızca faz 1 ve 2
+  python main.py --phases 11 12        # Yeni topoloji fazları
+  python main.py --faz 6 --html        # Faz 6 (advanced-wave) + HTML
+  python main.py --animasyon --hizli   # Sadece animasyonlar (hızlı)
+  python main.py --listele             # Faz listesi
+  python main.py --kontrol             # Bağımlılık kontrolü
 """
     )
     parser.add_argument("--phases", nargs="+", type=int,
@@ -338,6 +407,8 @@ def main():
                         help="Bağımlılık kontrolü yap ve çık")
     parser.add_argument("--interaktif", action="store_true",
                         help="Yalnızca etkileşimli HTML şekillerini üret")
+    parser.add_argument("--animasyon", action="store_true",
+                        help="Plotly HTML animasyonlarını üret (animations.py)")
     args = parser.parse_args()
 
     # ---- Özel modlar ----
@@ -353,6 +424,11 @@ def main():
     if args.interaktif:
         başlık_yazdır("BVT Etkileşimli Görselleştirme")
         interaktif_görselleştirme(args.output)
+        return 0
+
+    if args.animasyon:
+        başlık_yazdır("BVT Plotly Animasyonları")
+        animasyon_üret(args.output, hizli=args.hizli)
         return 0
 
     # ---- Faz seçimi ----
@@ -427,6 +503,11 @@ def main():
     # ---- HTML ŞEKİLLER (her zaman üret) ----
     başlık_yazdır("Etkileşimli HTML Şekilleri", "-")
     interaktif_görselleştirme(args.output)
+
+    # ---- ANİMASYONLAR (--animasyon veya --html ile) ----
+    if args.animasyon or args.html:
+        başlık_yazdır("Plotly Animasyonlar", "-")
+        animasyon_üret(args.output, hizli=args.hizli)
 
     # ---- ÖZET ----
     toplam_süre = time.time() - toplam_t0
