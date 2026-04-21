@@ -277,94 +277,125 @@ def faz_çalıştır(
         return {"başarı": False, "süre_s": time.time() - t0, "hata": str(e)}
 
 
-def animasyon_üret(output_dir: str, hizli: bool = False) -> None:
+def animasyon_üret(output_dir: str, hizli: bool = False) -> list:
     """
-    Plotly HTML animasyonlarını üretir (animations.py üzerinden).
+    Tüm animasyonları üretir: Plotly HTML, GIF ve MATLAB MP4.
+
+    Üretilen dosyalar (animations/ altında):
+        kalp_koherant_vs_inkoherant.html   — Koherant vs inkoherant karşılaştırma
+        halka_kolektif_em.html             — N=10 halka kolektif EM (Plotly)
+        psi_sonsuz_etkilesim.html/.png     — Psi_Sonsuz overlap eta(t) + Schumann + Domino
+        rezonans_ani.html/.png             — Rezonans anı: frekans kilitleme (4 panel)
+        kalp_em_zaman.gif/.mp4             — Tek kalp EM zamanla değişimi (MATLAB MP4)
+        n_kisi_em.gif/.mp4                 — N=10 halka kolektif EM (MATLAB MP4)
 
     Parametreler
     ------------
     output_dir : str  — ana çıktı dizini (animations/ altdizin oluşturulur)
     hizli      : bool — hızlı modda daha az frame kullan
+
+    Döndürür
+    --------
+    uretilen_dosyalar : list[str]
     """
-    print("\n  Plotly animasyonlar üretiliyor...")
+    print("\n  Animasyonlar uretiliyor (HTML + GIF + MATLAB MP4)...")
+    uretilen = []
     try:
         from src.viz.animations import (
             animasyon_kalp_koherant_vs_inkoherant,
             animasyon_halka_kolektif_em,
             animasyon_psi_sonsuz_etkilesim,
             animasyon_rezonans_ani,
+            kalp_em_gif,
+            n_kisi_em_gif,
         )
         anim_dir = os.path.join(output_dir, "animations")
         os.makedirs(anim_dir, exist_ok=True)
 
         n_frames = 15 if hizli else 40
-        grid_n = 15 if hizli else 30
+        grid_n   = 15 if hizli else 30
 
-        # 1. Koherant vs inkoherant
-        p1 = animasyon_kalp_koherant_vs_inkoherant(
-            n_frames=n_frames,
-            t_end=3.0 if hizli else 5.0,
-            grid_n=grid_n,
+        # 1. Koherant vs inkoherant (Plotly HTML)
+        p = animasyon_kalp_koherant_vs_inkoherant(
+            n_frames=n_frames, t_end=3.0 if hizli else 5.0, grid_n=grid_n,
             output_path=os.path.join(anim_dir, "kalp_koherant_vs_inkoherant.html"),
         )
-        if p1:
-            print(f"  Animasyon 1: {p1}")
+        if p:
+            uretilen.append(p)
+            print(f"  [HTML] kalp_koherant_vs_inkoherant.html")
 
-        # 2. Halka kolektif EM
-        p2 = animasyon_halka_kolektif_em(
-            N=6 if hizli else 10,
-            t_end=10.0 if hizli else 20.0,
-            n_frames=n_frames,
-            grid_n=grid_n,
+        # 2. N=10 halka kolektif EM (Plotly HTML)
+        p = animasyon_halka_kolektif_em(
+            N=6 if hizli else 10, t_end=10.0 if hizli else 20.0,
+            n_frames=n_frames, grid_n=grid_n,
             output_path=os.path.join(anim_dir, "halka_kolektif_em.html"),
         )
-        if p2:
-            print(f"  Animasyon 2: {p2}")
+        if p:
+            uretilen.append(p)
+            print(f"  [HTML] halka_kolektif_em.html  (N={'6' if hizli else '10'})")
 
-        # 3. GIF: Kalp EM zamanla değişimi
-        from src.viz.animations import kalp_em_gif, n_kisi_em_gif
-        p3 = kalp_em_gif(
-            n_frames=20 if hizli else 30,
-            t_end=5.0 if hizli else 10.0,
-            grid_n=20 if hizli else 40,
-            output_path=os.path.join(anim_dir, "kalp_em_zaman.gif"),
-        )
-        if p3:
-            print(f"  GIF 1: {p3}")
-
-        # 4. GIF: N-kişi kolektif EM
-        p4 = n_kisi_em_gif(
-            N=6 if hizli else 10,
-            n_frames=15 if hizli else 25,
-            t_end=10.0 if hizli else 20.0,
-            grid_n=20 if hizli else 30,
-            output_path=os.path.join(anim_dir, "n_kisi_em.gif"),
-        )
-        if p4:
-            print(f"  GIF 2: {p4}")
-
-        # 5. Psi_Sonsuz etkilesim animasyonu
-        p5 = animasyon_psi_sonsuz_etkilesim(
-            n_frames=20 if hizli else 50,
-            t_end=15.0 if hizli else 30.0,
+        # 3. Psi_Sonsuz etkilesim (Plotly HTML + PNG)
+        p = animasyon_psi_sonsuz_etkilesim(
+            n_frames=20 if hizli else 50, t_end=15.0 if hizli else 30.0,
             output_path=os.path.join(anim_dir, "psi_sonsuz_etkilesim.html"),
         )
-        if p5:
-            print(f"  Animasyon 5 (Psi_Sonsuz): {p5}")
+        if p:
+            uretilen.append(p)
+            print(f"  [HTML] psi_sonsuz_etkilesim.html")
 
-        # 6. Rezonans ani animasyonu
-        p6 = animasyon_rezonans_ani(
-            n_frames=20 if hizli else 60,
-            t_end=20.0,
+        # 4. Rezonans ani (Plotly HTML + PNG)
+        p = animasyon_rezonans_ani(
+            n_frames=20 if hizli else 60, t_end=20.0,
             output_path=os.path.join(anim_dir, "rezonans_ani.html"),
         )
-        if p6:
-            print(f"  Animasyon 6 (Rezonans): {p6}")
+        if p:
+            uretilen.append(p)
+            print(f"  [HTML] rezonans_ani.html")
 
-        uretilen = sum(1 for p in [p1, p2, p3, p4, p5, p6] if p is not None)
-        print(f"  {uretilen}/6 animasyon/GIF üretildi → {anim_dir}")
+        # 5. Kalp EM zamanla (GIF + MATLAB MP4)
+        gif_path = os.path.join(anim_dir, "kalp_em_zaman.gif")
+        p = kalp_em_gif(
+            n_frames=20 if hizli else 30, t_end=5.0 if hizli else 10.0,
+            grid_n=20 if hizli else 40, output_path=gif_path,
+        )
+        if p:
+            uretilen.append(p)
+            mp4 = gif_path.replace(".gif", ".mp4")
+            if os.path.exists(mp4):
+                uretilen.append(mp4)
+                print(f"  [GIF+MP4] kalp_em_zaman.gif / .mp4")
+            else:
+                print(f"  [GIF] kalp_em_zaman.gif")
+
+        # 6. N-kisi halka kolektif EM (GIF + MATLAB MP4)
+        gif_path = os.path.join(anim_dir, "n_kisi_em.gif")
+        p = n_kisi_em_gif(
+            N=6 if hizli else 10,
+            n_frames=15 if hizli else 25, t_end=10.0 if hizli else 20.0,
+            grid_n=20 if hizli else 30, output_path=gif_path,
+        )
+        if p:
+            uretilen.append(p)
+            mp4 = gif_path.replace(".gif", ".mp4")
+            if os.path.exists(mp4):
+                uretilen.append(mp4)
+                print(f"  [GIF+MP4] n_kisi_em.gif / .mp4  (N={'6' if hizli else '10'})")
+            else:
+                print(f"  [GIF] n_kisi_em.gif")
+
+        html_sayisi = sum(1 for f in uretilen if f.endswith(".html"))
+        gif_sayisi  = sum(1 for f in uretilen if f.endswith(".gif"))
+        mp4_sayisi  = sum(1 for f in uretilen if f.endswith(".mp4"))
+        print(
+            f"\n  Animasyon ozeti: {html_sayisi} HTML  "
+            f"{gif_sayisi} GIF  {mp4_sayisi} MP4  "
+            f"→ {anim_dir}"
+        )
     except Exception as exc:
-        print(f"  [UYARI] Animasyon üretim hatası: {exc}")
+        import traceback
+        print(f"  [UYARI] Animasyon uretim hatasi: {exc}")
+        traceback.print_exc()
+    return uretilen
 
 
 def interaktif_görselleştirme(output_dir: str) -> None:
@@ -495,7 +526,7 @@ def main():
         return 1
 
     # ---- Başlık ----
-    başlık_yazdır("BVT — Birliğin Varlığı Teoremi (10 Faz)")
+    başlık_yazdır("BVT — Birliğin Varlığı Teoremi (12 Faz)")
     print(f"  Çalıştırılacak fazlar: {fazlar}")
     print(f"  Mod: {'HIZLI TEST' if args.hizli else 'TAM'}")
     print(f"  HTML: {args.html}")
@@ -504,17 +535,6 @@ def main():
     # Bağımlılık kontrolü
     başlık_yazdır("Bağımlılık Kontrolü", "-")
     bağımlılık_durumu = çevre_kontrol()
-
-    # Eski dizinleri temizle, tek temiz output dizini oluştur
-    import shutil
-    for eski_dizin in ["results", "output"]:
-        eski_yol = os.path.join(ROOT, eski_dizin)
-        if os.path.exists(eski_yol) and eski_yol != os.path.join(ROOT, args.output):
-            try:
-                shutil.rmtree(eski_yol)
-                print(f"  Silindi: {eski_yol}")
-            except Exception as exc:
-                print(f"  [UYARI] Silinemedi {eski_yol}: {exc}")
 
     # Dizin hazırlığı
     os.makedirs(args.output, exist_ok=True)
@@ -552,26 +572,38 @@ def main():
     başlık_yazdır("Etkileşimli HTML Şekilleri", "-")
     interaktif_görselleştirme(args.output)
 
-    # ---- ANİMASYONLAR (--animasyon veya --html ile) ----
-    if args.animasyon or args.html:
-        başlık_yazdır("Plotly Animasyonlar", "-")
-        animasyon_üret(args.output, hizli=args.hizli)
+    # ---- ANİMASYONLAR (her zaman üret) ----
+    başlık_yazdır("Animasyonlar (HTML + GIF + MP4)", "-")
+    anim_dosyalar = animasyon_üret(args.output, hizli=args.hizli)
 
     # ---- ÖZET ----
     toplam_süre = time.time() - toplam_t0
     başarılı = [no for no, s in sonuçlar.items() if s.get("başarı")]
     başarısız = [no for no, s in sonuçlar.items() if not s.get("başarı")]
 
+    anim_dir = os.path.join(args.output, "animations")
+    html_dir = os.path.join(args.output, "html")
+
     başlık_yazdır("ÖZET")
     print(f"\n  Toplam süre: {toplam_süre:.0f}s ({toplam_süre/60:.1f} dk)")
-    print(f"  Başarılı: {renk(str(len(başarılı)) + '/' + str(len(fazlar)), 'yeşil')} faz")
-
+    print(f"  Başarılı:    {renk(str(len(başarılı)) + '/' + str(len(fazlar)), 'yeşil')} faz")
     if başarılı:
-        print(f"  Başarılı fazlar: {başarılı}")
+        print(f"  Basarili fazlar: {başarılı}")
     if başarısız:
-        print(f"  {renk('Başarısız fazlar: ' + str(başarısız), 'kırmızı')}")
+        print(f"  {renk('Basarisiz fazlar: ' + str(başarısız), 'kırmızı')}")
 
-    print(f"\n  Çıktı dizini: {os.path.abspath(args.output)}")
+    # Çıktı sayımı
+    mp4_sayisi  = sum(1 for f in anim_dosyalar if f.endswith(".mp4"))
+    gif_sayisi  = sum(1 for f in anim_dosyalar if f.endswith(".gif"))
+    html_anim   = sum(1 for f in anim_dosyalar if f.endswith(".html"))
+    html_sekil  = len([f for f in os.listdir(html_dir) if f.endswith(".html")]) if os.path.isdir(html_dir) else 0
+
+    print(f"\n  Cikti dosyalari:")
+    print(f"    HTML animasyon : {html_anim}  → {anim_dir}")
+    print(f"    GIF video      : {gif_sayisi}  → {anim_dir}")
+    print(f"    MP4 video      : {mp4_sayisi}  → {anim_dir}")
+    print(f"    HTML grafik    : {html_sekil}  → {html_dir}")
+    print(f"\n  Ana cikti dizini: {os.path.abspath(args.output)}")
 
     # Log güncelle
     sonuç_log_güncelle(
