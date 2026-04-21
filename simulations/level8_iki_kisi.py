@@ -338,6 +338,10 @@ def main() -> None:
 
         html_path = os.path.join(args.output, "L8_iki_kisi.html")
         fig_h.write_html(html_path, include_plotlyjs="cdn")
+        try:
+            fig_h.write_image(html_path.replace(".html", ".png"))
+        except Exception:
+            pass
         print(f"  HTML: {html_path}")
         try:
             fig_h.write_image(

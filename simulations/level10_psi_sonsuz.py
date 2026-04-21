@@ -343,6 +343,10 @@ def main() -> None:
 
         html_3d = os.path.join(args.output, "L10_3d_surfaces.html")
         fig_3d.write_html(html_3d, include_plotlyjs="cdn")
+        try:
+            fig_3d.write_image(html_3d.replace(".html", ".png"))
+        except Exception:
+            pass
         print(f"  HTML (3D): {html_3d}")
         try:
             fig_3d.write_image(
@@ -409,6 +413,10 @@ def main() -> None:
 
         html_env = os.path.join(args.output, "L10_cevre_spektrum.html")
         fig_env.write_html(html_env, include_plotlyjs="cdn")
+        try:
+            fig_env.write_image(html_env.replace(".html", ".png"))
+        except Exception:
+            pass
         print(f"  HTML (çevre+spektrum): {html_env}")
         try:
             fig_env.write_image(

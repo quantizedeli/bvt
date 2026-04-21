@@ -226,6 +226,10 @@ def sekil_kaydet(sonuclar: dict, N_arr: np.ndarray, I_arr: np.ndarray,
 
             html_yol = os.path.join(output_dir, "level4_multiperson.html")
             fig_html.write_html(html_yol, include_plotlyjs="cdn")
+            try:
+                fig_html.write_image(html_yol.replace(".html", ".png"))
+            except Exception:
+                pass
             print(f"  HTML: {html_yol}")
         except ImportError:
             print("  [UYARI] Plotly yok — HTML atlandı.")

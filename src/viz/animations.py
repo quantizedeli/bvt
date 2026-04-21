@@ -168,6 +168,10 @@ def animasyon_kalp_koherant_vs_inkoherant(
     fig.update_yaxes(title_text="y (cm)")
 
     fig.write_html(output_path, include_plotlyjs="cdn")
+    try:
+        fig.write_image(output_path.replace(".html", ".png"))
+    except Exception:
+        pass
     print(f"  Animasyon: {output_path}")
     return output_path
 
@@ -311,6 +315,10 @@ def animasyon_halka_kolektif_em(
     )
 
     fig.write_html(output_path, include_plotlyjs="cdn")
+    try:
+        fig.write_image(output_path.replace(".html", ".png"))
+    except Exception:
+        pass
     print(f"  Animasyon: {output_path}")
     return output_path
 

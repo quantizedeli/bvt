@@ -386,6 +386,10 @@ def main() -> None:
 
         html_path = os.path.join(args.output, "L7_tek_kisi.html")
         fig_h.write_html(html_path, include_plotlyjs="cdn")
+        try:
+            fig_h.write_image(html_path.replace(".html", ".png"))
+        except Exception:
+            pass
         print(f"  HTML: {html_path}")
         try:
             fig_h.write_image(os.path.join(args.output, "L7_tek_kisi_plotly.png"),

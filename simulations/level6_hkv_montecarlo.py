@@ -343,6 +343,10 @@ def main() -> None:
 
             html_path = os.path.join(args.output, "D1_prestimulus_dist.html")
             fig_html.write_html(html_path, include_plotlyjs="cdn")
+            try:
+                fig_html.write_image(html_path.replace(".html", ".png"))
+            except Exception:
+                pass
             print(f"  HTML: {html_path}")
         except ImportError:
             print("  [UYARI] Plotly yok -- HTML atlanıyor.")
