@@ -519,6 +519,53 @@ def animasyon_üret(output_dir: str, hizli: bool = False) -> list:
     return uretilen
 
 
+def marimo_export(output_dir: str) -> list:
+    """
+    bvt_studio/ içindeki tüm Marimo notebook'ları statik HTML olarak export eder.
+
+    marimo çalışmadan tarayıcıda açılabilen self-contained HTML dosyaları üretir.
+    Çıktı dizini: output_dir/marimo/
+    """
+    import subprocess
+    studio_dir = os.path.join(ROOT, "bvt_studio")
+    marimo_out = os.path.join(output_dir, "marimo")
+    os.makedirs(marimo_out, exist_ok=True)
+
+    notebooks = [
+        "bvt_dashboard.py",
+        "nb01_halka_topoloji.py",
+        "nb02_iki_kisi_mesafe.py",
+        "nb03_n_kisi_olcekleme.py",
+        "nb04_uclu_rezonans.py",
+        "nb05_hkv_iki_populasyon.py",
+        "nb06_ses_frekanslari.py",
+        "nb07_girisim_deseni.py",
+        "nb08_em_alan_3d_live.py",
+        "nb09_literatur_explorer.py",
+    ]
+
+    uretilen = []
+    for nb in notebooks:
+        nb_path = os.path.join(studio_dir, nb)
+        out_html = os.path.join(marimo_out, nb.replace(".py", ".html"))
+        try:
+            proc = subprocess.run(
+                ["marimo", "export", "html", nb_path, "-o", out_html],
+                cwd=ROOT, capture_output=True, timeout=120
+            )
+            if proc.returncode == 0 and os.path.exists(out_html):
+                uretilen.append(out_html)
+                print(f"  [MARIMO] {nb.replace('.py', '.html')}")
+            else:
+                stderr = proc.stderr.decode(errors="replace")[:200]
+                print(f"  [UYARI] {nb} export hatası: {stderr}")
+        except Exception as exc:
+            print(f"  [UYARI] {nb} export hatası: {exc}")
+
+    print(f"\n  Marimo export: {len(uretilen)}/{len(notebooks)} notebook → {marimo_out}")
+    return uretilen
+
+
 def interaktif_görselleştirme(output_dir: str) -> None:
     """
     Tüm HTML şekillerini üretir (plots_interactive.py üzerinden).
@@ -590,6 +637,7 @@ def main():
   python main.py --interaktif            # Yalnızca HTML şekilleri (plots_interactive)
   python main.py --animasyon --hizli     # Yalnızca animasyonlar (hızlı)
   python main.py --zaman-em-dalga        # Kalp-Beyin EM dalga grafiği (fiziksel)
+  python main.py --marimo-export         # Marimo notebook'ları statik HTML export
   python main.py --listele               # Faz listesi
   python main.py --kontrol               # Bağımlılık + BVT sabitleri kontrolü
 """
@@ -614,6 +662,8 @@ def main():
                         help="Plotly HTML animasyonlarını üret (animations.py)")
     parser.add_argument("--zaman-em-dalga", action="store_true",
                         help="Kalp-Beyin 3D EM dalga grafiğini fiziksel parametrelerle üret")
+    parser.add_argument("--marimo-export", action="store_true",
+                        help="Marimo notebook'ları statik HTML olarak export et (output/marimo/)")
     args = parser.parse_args()
 
     # ---- Özel modlar ----
@@ -634,6 +684,11 @@ def main():
     if args.animasyon:
         başlık_yazdır("BVT Plotly Animasyonları")
         animasyon_üret(args.output, hizli=args.hizli)
+        return 0
+
+    if getattr(args, "marimo_export", False):
+        başlık_yazdır("Marimo BVT Studio — Statik HTML Export")
+        marimo_export(args.output)
         return 0
 
     if getattr(args, "zaman_em_dalga", False):

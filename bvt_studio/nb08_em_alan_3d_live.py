@@ -78,157 +78,141 @@ def __(mo):
 
 
 @app.cell
-def __(anywidget, _tr, _AWOK, C_sl, zaman_sl, mesafe_sl, mo):
+def __():
+    _BVT3D_ESM = (
+        "import * as THREE from 'https://cdn.skypack.dev/three@0.160.0';\n"
+        "\n"
+        "function coherenceColor(C) {\n"
+        "  return new THREE.Color(C * 0.9, C * 0.65, 1.0 - C * 0.85);\n"
+        "}\n"
+        "\n"
+        "export function render({ model, el }) {\n"
+        "  const div = document.createElement('div');\n"
+        "  div.style.cssText = 'width:100%;height:500px;border-radius:8px;overflow:hidden;background:#040412;';\n"
+        "  el.appendChild(div);\n"
+        "  const W = div.clientWidth || 700, H = 500;\n"
+        "  const scene = new THREE.Scene();\n"
+        "  scene.background = new THREE.Color(0x040412);\n"
+        "  scene.fog = new THREE.FogExp2(0x040412, 0.12);\n"
+        "  const camera = new THREE.PerspectiveCamera(55, W / H, 0.01, 40);\n"
+        "  camera.position.set(2.8, 1.6, 2.8);\n"
+        "  camera.lookAt(0, 0, 0);\n"
+        "  const renderer = new THREE.WebGLRenderer({ antialias: true });\n"
+        "  renderer.setSize(W, H);\n"
+        "  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));\n"
+        "  div.appendChild(renderer.domElement);\n"
+        "  scene.add(new THREE.AmbientLight(0x223355, 0.7));\n"
+        "  const pl1 = new THREE.PointLight(0x4488ff, 2.5, 7);\n"
+        "  pl1.position.set(-1.2, 1.5, 0.3);\n"
+        "  scene.add(pl1);\n"
+        "  const pl2 = new THREE.PointLight(0xff6633, 1.8, 5);\n"
+        "  pl2.position.set(1.2, 1.2, -0.3);\n"
+        "  scene.add(pl2);\n"
+        "  scene.add(new THREE.GridHelper(6, 12, 0x1a2d55, 0x0b1533));\n"
+        "  scene.add(new THREE.AxesHelper(1.4));\n"
+        "  const psiM = new THREE.Mesh(\n"
+        "    new THREE.SphereGeometry(2.7, 24, 16),\n"
+        "    new THREE.MeshBasicMaterial({ color: 0x1a3d88, wireframe: true, transparent: true, opacity: 0.07 })\n"
+        "  );\n"
+        "  scene.add(psiM);\n"
+        "  const hMat1 = new THREE.MeshPhongMaterial({ color: 0xff3344, emissive: 0x330011, shininess: 90 });\n"
+        "  const h1 = new THREE.Mesh(new THREE.SphereGeometry(0.13, 20, 20), hMat1);\n"
+        "  scene.add(h1);\n"
+        "  const hGlowM1 = new THREE.MeshBasicMaterial({ color: 0xff3344, transparent: true, opacity: 0.18 });\n"
+        "  const hGlow1 = new THREE.Mesh(new THREE.SphereGeometry(0.30, 16, 16), hGlowM1);\n"
+        "  scene.add(hGlow1);\n"
+        "  const hMat2 = new THREE.MeshPhongMaterial({ color: 0x3399ff, emissive: 0x001133, shininess: 90 });\n"
+        "  const h2 = new THREE.Mesh(new THREE.SphereGeometry(0.13, 20, 20), hMat2);\n"
+        "  scene.add(h2);\n"
+        "  const hGlowM2 = new THREE.MeshBasicMaterial({ color: 0x3399ff, transparent: true, opacity: 0.14 });\n"
+        "  const hGlow2 = new THREE.Mesh(new THREE.SphereGeometry(0.27, 16, 16), hGlowM2);\n"
+        "  scene.add(hGlow2);\n"
+        "  const N_P = 500;\n"
+        "  const pPos = new Float32Array(N_P * 3);\n"
+        "  const pCol = new Float32Array(N_P * 3);\n"
+        "  const pGeo = new THREE.BufferGeometry();\n"
+        "  pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));\n"
+        "  pGeo.setAttribute('color', new THREE.BufferAttribute(pCol, 3));\n"
+        "  scene.add(new THREE.Points(pGeo, new THREE.PointsMaterial({ size: 0.045, vertexColors: true, transparent: true, opacity: 0.8 })));\n"
+        "  function updateParticles(C, t, d) {\n"
+        "    const mu_amp = Math.abs(Math.cos(2 * Math.PI * 0.1 * t)) * C;\n"
+        "    for (let i = 0; i < N_P; i++) {\n"
+        "      const fi = i / N_P;\n"
+        "      const theta = (fi * 6.28 + t * 0.02) * 3;\n"
+        "      const phi = Math.acos(2 * fi - 1);\n"
+        "      const r = 0.35 + fi * 1.5;\n"
+        "      const x = r * Math.sin(phi) * Math.cos(theta);\n"
+        "      const y = r * Math.sin(phi) * Math.sin(theta) * 0.38;\n"
+        "      const z = r * Math.cos(phi);\n"
+        "      const r1 = Math.sqrt((x+d/2)**2 + y**2 + z**2) + 0.05;\n"
+        "      const r2 = Math.sqrt((x-d/2)**2 + y**2 + z**2) + 0.05;\n"
+        "      const B = mu_amp * (1/(r1*r1*r1) + 1/(r2*r2*r2));\n"
+        "      const lb = Math.min(1.0, Math.log10(B * 1e12 + 1) / 5.5);\n"
+        "      pPos[i*3]=x; pPos[i*3+1]=y; pPos[i*3+2]=z;\n"
+        "      pCol[i*3]=C*lb; pCol[i*3+1]=0.38*lb; pCol[i*3+2]=(1-C)*lb;\n"
+        "    }\n"
+        "    pGeo.attributes.position.needsUpdate = true;\n"
+        "    pGeo.attributes.color.needsUpdate = true;\n"
+        "  }\n"
+        "  let autoFrame = 0;\n"
+        "  function updateScene() {\n"
+        "    const C = model.get('C_kalp') || 0.7;\n"
+        "    const t = model.get('time') || 0.0;\n"
+        "    const d = model.get('mesafe') || 0.9;\n"
+        "    const col = coherenceColor(C);\n"
+        "    hMat1.color = col; hMat1.emissive = col.clone().multiplyScalar(0.22);\n"
+        "    hGlowM1.color = col; hGlowM1.opacity = 0.08 + C * 0.24;\n"
+        "    h1.position.x = -d/2; hGlow1.position.x = -d/2;\n"
+        "    h2.position.x = d/2; hGlow2.position.x = d/2;\n"
+        "    h2.visible = d < 2.8; hGlow2.visible = d < 2.8;\n"
+        "    const pulse = 0.88 + 0.12 * Math.sin(2 * Math.PI * 1.2 * t);\n"
+        "    hGlow1.scale.setScalar(pulse); hGlow2.scale.setScalar(pulse * 0.88);\n"
+        "    psiM.rotation.y = t * 0.035; psiM.rotation.x = t * 0.018;\n"
+        "    updateParticles(C, t, d);\n"
+        "  }\n"
+        "  model.on('change:C_kalp', updateScene);\n"
+        "  model.on('change:time', updateScene);\n"
+        "  model.on('change:mesafe', updateScene);\n"
+        "  updateScene();\n"
+        "  let rafId;\n"
+        "  function loop() {\n"
+        "    rafId = requestAnimationFrame(loop);\n"
+        "    autoFrame++;\n"
+        "    camera.position.x = 3.2 * Math.cos(autoFrame * 0.004);\n"
+        "    camera.position.z = 3.2 * Math.sin(autoFrame * 0.004);\n"
+        "    camera.lookAt(0, 0.3, 0);\n"
+        "    renderer.render(scene, camera);\n"
+        "  }\n"
+        "  loop();\n"
+        "  window.addEventListener('resize', () => {\n"
+        "    const w = div.clientWidth;\n"
+        "    camera.aspect = w / H;\n"
+        "    camera.updateProjectionMatrix();\n"
+        "    renderer.setSize(w, H);\n"
+        "  });\n"
+        "  return () => { cancelAnimationFrame(rafId); renderer.dispose(); };\n"
+        "}\n"
+    )
+    return (_BVT3D_ESM,)
+
+
+@app.cell
+def __(_AWOK, _BVT3D_ESM, anywidget, _tr, C_sl, zaman_sl, mesafe_sl, mo):
+    BVT3DWidget = None
+    _w = None
+    aw_result = mo.md("*(anywidget yok — Plotly 3D aşağıda)*")
     if _AWOK:
         class BVT3DWidget(anywidget.AnyWidget):
-            _esm = r"""
-import * as THREE from 'https://cdn.skypack.dev/three@0.160.0';
-
-function coherenceColor(C) {
-  return new THREE.Color(C * 0.9, C * 0.65, 1.0 - C * 0.85);
-}
-
-export function render({ model, el }) {
-  const div = document.createElement('div');
-  div.style.cssText = 'width:100%;height:500px;border-radius:8px;overflow:hidden;background:#040412;';
-  el.appendChild(div);
-
-  const W = div.clientWidth || 700, H = 500;
-  const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x040412);
-  scene.fog = new THREE.FogExp2(0x040412, 0.12);
-
-  const camera = new THREE.PerspectiveCamera(55, W / H, 0.01, 40);
-  camera.position.set(2.8, 1.6, 2.8);
-  camera.lookAt(0, 0, 0);
-
-  const renderer = new THREE.WebGLRenderer({ antialias: true });
-  renderer.setSize(W, H);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  div.appendChild(renderer.domElement);
-
-  scene.add(new THREE.AmbientLight(0x223355, 0.7));
-  const pl1 = new THREE.PointLight(0x4488ff, 2.5, 7);
-  pl1.position.set(-1.2, 1.5, 0.3);
-  scene.add(pl1);
-  const pl2 = new THREE.PointLight(0xff6633, 1.8, 5);
-  pl2.position.set(1.2, 1.2, -0.3);
-  scene.add(pl2);
-
-  scene.add(new THREE.GridHelper(6, 12, 0x1a2d55, 0x0b1533));
-  scene.add(new THREE.AxesHelper(1.4));
-
-  // Ψ_Sonsuz wireframe
-  const psiM = new THREE.Mesh(
-    new THREE.SphereGeometry(2.7, 24, 16),
-    new THREE.MeshBasicMaterial({ color: 0x1a3d88, wireframe: true, transparent: true, opacity: 0.07 })
-  );
-  scene.add(psiM);
-
-  // Heart 1
-  const hMat1 = new THREE.MeshPhongMaterial({ color: 0xff3344, emissive: 0x330011, shininess: 90 });
-  const h1 = new THREE.Mesh(new THREE.SphereGeometry(0.13, 20, 20), hMat1);
-  scene.add(h1);
-  const hGlowM1 = new THREE.MeshBasicMaterial({ color: 0xff3344, transparent: true, opacity: 0.18 });
-  const hGlow1 = new THREE.Mesh(new THREE.SphereGeometry(0.30, 16, 16), hGlowM1);
-  scene.add(hGlow1);
-
-  // Heart 2
-  const hMat2 = new THREE.MeshPhongMaterial({ color: 0x3399ff, emissive: 0x001133, shininess: 90 });
-  const h2 = new THREE.Mesh(new THREE.SphereGeometry(0.13, 20, 20), hMat2);
-  scene.add(h2);
-  const hGlowM2 = new THREE.MeshBasicMaterial({ color: 0x3399ff, transparent: true, opacity: 0.14 });
-  const hGlow2 = new THREE.Mesh(new THREE.SphereGeometry(0.27, 16, 16), hGlowM2);
-  scene.add(hGlow2);
-
-  // Particles
-  const N_P = 500;
-  const pPos = new Float32Array(N_P * 3);
-  const pCol = new Float32Array(N_P * 3);
-  const pGeo = new THREE.BufferGeometry();
-  pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
-  pGeo.setAttribute('color', new THREE.BufferAttribute(pCol, 3));
-  scene.add(new THREE.Points(pGeo, new THREE.PointsMaterial({ size: 0.045, vertexColors: true, transparent: true, opacity: 0.8 })));
-
-  function updateParticles(C, t, d) {
-    const mu_amp = Math.abs(Math.cos(2 * Math.PI * 0.1 * t)) * C;
-    for (let i = 0; i < N_P; i++) {
-      const fi = i / N_P;
-      const theta = (fi * 6.28 + t * 0.02) * 3;
-      const phi = Math.acos(2 * fi - 1);
-      const r = 0.35 + fi * 1.5;
-      const x = r * Math.sin(phi) * Math.cos(theta);
-      const y = r * Math.sin(phi) * Math.sin(theta) * 0.38;
-      const z = r * Math.cos(phi);
-      const r1 = Math.sqrt((x+d/2)**2 + y**2 + z**2) + 0.05;
-      const r2 = Math.sqrt((x-d/2)**2 + y**2 + z**2) + 0.05;
-      const B = mu_amp * (1/(r1*r1*r1) + 1/(r2*r2*r2));
-      const lb = Math.min(1.0, Math.log10(B * 1e12 + 1) / 5.5);
-      pPos[i*3]=x; pPos[i*3+1]=y; pPos[i*3+2]=z;
-      pCol[i*3]=C*lb; pCol[i*3+1]=0.38*lb; pCol[i*3+2]=(1-C)*lb;
-    }
-    pGeo.attributes.position.needsUpdate = true;
-    pGeo.attributes.color.needsUpdate = true;
-  }
-
-  let autoFrame = 0;
-  function updateScene() {
-    const C = model.get('C_kalp') || 0.7;
-    const t = model.get('time') || 0.0;
-    const d = model.get('mesafe') || 0.9;
-    const col = coherenceColor(C);
-    hMat1.color = col; hMat1.emissive = col.clone().multiplyScalar(0.22);
-    hGlowM1.color = col; hGlowM1.opacity = 0.08 + C * 0.24;
-    h1.position.x = -d/2; hGlow1.position.x = -d/2;
-    h2.position.x = d/2; hGlow2.position.x = d/2;
-    h2.visible = d < 2.8; hGlow2.visible = d < 2.8;
-    const pulse = 0.88 + 0.12 * Math.sin(2 * Math.PI * 1.2 * t);
-    hGlow1.scale.setScalar(pulse); hGlow2.scale.setScalar(pulse * 0.88);
-    psiM.rotation.y = t * 0.035; psiM.rotation.x = t * 0.018;
-    updateParticles(C, t, d);
-  }
-  model.on('change:C_kalp', updateScene);
-  model.on('change:time', updateScene);
-  model.on('change:mesafe', updateScene);
-  updateScene();
-
-  let rafId;
-  function loop() {
-    rafId = requestAnimationFrame(loop);
-    autoFrame++;
-    camera.position.x = 3.2 * Math.cos(autoFrame * 0.004);
-    camera.position.z = 3.2 * Math.sin(autoFrame * 0.004);
-    camera.lookAt(0, 0.3, 0);
-    renderer.render(scene, camera);
-  }
-  loop();
-
-  window.addEventListener('resize', () => {
-    const w = div.clientWidth;
-    camera.aspect = w / H;
-    camera.updateProjectionMatrix();
-    renderer.setSize(w, H);
-  });
-
-  return () => { cancelAnimationFrame(rafId); renderer.dispose(); };
-}
-"""
-            kalp_konumu = _tr.List([0.0, 0.0, 0.0]).tag(sync=True)
             C_kalp = _tr.Float(0.7).tag(sync=True)
             time = _tr.Float(0.0).tag(sync=True)
             mesafe = _tr.Float(0.9).tag(sync=True)
-
+        BVT3DWidget._esm = _BVT3D_ESM
         _w = BVT3DWidget(
             C_kalp=float(C_sl.value),
             time=float(zaman_sl.value),
             mesafe=float(mesafe_sl.value),
         )
         aw_result = mo.ui.anywidget(_w)
-    else:
-        BVT3DWidget = None
-        _w = None
-        aw_result = mo.md("*(anywidget yok — Plotly 3D aşağıda)*")
-
     aw_result
     return (BVT3DWidget, aw_result)
 
