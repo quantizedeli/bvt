@@ -1536,7 +1536,8 @@ def animasyon_halka_n_varyantlar(
         (50, "tam_halka",  "output/animations/halka_N50.html"),
     ]
     paths = []
-    for N_val, topo, out_path in varyantlar:
+    for N_val, topo, _default_path in varyantlar:
+        out_path = os.path.join(output_dir, f"halka_N{N_val}.html")
         print(f"  Halka animasyonu N={N_val} üretiliyor...")
         n_fr = min(n_frames, 30) if N_val >= 50 else n_frames
         t_sim = min(t_end, 30.0) if N_val >= 50 else t_end

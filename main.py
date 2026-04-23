@@ -373,6 +373,9 @@ def animasyon_üret(output_dir: str, hizli: bool = False) -> list:
         rezonans_ani.html/.png             — Rezonans anı: frekans kilitleme (4 panel)
         kalp_em_zaman.gif/.mp4             — Tek kalp EM zamanla değişimi (MATLAB MP4)
         n_kisi_em.gif/.mp4                 — N=10 halka kolektif EM (MATLAB MP4)
+        em_alan_zaman_etkilesim.html       — EM alan × kalp/beyin zaman etkileşimi (v6)
+        kalp_em_zaman_multi.html           — Kalp EM çok-senaryo karşılaştırma (v6)
+        halka_N11.html / halka_N19.html / halka_N50.html  — N varyantları (v6)
 
     Parametreler
     ------------
@@ -393,6 +396,9 @@ def animasyon_üret(output_dir: str, hizli: bool = False) -> list:
             animasyon_rezonans_ani,
             kalp_em_gif,
             n_kisi_em_gif,
+            animasyon_em_alan_zaman_etkilesim,
+            animasyon_kalp_em_zaman_multi,
+            animasyon_halka_n_varyantlar,
         )
         anim_dir = os.path.join(output_dir, "animations")
         os.makedirs(anim_dir, exist_ok=True)
@@ -467,6 +473,36 @@ def animasyon_üret(output_dir: str, hizli: bool = False) -> list:
                 print(f"  [GIF+MP4] n_kisi_em.gif / .mp4  (N={'6' if hizli else '10'})")
             else:
                 print(f"  [GIF] n_kisi_em.gif")
+
+        # 7. EM alan × kalp/beyin zaman etkileşimi (v6, Plotly HTML)
+        p = animasyon_em_alan_zaman_etkilesim(
+            n_frames=20 if hizli else 50, t_end=10.0 if hizli else 30.0,
+            output_path=os.path.join(anim_dir, "em_alan_zaman_etkilesim.html"),
+        )
+        if p:
+            uretilen.append(p)
+            print(f"  [HTML] em_alan_zaman_etkilesim.html")
+
+        # 8. Kalp EM çok-senaryo karşılaştırma (v6, Plotly HTML)
+        p = animasyon_kalp_em_zaman_multi(
+            n_frames=20 if hizli else 50, t_end=10.0 if hizli else 30.0,
+            output_path=os.path.join(anim_dir, "kalp_em_zaman_multi.html"),
+        )
+        if p:
+            uretilen.append(p)
+            print(f"  [HTML] kalp_em_zaman_multi.html")
+
+        # 9. Halka N varyantları: N=11, N=19, N=50 (v6, Plotly HTML)
+        animasyon_halka_n_varyantlar(
+            output_dir=anim_dir,
+            n_frames=15 if hizli else 50,
+            t_end=30.0 if hizli else 60.0,
+        )
+        for n_val in (11, 19, 50):
+            p = os.path.join(anim_dir, f"halka_N{n_val}.html")
+            if os.path.exists(p):
+                uretilen.append(p)
+        print(f"  [HTML] halka_N11.html / halka_N19.html / halka_N50.html")
 
         html_sayisi = sum(1 for f in uretilen if f.endswith(".html"))
         gif_sayisi  = sum(1 for f in uretilen if f.endswith(".gif"))
@@ -545,8 +581,8 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Örnekler:
-  python main.py                         # Tüm 12 faz + HTML + animasyon
-  python main.py --hizli                 # Tüm 12 faz (hızlı test parametreleri)
+  python main.py                         # Tüm 18 faz + HTML + animasyon
+  python main.py --hizli                 # Tüm 18 faz (hızlı test parametreleri)
   python main.py --phases 9 10           # Yalnızca faz 9 ve 10
   python main.py --faz 7                 # Tek faz (HTML/animasyon atlanır)
   python main.py --faz 7 --html          # Tek faz + HTML şekilleri
@@ -620,7 +656,7 @@ def main():
     elif args.phases:
         fazlar = sorted(set(args.phases))
     else:
-        fazlar = list(FAZ_BİLGİ.keys())  # 1..12
+        fazlar = list(FAZ_BİLGİ.keys())  # 1..18
 
     # Geçersiz faz kontrolü
     geçersiz = [f for f in fazlar if f not in FAZ_BİLGİ]
@@ -630,7 +666,7 @@ def main():
         return 1
 
     # ---- Başlık ----
-    başlık_yazdır("BVT — Birliğin Varlığı Teoremi (12 Faz)")
+    başlık_yazdır("BVT — Birliğin Varlığı Teoremi (18 Faz)")
     print(f"  Çalıştırılacak fazlar: {fazlar}")
     print(f"  Mod: {'HIZLI TEST' if args.hizli else 'TAM'}")
     print(f"  HTML: {args.html}")
