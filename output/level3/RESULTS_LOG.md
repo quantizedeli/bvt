@@ -1,10 +1,10 @@
 # BVT Simülasyon Sonuç Logu
 
 
-## [2026-04-21 06:51] Level 3 — QuTiP Lindblad Simülasyonu
+## [2026-04-22 02:24] Level 3 — QuTiP Lindblad Simülasyonu
 
 **Parametre seti:** n_max=9, t_end=60.0s, α=2.0
-**Çalışma süresi:** 9.7 dakika
+**Çalışma süresi:** 10.4 dakika
 
 **Önemli bulgular:**
 - ⟨n̂_kalp⟩ başlangıç: 3.970 → son: 3.038
@@ -15,10 +15,10 @@
 
 ---
 
-## [2026-04-21 13:57] Level 3 — QuTiP Lindblad Simülasyonu
+## [2026-04-22 03:05] Level 3 — QuTiP Lindblad Simülasyonu
 
 **Parametre seti:** n_max=9, t_end=60.0s, α=2.0
-**Çalışma süresi:** 11.4 dakika
+**Çalışma süresi:** 10.1 dakika
 
 **Önemli bulgular:**
 - ⟨n̂_kalp⟩ başlangıç: 3.970 → son: 3.038
@@ -29,10 +29,10 @@
 
 ---
 
-## [2026-04-21 14:43] Level 3 — QuTiP Lindblad Simülasyonu
+## [2026-04-22 03:27] Level 3 — QuTiP Lindblad Simülasyonu
 
 **Parametre seti:** n_max=9, t_end=60.0s, α=2.0
-**Çalışma süresi:** 9.7 dakika
+**Çalışma süresi:** 8.9 dakika
 
 **Önemli bulgular:**
 - ⟨n̂_kalp⟩ başlangıç: 3.970 → son: 3.038

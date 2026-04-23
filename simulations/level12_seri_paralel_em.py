@@ -71,6 +71,30 @@ def kolektif_guc_hesapla(C_t: np.ndarray, r_t: np.ndarray) -> np.ndarray:
     return N * C_mean + N * (N - 1) * C_mean * r_t
 
 
+def _kaydet_faz(output_dir: str, faz_no: int, sonuc: dict, konumlar: np.ndarray) -> None:
+    """Faz sonucunu npz olarak kaydet (sonraki faz yükleyebilsin)."""
+    path = os.path.join(output_dir, f"L12_faz{faz_no}_durum.npz")
+    np.savez(path,
+             C_son=sonuc["C_t"][:, -1],
+             phi_son=sonuc["phi_t"][:, -1],
+             r_son=np.array([sonuc["r_t"][-1]]),
+             konumlar=konumlar)
+    print(f"  [KAYIT] Faz {faz_no} durumu: {path}")
+
+
+def _yukle_faz(output_dir: str, faz_no: int) -> dict:
+    """Önceki faz durumunu yükle."""
+    path = os.path.join(output_dir, f"L12_faz{faz_no}_durum.npz")
+    if not os.path.exists(path):
+        raise FileNotFoundError(
+            f"Faz {faz_no} durumu bulunamadı: {path}\n"
+            f"Önce --faz {faz_no} çalıştırın."
+        )
+    data = np.load(path)
+    print(f"  [YÜKLEME] Faz {faz_no} durumu: {path}")
+    return {"C_son": data["C_son"], "phi_son": data["phi_son"], "konumlar": data["konumlar"]}
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="BVT Level 12 — Seri-Paralel EM")
     parser.add_argument("--N", type=int, default=10)
@@ -78,54 +102,117 @@ def main() -> None:
     parser.add_argument("--output", default="output/level12")
     parser.add_argument("--dt", type=float, default=0.05)
     parser.add_argument("--html", action="store_true", help="HTML çıktı (her zaman üretilir)")
+    parser.add_argument(
+        "--faz", type=int, choices=[1, 2, 3, 0], default=0,
+        help="Tek faz çalıştır (1=PARALEL, 2=HİBRİT, 3=SERİ, 0=tümü [varsayılan]). "
+             "Faz 2/3 için önceki faz kaydedilmiş olmalı.",
+    )
     args = parser.parse_args()
 
     os.makedirs(args.output, exist_ok=True)
+    faz_hedef = args.faz  # 0 = tümü
     print(f"\nBVT Level 12 — Seri-Paralel Faz Geçişi (N={args.N}, t_end={args.t_end}s)")
+    if faz_hedef:
+        print(f"  → Sadece FAZ {faz_hedef} çalıştırılıyor")
     print("=" * 65)
 
     # 1. Kişileri halka topolojisinde yerleştir
     konumlar = kisiler_yerlestir(args.N, "tam_halka", radius=1.5)
 
-    # 2. Başlangıç: rastgele fazlar (PARALEL), düşük koherans
-    rng = np.random.default_rng(42)
-
-    # FAZ 1 — PARALEL (t=0-20s): zayıf bağlaşım, rastgele fazlar
-    C_0_paralel = rng.uniform(0.15, 0.25, args.N)
-    phi_0_paralel = rng.uniform(0, 2 * np.pi, args.N)
-    t_faz = min(20.0, args.t_end / 3)
-    print(f"  FAZ 1 PARALEL: ort_C={np.mean(C_0_paralel):.2f}, r_0 ≈ {abs(np.mean(np.exp(1j*phi_0_paralel))):.2f}")
-
     from src.core.constants import KAPPA_EFF
-    print("  FAZ 1 dinamik entegrasyon...")
-    sonuc_p = N_kisi_tam_dinamik(
-        konumlar=konumlar, C_baslangic=C_0_paralel, phi_baslangic=phi_0_paralel,
-        t_span=(0, t_faz), dt=args.dt, f_geometri=0.35,
-        kappa_eff=KAPPA_EFF * 0.3,  # Zayıf bağlaşım — senkron zor
-        cooperative_robustness=True,
-    )
+    rng = np.random.default_rng(42)
+    t_faz = min(20.0, args.t_end / 3)
 
-    # FAZ 2 — HİBRİT (t=20-40s): tam bağlaşım
-    phi_0_hibrit = sonuc_p["phi_t"][:, -1]
-    C_0_hibrit = sonuc_p["C_t"][:, -1]
-    print(f"  FAZ 2 HİBRİT: ort_C={np.mean(C_0_hibrit):.2f}, r ≈ {sonuc_p['r_t'][-1]:.2f}")
-    sonuc_h = N_kisi_tam_dinamik(
-        konumlar=konumlar, C_baslangic=C_0_hibrit, phi_baslangic=phi_0_hibrit,
-        t_span=(0, t_faz), dt=args.dt, f_geometri=0.35,
-        kappa_eff=KAPPA_EFF * 1.0,
-        cooperative_robustness=True,
-    )
+    # ── FAZ 1 — PARALEL ──────────────────────────────────────────
+    if faz_hedef in (0, 1):
+        C_0_paralel = rng.uniform(0.15, 0.25, args.N)
+        phi_0_paralel = rng.uniform(0, 2 * np.pi, args.N)
+        print(f"  FAZ 1 PARALEL: ort_C={np.mean(C_0_paralel):.2f}, r_0 ≈ {abs(np.mean(np.exp(1j*phi_0_paralel))):.2f}")
+        print("  FAZ 1 dinamik entegrasyon...")
+        sonuc_p = N_kisi_tam_dinamik(
+            konumlar=konumlar, C_baslangic=C_0_paralel, phi_baslangic=phi_0_paralel,
+            t_span=(0, t_faz), dt=args.dt, f_geometri=0.35,
+            kappa_eff=KAPPA_EFF * 0.3,
+            cooperative_robustness=True,
+        )
+        _kaydet_faz(args.output, 1, sonuc_p, konumlar)
+        if faz_hedef == 1:
+            print(f"\n  Faz 1 tamamlandı. r_son={sonuc_p['r_t'][-1]:.3f}")
+            print(f"  Sonraki adım: --faz 2")
+            return
+    else:
+        # Faz 2 veya 3 tek başına: faz 1 durumunu yükle
+        _d = _yukle_faz(args.output, 1)
+        konumlar = _d["konumlar"]
+        # sonuc_p benzeri minimal dict (birleştirme için dummy)
+        sonuc_p = None
+        C_0_hibrit_load = _d["C_son"]
+        phi_0_hibrit_load = _d["phi_son"]
 
-    # FAZ 3 — SERİ (t=40-60s): güçlü pump
-    phi_0_seri = sonuc_h["phi_t"][:, -1]
-    C_0_seri = sonuc_h["C_t"][:, -1]
-    print(f"  FAZ 3 SERİ: ort_C={np.mean(C_0_seri):.2f}, r ≈ {sonuc_h['r_t'][-1]:.2f}")
+    # ── FAZ 2 — HİBRİT ───────────────────────────────────────────
+    if faz_hedef in (0, 2):
+        if faz_hedef == 0:
+            phi_0_hibrit = sonuc_p["phi_t"][:, -1]
+            C_0_hibrit = sonuc_p["C_t"][:, -1]
+        else:
+            C_0_hibrit = C_0_hibrit_load
+            phi_0_hibrit = phi_0_hibrit_load
+        print(f"  FAZ 2 HİBRİT: ort_C={np.mean(C_0_hibrit):.2f}")
+        sonuc_h = N_kisi_tam_dinamik(
+            konumlar=konumlar, C_baslangic=C_0_hibrit, phi_baslangic=phi_0_hibrit,
+            t_span=(0, t_faz), dt=args.dt, f_geometri=0.35,
+            kappa_eff=KAPPA_EFF * 1.0,
+            cooperative_robustness=True,
+        )
+        _kaydet_faz(args.output, 2, sonuc_h, konumlar)
+        if faz_hedef == 2:
+            print(f"\n  Faz 2 tamamlandı. r_son={sonuc_h['r_t'][-1]:.3f}")
+            print(f"  Sonraki adım: --faz 3")
+            return
+    else:
+        # Faz 3 tek başına
+        _d = _yukle_faz(args.output, 2)
+        konumlar = _d["konumlar"]
+        sonuc_h = None
+        C_0_seri_load = _d["C_son"]
+        phi_0_seri_load = _d["phi_son"]
+
+    # ── FAZ 3 — SERİ ─────────────────────────────────────────────
+    if faz_hedef == 0:
+        phi_0_seri = sonuc_h["phi_t"][:, -1]
+        C_0_seri = sonuc_h["C_t"][:, -1]
+    else:
+        C_0_seri = C_0_seri_load
+        phi_0_seri = phi_0_seri_load
+    print(f"  FAZ 3 SERİ: ort_C={np.mean(C_0_seri):.2f}")
     sonuc_s = N_kisi_tam_dinamik(
         konumlar=konumlar, C_baslangic=C_0_seri, phi_baslangic=phi_0_seri,
         t_span=(0, t_faz), dt=args.dt, f_geometri=0.50,
         kappa_eff=KAPPA_EFF * 2.0,
         cooperative_robustness=True,
     )
+    _kaydet_faz(args.output, 3, sonuc_s, konumlar)
+
+    # Faz 3 tek başına çalışıyorsa önceki fazları yükle (görselleştirme için)
+    if faz_hedef == 3:
+        d1 = _yukle_faz(args.output, 1)
+        d2 = _yukle_faz(args.output, 2)
+        # Tam dizileri yeniden oluşturmak için faz 1 ve 2'yi tekrar entegre et
+        print("  [BİLGİ] Tam görselleştirme için faz 1+2 yeniden entegre ediliyor...")
+        rng2 = np.random.default_rng(42)
+        C_0_p = rng2.uniform(0.15, 0.25, args.N)
+        phi_0_p = rng2.uniform(0, 2 * np.pi, args.N)
+        sonuc_p = N_kisi_tam_dinamik(
+            konumlar=konumlar, C_baslangic=C_0_p, phi_baslangic=phi_0_p,
+            t_span=(0, t_faz), dt=args.dt, f_geometri=0.35,
+            kappa_eff=KAPPA_EFF * 0.3, cooperative_robustness=True,
+        )
+        sonuc_h = N_kisi_tam_dinamik(
+            konumlar=konumlar, C_baslangic=sonuc_p["C_t"][:, -1],
+            phi_baslangic=sonuc_p["phi_t"][:, -1],
+            t_span=(0, t_faz), dt=args.dt, f_geometri=0.35,
+            kappa_eff=KAPPA_EFF * 1.0, cooperative_robustness=True,
+        )
 
     # Birleştir: 3 faz
     t_arr = np.concatenate([sonuc_p["t"], sonuc_h["t"] + t_faz, sonuc_s["t"] + 2 * t_faz])
@@ -142,8 +229,7 @@ def main() -> None:
     # 4. Seri-paralel indeks ve kolektif güç
     labels = seri_paralel_indeks(r_t)
     kolektif_guc = kolektif_guc_hesapla(C_t, r_t)
-    # eski snapshot zamanları için birleşik phi_0 kullan
-    phi_0 = phi_0_paralel
+    phi_0 = phi_full[:, 0]
 
     # 5. EM alan snapshot'ları — 3 faz için birer snap (FAZ ortasından)
     t_snaps = [t_faz * 0.5, t_faz * 1.5, t_faz * 2.5]
@@ -151,7 +237,7 @@ def main() -> None:
     t_snaps = [max(t_arr[0] + 0.1, min(t, t_arr[-1] - 0.1)) for t in t_snaps]
     print(f"  EM alan snapshot: t={[f'{t:.1f}s' for t in t_snaps]}")
 
-    momentler = dipol_moment_zaman(t_arr, np.mean(C_t, axis=0), phi_0)
+    momentler = dipol_moment_zaman(t_arr, np.mean(C_t, axis=1), phi_0)
     snap_data = {}
     for t_snap in t_snaps:
         t_idx = int(np.searchsorted(t_arr, t_snap))
@@ -235,7 +321,7 @@ def main() -> None:
     print(f"  r(t=0)   = {r_t[0]:.3f}  [{labels[0]}]")
     print(f"  r(t={t_arr[idx_30]:.0f}s) = {r_t[idx_30]:.3f}  [{labels[idx_30]}]")
     print(f"  r(t_son) = {r_t[-1]:.3f}  [{labels[-1]}]")
-    print(f"  N_c_etkin = {sonuc['N_c_etkin']:.1f}  (literatur: {N_C_SUPERRADIANCE})")
+    print(f"  N_c_etkin = {sonuc_s['N_c_etkin']:.1f}  (literatur: {N_C_SUPERRADIANCE})")
     print(f"  Kolektif güç artışı: {kolektif_guc[-1]/kolektif_guc[0]:.1f}×")
     # 8. Plotly interaktif HTML
     print("\n8. Plotly HTML üretiliyor...")

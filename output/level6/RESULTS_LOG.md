@@ -1,7 +1,7 @@
 # BVT Simülasyon Sonuç Logu
 
 
-## [2026-04-21 06:53] Level 6 — Pre-Stimulus Monte Carlo
+## [2026-04-22 02:27] Level 6 — Pre-Stimulus Monte Carlo
 
 **Parametre seti:** trials=1000, C_mean=0.35
 **Çalışma süresi:** 0.0 dakika
@@ -15,7 +15,7 @@
 
 ---
 
-## [2026-04-21 14:00] Level 6 — Pre-Stimulus Monte Carlo
+## [2026-04-22 03:09] Level 6 — Pre-Stimulus Monte Carlo
 
 **Parametre seti:** trials=1000, C_mean=0.35
 **Çalışma süresi:** 0.0 dakika
@@ -29,7 +29,7 @@
 
 ---
 
-## [2026-04-21 14:45] Level 6 — Pre-Stimulus Monte Carlo
+## [2026-04-22 03:29] Level 6 — Pre-Stimulus Monte Carlo
 
 **Parametre seti:** trials=1000, C_mean=0.35
 **Çalışma süresi:** 0.0 dakika
