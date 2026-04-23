@@ -179,8 +179,16 @@ def n_tarama_analizi(
 
 
 def sekil_n_tarama(tarama: dict, output_dir: str) -> None:
-    """N-tarama özet şekli: r_final + I_super."""
-    N_all = sorted(tarama.keys())
+    """N-tarama 4-panel özet şekli.
+
+    Panel 1: r_final vs N — ODE + MC errorbar, N_c çizgisi
+    Panel 2: I_super vs N — log-log, N ve N² referans eğrileri
+    Panel 3: N_c eşiği — r>0.8 olan minimum N (topoloji bağımsız gösterge)
+    Panel 4: Etkin kolektif güç C_kol vs N (0.8·r_mean)
+
+    Referans: BVT TODO v7 FAZ 9.2
+    """
+    N_all  = sorted(tarama.keys())
     r_means = [tarama[n]["r_mean"] for n in N_all]
     r_stds  = [tarama[n]["r_std"]  for n in N_all]
     I_vals  = [tarama[n]["I_super"] for n in N_all]
@@ -188,11 +196,13 @@ def sekil_n_tarama(tarama: dict, output_dir: str) -> None:
 
     ode_idx = [i for i, m in enumerate(modes) if m == "ode"]
     mc_idx  = [i for i, m in enumerate(modes) if m == "mc"]
-    N_np = np.array(N_all)
+    N_np    = np.array(N_all, dtype=float)
+    r_np    = np.array(r_means)
 
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+    fig, axs = plt.subplots(2, 2, figsize=(14, 10))
+    ax1, ax2, ax3, ax4 = axs[0, 0], axs[0, 1], axs[1, 0], axs[1, 1]
 
-    # r_final panel
+    # ── Panel 1: r_final vs N ──────────────────────────────────
     ax1.plot([N_all[i] for i in ode_idx], [r_means[i] for i in ode_idx],
              "o-", color="#2980B9", lw=2, ms=7, label="ODE")
     mc_N = [N_all[i] for i in mc_idx]
@@ -200,34 +210,67 @@ def sekil_n_tarama(tarama: dict, output_dir: str) -> None:
     mc_e = [r_stds[i]  for i in mc_idx]
     ax1.errorbar(mc_N, mc_r, yerr=mc_e, fmt="s", color="#E74C3C", lw=2,
                  ms=9, capsize=5, label="Monte Carlo (±σ)")
-    ax1.axvline(N_C_SUPERRADIANCE, color="green", ls="--", lw=1.5,
-                label=f"N_c={N_C_SUPERRADIANCE} (süperradyans)")
-    ax1.axhline(0.8, color="gray", ls=":", alpha=0.6, label="r=0.8 (seri eşiği)")
-    ax1.set_xlabel("Kişi sayısı N", fontsize=12)
-    ax1.set_ylabel("Kararlı durum r_∞", fontsize=12)
-    ax1.set_title("N → Senkronizasyon Düzeyi", fontsize=13)
+    ax1.axvline(N_C_SUPERRADIANCE, color="green", ls="--", lw=1.8,
+                label=f"N_c={N_C_SUPERRADIANCE}")
+    ax1.axhline(0.8, color="gray", ls=":", alpha=0.7, label="r=0.8 (SERİ eşiği)")
+    ax1.set_xlabel("Kişi sayısı N", fontsize=11)
+    ax1.set_ylabel("Kararlı durum r_∞", fontsize=11)
+    ax1.set_title("Senkronizasyon Düzeyi r(N)", fontsize=12, fontweight="bold")
     ax1.legend(fontsize=9); ax1.grid(alpha=0.3)
-    ax1.set_ylim(0, 1.05)
+    ax1.set_ylim(0, 1.08)
 
-    # I_super panel (log)
+    # ── Panel 2: I_super log-log ───────────────────────────────
     ax2.loglog(N_np, np.array(I_vals), "o-", color="#8E44AD", lw=2, ms=7,
-               label="BVT süperradyans I∝N²r²")
-    ax2.loglog(N_np, N_np.astype(float), "--", color="gray", lw=1.5,
-               label="Klasik I∝N")
-    ax2.loglog(N_np, N_np.astype(float)**2, ":", color="orange", lw=1.5,
-               label="Teorik N²")
-    ax2.axvline(N_C_SUPERRADIANCE, color="green", ls="--", lw=1.5)
-    ax2.set_xlabel("Kişi sayısı N", fontsize=12)
-    ax2.set_ylabel("I / I₁", fontsize=12)
-    ax2.set_title("N → Süperradyans Kazanımı", fontsize=13)
+               label="BVT I_süperradyans")
+    ax2.loglog(N_np, N_np, "--", color="gray", lw=1.5, label="Klasik I∝N")
+    ax2.loglog(N_np, N_np**2, ":", color="orange", lw=1.8, label="Teorik N²")
+    ax2.axvline(N_C_SUPERRADIANCE, color="green", ls="--", lw=1.8)
+    ax2.axvline(50, color="#888", ls=":", lw=1, label="N=50 (MC geçiş)")
+    ax2.set_xlabel("Kişi sayısı N", fontsize=11)
+    ax2.set_ylabel("I / I₁", fontsize=11)
+    ax2.set_title("Süperradyans Kazanımı I(N) [log-log]", fontsize=12, fontweight="bold")
     ax2.legend(fontsize=9); ax2.grid(alpha=0.3, which="both")
 
-    fig.suptitle("BVT Level 4 — N Taraması [10–100]: ODE + Monte Carlo",
-                 fontsize=14, fontweight="bold")
+    # ── Panel 3: N_c eşik çubuğu ──────────────────────────────
+    # Hangi N'lerde r > 0.8?
+    asildi = [N_all[i] for i in range(len(N_all)) if r_means[i] >= 0.8]
+    N_c_etkin = min(asildi) if asildi else max(N_all)
+    bar_colors = ["#27AE60" if r >= 0.8 else "#E74C3C" for r in r_means]
+    ax3.bar(N_all, r_means, color=bar_colors, alpha=0.8, edgecolor="white", width=1.0)
+    ax3.axhline(0.8, color="black", ls="--", lw=1.5, label="r=0.8 eşiği")
+    ax3.axvline(N_C_SUPERRADIANCE, color="gold", ls="-", lw=2.5,
+                label=f"N_c={N_C_SUPERRADIANCE} (teorik)")
+    if asildi:
+        ax3.axvline(N_c_etkin, color="lime", ls=":", lw=2,
+                    label=f"N_c_etkin={N_c_etkin} (sim)")
+    ax3.set_xlabel("Kişi sayısı N", fontsize=11)
+    ax3.set_ylabel("r_∞", fontsize=11)
+    ax3.set_title(f"Süperradyans Eşik Analizi (N_c_etkin={N_c_etkin})", fontsize=12, fontweight="bold")
+    ax3.legend(fontsize=9); ax3.grid(alpha=0.3, axis="y")
+    ax3.set_ylim(0, 1.12)
+
+    # ── Panel 4: Etkin kolektif güç C_kol vs N ────────────────
+    C_kol = 0.8 * r_np  # yaklaşık koherans
+    I_kol = N_np**2 * C_kol * (1 + (N_np - 1) * C_kol)
+    ax4.semilogy(N_np, I_kol, "D-", color="#1ABC9C", lw=2, ms=7,
+                 label="I_kol = N²·C·(1+(N-1)C)")
+    ax4.semilogy(N_np, N_np, "--", color="gray", lw=1.5, label="Klasik N")
+    ax4.axvline(N_C_SUPERRADIANCE, color="green", ls="--", lw=1.8,
+                label=f"N_c={N_C_SUPERRADIANCE}")
+    ax4.set_xlabel("Kişi sayısı N", fontsize=11)
+    ax4.set_ylabel("Kolektif Güç [semilogy]", fontsize=11)
+    ax4.set_title("Kolektif Güç C_kol(N) — Süperradyans Artışı", fontsize=12, fontweight="bold")
+    ax4.legend(fontsize=9); ax4.grid(alpha=0.3, which="both")
+
+    fig.suptitle(
+        "BVT Level 4 — N Taraması [10–100]: ODE + Monte Carlo | 4 Panel",
+        fontsize=14, fontweight="bold",
+    )
     plt.tight_layout()
     out = os.path.join(output_dir, "L4_N_tarama.png")
     plt.savefig(out, dpi=150, bbox_inches="tight")
     plt.close()
+    print(f"  [L4] 4-panel N-tarama kaydedildi: {out}")
     print(f"  N-tarama PNG: {out}")
 
 

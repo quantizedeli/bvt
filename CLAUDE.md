@@ -220,35 +220,43 @@ Tüm değerler `data/literature_values.json` ile çapraz doğrulanır.
 
 Görev tipi → kullanılacak agent:
 
-| Görev | Agent |
-|---|---|
-| Level çalıştır, NaN/Inf kontrol, çıktı doğrula | `bvt-simulate` |
-| Grafik/animasyon/tema düzelt | `bvt-viz` |
-| Literatür taraması, öngörü-makale eşleme | `bvt-explore` / `bvt-literatur` |
-| Denklem türetme, fizik doğrulama | `bvt-fizik` |
-| Sabitler-JSON karşılaştır | `bvt-constants` |
+| Görev | Agent | Dosya |
+|---|---|---|
+| Level çalıştır, NaN/Inf kontrol, çıktı doğrula | `bvt-simulate` | `.claude/agents/bvt-simulate.md` |
+| Grafik/animasyon/tema düzelt | `bvt-viz` | `.claude/agents/bvt-viz.md` |
+| Literatür taraması, öngörü-makale eşleme | `bvt-literatur` | `.claude/agents/bvt-literatur.md` |
+| Denklem türetme, fizik doğrulama | `bvt-fizik` | `.claude/agents/bvt-fizik.md` |
+| Marimo notebook yaz/güncelle, anywidget | `bvt-marimo` | `.claude/agents/bvt-marimo.md` |
+| Kapsamlı keşif/araştırma | `general-purpose` | — |
 
-**Paralel çalıştırma:** Bağımsız fazlar için birden fazla agent aynı anda başlatılabilir (örn: Level 16 kodu + Level 17 kodu eş zamanlı).
+**Paralel çalıştırma:** Bağımsız fazlar için birden fazla agent aynı anda başlatılabilir.
+Örnek: `bvt-simulate` (Level çalıştır) + `bvt-marimo` (Marimo notebook güncelle) eş zamanlı.
 
 ---
 
-## 9. MARIMO DASHBOARD (TODO v6 FAZ 14)
+## 9. MARIMO BVT STUDIO (FAZ 13 — TAMAMLANDI)
 
-18 level tamamlandıktan sonra:
+`bvt_studio/` klasöründe 10 reaktif notebook:
 
 ```bash
-pip install marimo
-marimo edit bvt_dashboard.py   # Geliştirme modu (reaktif slider'lar)
-marimo run bvt_dashboard.py    # Sunum modu (kod gizli)
+pip install "marimo==0.9.14" plotly scipy anywidget
+marimo edit bvt_studio/nb04_uclu_rezonans.py   # Geliştirme modu
+marimo run  bvt_studio/bvt_dashboard.py         # Sunum modu (kod gizli)
 ```
 
-**Planlanan notebook'lar:**
-- `bvt_dashboard.py` — Ana dashboard (tüm level özeti)
-- `bvt_level11_explorer.py` — Topoloji derin inceleme
-- `bvt_level13_resonance.py` — Üçlü rezonans canlı
-- `bvt_level15_distance.py` — İki kişi mesafe taraması
-- `bvt_level17_music.py` — Müzik frekansı → grup koherans
-- `bvt_hkv_explorer.py` — Pre-stimulus oyun alanı
+**Tamamlanan notebook'lar:**
+- `bvt_dashboard.py` — Ana panel, 18 level + 9 NB özet
+- `nb01_halka_topoloji.py` — 4 topoloji, N-kişi, Kuramoto
+- `nb02_iki_kisi_mesafe.py` — r⁻³ kuplaj, EM alan
+- `nb03_n_kisi_olcekleme.py` — N=[10..100], log-log süperradyans
+- `nb04_uclu_rezonans.py` — Kalp↔Beyin↔Ψ_Sonsuz ODE, 3 pump profili
+- `nb05_hkv_iki_populasyon.py` — Pre-stimulus, KS testi, KDE dual-mode
+- `nb06_ses_frekanslari.py` — 22 enstrüman, mo.audio, koherans bonusu
+- `nb07_girisim_deseni.py` — EM girişim yapıcı/yıkıcı/inkoherant
+- `nb08_em_alan_3d_live.py` — Three.js anywidget + Plotly Volume fallback
+- `nb09_literatur_explorer.py` — 40+ çalışma, filtre, ES grafikleri
+
+**Marimo versiyonu:** 0.9.14 zorunlu (yeni versiyonlarda narwhals uyumsuzluğu var)
 
 ---
 

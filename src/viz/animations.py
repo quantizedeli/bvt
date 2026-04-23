@@ -40,6 +40,60 @@ from src.core.constants import F_HEART, MU_HEART
 
 
 # ============================================================
+# 0. ORTAK YARDIMCI: HTML→PNG SNAPSHOT
+# ============================================================
+
+def save_plotly_snapshot(
+    fig: "go.Figure",
+    frames: list,
+    png_path: str,
+    frame_which: str = "middle",
+    width: int = 1400,
+    height: int = 800,
+    scale: int = 2,
+) -> None:
+    """Plotly animasyonunun doğru frame'inden PNG snapshot kaydeder.
+
+    Neden: fig.write_image() her zaman frame[0]'ı alır; bu fonksiyon
+    orta veya son frame'i seçerek daha temsili bir görüntü sağlar.
+
+    Parametreler
+    -----------
+    fig          : Plotly Figure (animasyon içeren)
+    frames       : go.Frame listesi
+    png_path     : Çıktı PNG yolu
+    frame_which  : 'middle' (varsayılan), 'last', veya int indeks
+    width/height : PNG boyutu (piksel)
+    scale        : Plotly dpi çarpanı
+
+    Referans: BVT TODO v7 FAZ 1.1
+    """
+    if not frames:
+        fig.write_image(png_path, width=width, height=height, scale=scale)
+        return
+
+    if frame_which == "middle":
+        idx = len(frames) // 2
+    elif frame_which == "last":
+        idx = len(frames) - 1
+    elif isinstance(frame_which, int):
+        idx = max(0, min(frame_which, len(frames) - 1))
+    else:
+        idx = len(frames) // 2
+
+    frame = frames[idx]
+    import copy
+    snap_fig = copy.deepcopy(fig)
+    for ti, trace_data in enumerate(frame.data):
+        if ti < len(snap_fig.data):
+            snap_fig.data[ti].update(trace_data)
+
+    # Animasyon kontrollerini kaldır (PNG'de gereksiz)
+    snap_fig.update_layout(updatemenus=[], sliders=[])
+    snap_fig.write_image(png_path, width=width, height=height, scale=scale)
+
+
+# ============================================================
 # 1. TEK KALP: KOHERANT vs İNKOHERANT ANİMASYON
 # ============================================================
 
@@ -1451,3 +1505,49 @@ if __name__ == "__main__":
         print(f"   OK: {result4}")
 
         print("Self-test BASARILI OK")
+
+
+# ============================================================
+# BONUS: HALKA N VARYANTLARI (N=11/19/50) — FAZ 9.3
+# ============================================================
+
+def animasyon_halka_n_varyantlar(
+    output_dir: str = "output/animations",
+    n_frames: int = 50,
+    t_end: float = 60.0,
+) -> list:
+    """3 N değeri için halka animasyonu üretir: N=11, N=19, N=50.
+
+    Her biri için ayrı HTML çıktısı:
+      halka_N11.html — N=11 (süperradyans eşiği)
+      halka_N19.html — N=19 (post-eşik güçlü senkron)
+      halka_N50.html — N=50 (büyük grup, MC)
+
+    Döndürür
+    --------
+    paths : list[str] — üretilen HTML dosya yolları
+
+    Referans: BVT TODO v7 FAZ 9.3
+    """
+    os.makedirs(output_dir, exist_ok=True)
+    varyantlar = [
+        (11, "tam_halka",  "output/animations/halka_N11.html"),
+        (19, "tam_halka",  "output/animations/halka_N19.html"),
+        (50, "tam_halka",  "output/animations/halka_N50.html"),
+    ]
+    paths = []
+    for N_val, topo, out_path in varyantlar:
+        print(f"  Halka animasyonu N={N_val} üretiliyor...")
+        n_fr = min(n_frames, 30) if N_val >= 50 else n_frames
+        t_sim = min(t_end, 30.0) if N_val >= 50 else t_end
+        result = animasyon_halka_kolektif_em(
+            N=N_val,
+            topology=topo,
+            t_end=t_sim,
+            n_frames=n_fr,
+            output_path=out_path,
+        )
+        if result:
+            paths.append(result)
+            print(f"    -> {result}")
+    return paths
