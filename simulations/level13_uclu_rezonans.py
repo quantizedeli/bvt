@@ -74,40 +74,55 @@ def uclu_rezonans_dinamik(
     omega_S = 2 * np.pi * F_SCH_S1
     omega_Psi = omega_S
 
-    kappa_KB = KAPPA_EFF
-    g_BS = G_EFF
+    kappa_KB  = KAPPA_EFF
+    g_BS      = G_EFF
     lambda_KS = 0.3 * G_EFF
 
-    def P_t(t):
-        if pump_profili == "kademeli":
-            return 0.2 + 0.5 * (1 / (1 + np.exp(-(t - 10) / 3)))
-        elif pump_profili == "ani":
-            return 0.2 if t < 5 else 0.7
-        else:  # sigmoid
-            return 0.2 + 0.6 / (1 + np.exp(-(t - 20) / 5))
+    # Bağımsız dekoherans oranları (s⁻¹)
+    gamma_K   = 0.02
+    gamma_B   = 0.05
+    gamma_S   = 0.01
+    gamma_Psi = 0.005
 
-    def rhs(t, y):
-        alpha_K = y[0] + 1j * y[1]
-        alpha_B = y[2] + 1j * y[3]
-        alpha_S = y[4] + 1j * y[5]
-        alpha_Psi = y[6] + 1j * y[7]
+    # Schumann küçük harici drive (Ψ_Sonsuz'dan bağımsız termal uyarım)
+    eps_S = 0.05
+
+    def P_t(t: float) -> float:
+        if pump_profili == "kademeli":
+            return 0.2 + 0.5 / (1.0 + np.exp(-(t - 10.0) / 3.0))
+        elif pump_profili == "ani":
+            return 0.2 if t < 5.0 else 0.7
+        else:  # sigmoid
+            return 0.2 + 0.6 / (1.0 + np.exp(-(t - 20.0) / 5.0))
+
+    def rhs(t: float, y) -> list:
+        alpha_K   = complex(y[0], y[1])
+        alpha_B   = complex(y[2], y[3])
+        alpha_S   = complex(y[4], y[5])
+        alpha_Psi = complex(y[6], y[7])
 
         C_t = P_t(t)
 
+        # BVT Hamiltoniyen (TODO v6 FAZ 9.H):
+        # Kalp: pump C_t ile büyüyor, beyin ve Ψ_Sonsuz'a bağlı
         d_alpha_K = (-1j * omega_K * alpha_K
                      - 1j * kappa_KB * alpha_B
-                     - 1j * lambda_KS * alpha_Psi
-                     - 0.02 * alpha_K + C_t)
+                     - gamma_K * alpha_K
+                     + C_t)
+        # Beyin: kalp ve Schumann'dan etkileniyor
         d_alpha_B = (-1j * omega_B * alpha_B
                      - 1j * kappa_KB * alpha_K
                      - 1j * g_BS * alpha_S
-                     - 0.05 * alpha_B)
+                     - gamma_B * alpha_B)
+        # Schumann: beyin'den ve küçük harici drive'dan
         d_alpha_S = (-1j * omega_S * alpha_S
                      - 1j * g_BS * alpha_B
-                     - 0.01 * alpha_S)
+                     + eps_S * (1.0 + 0.1 * alpha_Psi)
+                     - gamma_S * alpha_S)
+        # Ψ_Sonsuz: kalp dipol tarafından uyarılıyor
         d_alpha_Psi = (-1j * omega_Psi * alpha_Psi
                        - 1j * lambda_KS * alpha_K
-                       - 0.005 * alpha_Psi)
+                       - gamma_Psi * alpha_Psi)
 
         return [d_alpha_K.real, d_alpha_K.imag,
                 d_alpha_B.real, d_alpha_B.imag,
@@ -115,7 +130,7 @@ def uclu_rezonans_dinamik(
                 d_alpha_Psi.real, d_alpha_Psi.imag]
 
     t_eval = np.arange(t_span[0], t_span[1], dt)
-    y0 = [0.4, 0, 0.1, 0, 0.05, 0, 0.02, 0]
+    y0 = [0.4, 0.0, 0.1, 0.0, 0.05, 0.0, 0.02, 0.0]
     sol = solve_ivp(rhs, t_span, y0, t_eval=t_eval, method="RK45", max_step=0.01)
 
     alpha_K = sol.y[0] + 1j * sol.y[1]
@@ -123,13 +138,29 @@ def uclu_rezonans_dinamik(
     alpha_S = sol.y[4] + 1j * sol.y[5]
     alpha_Psi = sol.y[6] + 1j * sol.y[7]
 
-    # Metrikler
+    # Metrikler — BVT Bölüm 13 formülleri (TODO v6 FAZ 9.H)
+    # C_KB: cos(Δφ) kalp-beyin faz korelasyonu
     C_KB = (np.real(alpha_K * np.conj(alpha_B))
             / (np.abs(alpha_K) * np.abs(alpha_B) + 1e-9))
-    eta_BS = (np.abs(np.conj(alpha_B) * alpha_S) ** 2
-              / ((np.abs(alpha_B) ** 2 + 1e-9) * (np.abs(alpha_S) ** 2 + 1e-9)))
-    eta_KS = (np.abs(np.conj(alpha_K) * alpha_Psi) ** 2
-              / ((np.abs(alpha_K) ** 2 + 1e-9) * (np.abs(alpha_Psi) ** 2 + 1e-9)))
+
+    # η_BS ve η_KS: 2|α_1||α_2|cos(Δφ) / (|α_1|² + |α_2|²)
+    # → genlik KÜÇÜKKEN de sıfıra yakın (eski formül genlik=0'da 1 veriyordu)
+    mag_B  = np.abs(alpha_B)
+    mag_S  = np.abs(alpha_S)
+    mag_K  = np.abs(alpha_K)
+    mag_Ps = np.abs(alpha_Psi)
+
+    cos_BS = np.cos(np.angle(alpha_B) - np.angle(alpha_S))
+    cos_KS = np.cos(np.angle(alpha_K) - np.angle(alpha_Psi))
+
+    eta_BS = np.clip(
+        2.0 * mag_B * mag_S * cos_BS / (mag_B ** 2 + mag_S ** 2 + 1e-9),
+        0.0, 1.0
+    )
+    eta_KS = np.clip(
+        2.0 * mag_K * mag_Ps * cos_KS / (mag_K ** 2 + mag_Ps ** 2 + 1e-9),
+        0.0, 1.0
+    )
     R_total = (np.abs(C_KB) + eta_BS + eta_KS) / 3.0
 
     return {

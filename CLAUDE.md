@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Proje:** Birliğin Varlığı Teoremi (BVT) / Theorem of the Unity of Existence  
 **Yazar:** Ahmet Kemal Acar | **Güncelleme:** Nisan 2026  
-**Durum:** Aktif geliştirme — makale yazımı + sayısal simülasyon
+**Durum:** Aktif geliştirme — 15 simülasyon level mevcut, TODO v6 (18 level + Marimo) devam ediyor
 
 ---
 
@@ -14,242 +14,245 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 BVT, insan kalp-beyin sisteminin evrensel EM alanlarla (Ψ_Sonsuz) etkileşimini
 formalize eden bir matematiksel yapıdır. İbn Arabi'nin Vahdet-i Vücud
-kavramlarının — 800 yıl önce tanımladığı kavramların — kuantum mekaniksel
-karşılığını kurar.
+kavramlarının kuantum mekaniksel karşılığını kurar.
 
 **Ana tez: COHERENCE ⟹ UNITY**
 
----
-
-## 2. UYGULAMA DURUMU
-
-**Tasarım-önce, uygulama-sonradan mimarisi.** Matematiksel çerçeve ve mimari
-tamamen belgelenmiştir; Python kaynak dosyaları henüz oluşturulmamıştır.
-
-Mevcut dosyalar:
-```
-data/literature_values.json    ← Tüm deneysel referans değerler (MEVCUT ✓)
-docs/architecture.md           ← Modül bağımlılıkları ve veri akışı (MEVCUT ✓)
-docs/BVT_equations_reference.md← LaTeX formatında tüm denklemler (MEVCUT ✓)
-docs/simulation_levels.md      ← 6 seviye simülasyon detaylı spec (MEVCUT ✓)
-docs/TODO.md                   ← Görev takibi (MEVCUT ✓)
-skills/                        ← 6 custom skill tanımı (MEVCUT ✓)
-subagents/                     ← Literatür araştırma subagent (MEVCUT ✓)
-```
-
-Python uygulaması için **katman sırası** (dependency order):
-```
-Layer 0: src/core/constants.py        ← HER ŞEY BURAYA BAĞLI, ilk yaz
-Layer 1: src/core/operators.py
-         src/core/hamiltonians.py
-Layer 2: src/solvers/{tise,tdse,lindblad,cascade}.py
-Layer 3: src/models/{em_field,schumann,pre_stimulus,multi_person}.py
-Layer 4: src/viz/{plots_static,plots_interactive}.py
-Layer 5: simulations/level{1-6}_*.py  ← Sadece orchestration, iş Layer 0-4'te
-```
+**Aktif görev takibi:** `BVT_ClaudeCode_TODO_v6.md` — 13 FAZ, ~45 madde, hedef 18 level + Marimo dashboard.
 
 ---
 
-## 3. KRİTİK TEMEL DOSYALAR (ÖNCE OKU)
-
-```
-data/literature_values.json    ← Deneysel referans değerler (tüm kaynaklardan)
-docs/architecture.md           ← Modül bağımlılıkları ve veri akışı
-docs/BVT_equations_reference.md← Tüm denklemler LaTeX ile
-src/core/constants.py          ← Tüm fiziksel parametreler (başlangıç noktası)
-src/core/operators.py          ← Ĉ operatörü, f(C) kapısı, Hamiltoniyen yapıcılar
-```
-
----
-
-## 4. TEMEL DENKLEMLER
-
-```
-Koherans operatörü:    Ĉ = ρ_İnsan − ρ_thermal
-Kalp anteni:           b̂_out = b̂_in − √γ_rad × â_k
-Overlap dinamiği:      dη/dt = g²_eff × η(1-η)/(g²_eff+γ²_eff) − γ_eff η
-Süperradyans eşiği:    N_c = γ_dec/κ₁₂ ≈ 10-12 kişi
-Holevo sınırı:         η_max < 1 (Sırr-ı Kader)
-Parametrik tetikleme:  Ĥ_tetik = -μ₀B_s f(Ĉ) cos(ω_s t)(â_k + â_k†)
-Koherans kapısı:       f(C) = Θ(C-C₀) × [(C-C₀)/(1-C₀)]^β, C₀≈0.3, β≥2
-```
-
----
-
-## 5. KRİTİK PARAMETRELER
-
-| Parametre | Değer | Kaynak |
-|---|---|---|
-| f_kalp (koherans) | 0.1 Hz | HeartMath |
-| f_alfa (beyin) | 10 Hz | EEG literatürü |
-| f_Schumann | 7.83, 14.3, 20.8, 27.3, 33.8 Hz | GCI |
-| μ_kalp | 10⁻⁴ A·m² | MCG |
-| μ_beyin | 10⁻⁷ A·m² | MEG |
-| κ_eff (kalp-beyin) | 21.9 rad/s | HeartMath kalibrasyon |
-| g_eff (beyin-Sch) | 5.06 rad/s | Türetim |
-| Q_kalp | 21.7 | HeartMath |
-| kT (310K) | 4.28×10⁻²¹ J | Termodinamik |
-| E_Sonsuz | ~10¹⁸ J | Bu çalışma |
-| E_havuz/E_tetik | ~10³⁴ | Bu çalışma |
-| Pre-stimulus (kalp) | 4.8 s önce | HeartMath |
-| Mossbridge meta ES | 0.21 (6σ) | 26 çalışma |
-| Duggan-Tressoldi ES | 0.28 | 27 çalışma |
-
-Tüm değerler `data/literature_values.json` içinde doğrulanmış halde durur.
-
----
-
-## 6. PROJE YAPISI
-
-```
-bvt_project/
-├── CLAUDE.md
-├── src/
-│   ├── core/
-│   │   ├── constants.py            ← Fiziksel sabitler, BVT parametreleri
-│   │   ├── operators.py            ← Ĉ, f(C), Hamiltoniyen yapıcılar
-│   │   └── hamiltonians.py         ← H_0, H_int, H_tetik
-│   ├── solvers/
-│   │   ├── tise.py                 ← Zamana bağımsız Schrödinger (729-dim)
-│   │   ├── tdse.py                 ← Zamana bağlı Schrödinger (Runge-Kutta)
-│   │   ├── lindblad.py             ← Açık kuantum sistem (QuTiP)
-│   │   └── cascade.py              ← 8-aşamalı domino kaskad ODE
-│   ├── models/
-│   │   ├── em_field.py             ← Kalp/beyin dipol alanı 3D
-│   │   ├── schumann.py             ← Schumann kavite modelleme
-│   │   ├── pre_stimulus.py         ← 5-katmanlı hiss-i kablel vuku
-│   │   └── multi_person.py         ← N-insan Kuramoto/süperradyans
-│   └── viz/
-│       ├── plots_static.py         ← Matplotlib (makale şekilleri PNG)
-│       └── plots_interactive.py    ← Plotly HTML dashboard
-├── simulations/
-│   ├── level1_em_3d.py             ← 3D kalp EM haritası (~30 dk)
-│   ├── level2_cavity.py            ← Schumann kavite etkileşim
-│   ├── level3_qutip.py             ← Tam kuantum Lindblad (~1 saat)
-│   ├── level4_multiperson.py       ← N-insan dinamiği
-│   ├── level5_hybrid.py            ← Maxwell+Schrödinger
-│   └── level6_hkv_montecarlo.py    ← Pre-stimulus MC (~3 saat)
-├── data/
-│   └── literature_values.json      ← Tüm deneysel değerler (MEVCUT)
-├── results/
-│   ├── figures/                    ← PNG/SVG çıktılar
-│   └── html/                       ← Etkileşimli HTML dashboard
-├── tests/
-│   └── test_*.py                   ← pytest ünite testleri
-├── skills/                         ← Custom skill tanımları (MEVCUT)
-├── subagents/                      ← Literatür araştırma subagent (MEVCUT)
-└── docs/
-    ├── architecture.md
-    ├── BVT_equations_reference.md
-    ├── simulation_levels.md
-    └── TODO.md
-```
-
----
-
-## 7. KODLAMA STANDARTLARI
-
-```python
-# ZORUNLU kurallar:
-# 1. Türkçe docstring, İngilizce değişken isimleri
-# 2. NumPy vectorization her yerde (döngü yok)
-# 3. QuTiP >= 5.0, SciPy >= 1.11, NumPy >= 1.24
-# 4. Tip hinti ZORUNLU: from typing import Final, Tuple, Optional
-# 5. Modül-düzeyinde sabitler: Final[float] ile işaretlenir
-# 6. Her modülde __main__ bloğu ile self-test
-# 7. Sabitler constants.py'dan import edilir, hardcode YASAK
-# 8. Docstring içinde denklem referansı: "Referans: BVT_Makale.docx, Bölüm X."
-
-# 729-boyutlu Hilbert uzayı indeksleme:
-# flat_index = i*81 + j*9 + k  (i,j,k ∈ [0,8])
-# i: kalp modu, j: beyin modu, k: Schumann modu
-
-def koherans_hesapla(
-    rho_insan: np.ndarray,
-    rho_thermal: np.ndarray
-) -> float:
-    """
-    Koherans operatörü Ĉ = ρ_İnsan − ρ_thermal hesaplar.
-
-    Parametreler
-    -----------
-    rho_insan : yoğunluk matrisi (N×N)
-    rho_thermal : termal referans yoğunluk matrisi (N×N)
-
-    Döndürür
-    --------
-    C : koherans skaler değeri [0, 1]
-
-    Referans: BVT_Makale.docx, Bölüm 3.1.
-    """
-    ...
-```
-
----
-
-## 8. SİMÜLASYON ÇALIŞTIRMA
+## 2. KOMUTLAR
 
 ```bash
 # Bağımlılıkları kur
-pip install "numpy>=1.24" "scipy>=1.11" "qutip>=5.0" "matplotlib>=3.5" "plotly>=5.0" pytest
+pip install "numpy>=1.24" "scipy>=1.11" "qutip>=5.0" "matplotlib>=3.5" "plotly>=5.0" pytest marimo
 
-# Seviye 1: 3D EM alan haritası (~30 dk, en görsel, önce çalıştır)
-python simulations/level1_em_3d.py --output results/level1
+# Bağımlılık + sabit kontrolü
+python main.py --kontrol
 
-# Seviye 3: QuTiP tam kuantum (~1 saat, en rigorous)
-python simulations/level3_qutip.py --n-max 9 --t-end 60
+# Faz listesi
+python main.py --listele
 
-# Seviye 6: Pre-stimulus Monte Carlo (~3 saat, en orijinal katkı)
-python simulations/level6_hkv_montecarlo.py --trials 1000 --parallel 8
+# Tüm 12 faz (tam)
+python main.py
+
+# Hızlı test (kısa parametreler)
+python main.py --hizli
+
+# Belirli fazlar
+python main.py --phases 9 10 11
+python main.py --faz 7
+
+# Yalnızca etkileşimli HTML şekilleri
+python main.py --interaktif
+
+# Yalnızca animasyonlar
+python main.py --animasyon
+
+# Kalp-beyin EM dalga grafiği
+python main.py --zaman-em-dalga
+
+# Tek level betiği doğrudan
+python simulations/level12_seri_paralel_em.py --N 10 --t-end 60 --output output/level12
 
 # Tüm testler
 pytest tests/ -v --tb=short
 
 # Tek test dosyası
 pytest tests/test_constants.py -v
+
+# Marimo dashboard (kurulumdan sonra)
+marimo edit bvt_dashboard.py
+marimo run bvt_dashboard.py
+```
+
+**Çıktı dizini:** `output/` (her level için `output/levelN/`, animasyonlar `output/animations/`, HTML `output/html/`)
+
+---
+
+## 3. MİMARİ — KATMAN SIRASI
+
+Bağımlılık sırası kritik — alt katman değişince üstü de güncelle:
+
+```
+Katman 0: src/core/constants.py        ← HER ŞEY BURAYA BAĞLI
+Katman 1: src/core/operators.py
+          src/core/hamiltonians.py
+Katman 2: src/solvers/{tise,tdse,lindblad,cascade}.py
+Katman 3: src/models/{em_field,schumann,pre_stimulus,multi_person,
+                      em_field_composite,berry_phase,entropy,vagal,
+                      two_person,multi_person_em_dynamics,population_hkv}.py
+Katman 4: src/viz/{plots_static,plots_interactive,animations,theme}.py
+Katman 5: simulations/level{1-15}_*.py  ← Sadece orchestration
+          main.py                        ← 12-faz tek giriş noktası
+```
+
+**Kural:** constants.py dışında hiçbir dosyada değer hardcode edilmez.
+
+---
+
+## 4. PROJE YAPISI (MEVCUT DURUM)
+
+```
+bvt_project/
+├── main.py                    ← 12-faz CLI yöneticisi (--phases, --hizli, --html, --animasyon)
+├── requirements.txt
+├── src/
+│   ├── core/
+│   │   ├── constants.py       ← Tüm fiziksel parametreler (Final[float])
+│   │   ├── operators.py       ← Ĉ operatörü, f(C) kapısı, â/b̂ merdiven
+│   │   └── hamiltonians.py    ← H_0, H_int, H_tetik (729×729)
+│   ├── solvers/
+│   │   ├── tise.py            ← Zamana bağımsız Schrödinger
+│   │   ├── tdse.py            ← Runge-Kutta TDSE + overlap ODE
+│   │   ├── lindblad.py        ← QuTiP Lindblad sarmalayıcı
+│   │   └── cascade.py         ← 8-aşamalı domino kaskad ODE
+│   ├── models/
+│   │   ├── em_field.py              ← Kalp dipol 3D alan
+│   │   ├── em_field_composite.py    ← Kalp+beyin+Ψ_Sonsuz kompozit
+│   │   ├── schumann.py              ← Schumann kavite modeli
+│   │   ├── pre_stimulus.py          ← 5-katmanlı HKV + iki-popülasyon MC
+│   │   ├── population_hkv.py        ← Analitik iki-popülasyon HKV modeli
+│   │   ├── multi_person.py          ← Kuramoto + süperradyans (basit)
+│   │   ├── multi_person_em_dynamics.py ← N-kişi zaman bağımlı EM dinamiği
+│   │   ├── berry_phase.py           ← Berry fazı γ hesabı
+│   │   ├── entropy.py               ← Von Neumann entropi, entanglement
+│   │   ├── vagal.py                 ← Vagal transfer fonksiyonu
+│   │   └── two_person.py            ← Yukawa potansiyeli, 2-kişi overlap
+│   └── viz/
+│       ├── plots_static.py          ← Matplotlib PNG (makale şekilleri)
+│       ├── plots_interactive.py     ← Plotly HTML dashboard şekilleri
+│       ├── animations.py            ← Plotly frame animasyonları + GIF
+│       └── theme.py                 ← BVT görsel tema sistemi (light/dark)
+├── simulations/
+│   ├── level1_em_3d.py        ← 3D kalp EM haritası (~30 dk, r_max=3m)
+│   ├── level2_cavity.py       ← Schumann kavite, g_eff doğrulama
+│   ├── level3_qutip.py        ← QuTiP Lindblad (~1 saat)
+│   ├── level4_multiperson.py  ← Kuramoto, N² süperradyans
+│   ├── level5_hybrid.py       ← Maxwell+Schrödinger hibrit
+│   ├── level6_hkv_montecarlo.py ← Pre-stimulus MC + advanced wave
+│   ├── level7_tek_kisi.py     ← Tek kişi Lindblad + kalp anteni
+│   ├── level8_iki_kisi.py     ← Dipol-dipol + batarya ODE
+│   ├── level9_v2_kalibrasyon.py ← κ_eff, g_eff, Q_kalp türetimi
+│   ├── level10_psi_sonsuz.py  ← Ψ_Sonsuz yapısı + 3D yüzeyler
+│   ├── level11_topology.py    ← 4 topoloji karşılaştırması
+│   ├── level12_seri_paralel_em.py ← PARALEL→HİBRİT→SERİ geçişi
+│   ├── level13_uclu_rezonans.py   ← Dörtlü rezonans (TODO v6 FAZ 9.H'de düzeltme bekliyor)
+│   ├── level14_merkez_birey.py    ← Halka+merkez koherant birey
+│   ├── level15_iki_kisi_em_etkilesim.py ← İki kişi mesafe taraması
+│   └── uret_zaman_em_dalga.py     ← Kalp+beyin EM dalga grafiği
+├── output/                    ← Tüm çıktılar burada (results/ DEĞİL)
+│   ├── level{N}/              ← Her faz çıktıları
+│   ├── html/                  ← Plotly HTML şekilleri
+│   ├── animations/            ← HTML + GIF + MP4
+│   └── RESULTS_LOG.md
+├── tests/                     ← 155 test (149 geçiyor, 6 eski hata)
+├── data/
+│   └── literature_values.json ← Tüm deneysel referans değerler
+├── docs/
+│   ├── architecture.md
+│   ├── BVT_equations_reference.md
+│   ├── BVT_Literatur_Arastirma_Raporu.md ← 553 satır, 7 konu
+│   └── simulation_levels.md
+├── scripts/                   ← Yardımcı betikler (literatür karşılaştırma vb.)
+├── skills/                    ← 6 custom skill (bvt-constants, bvt-simulate vb.)
+└── BVT_ClaudeCode_TODO_v6.md  ← Aktif görev listesi (13 FAZ)
 ```
 
 ---
 
-## 9. ENERJİ PARADOKSU ÇÖZÜMÜ (PARADIGMA DEĞİŞİKLİĞİ)
+## 5. TEMEL DENKLEMLER
 
-**YANLIŞ SORU:** "ℏω_kalp/kT ≈ 10⁻¹⁴ iken kuantum etkiler mümkün mü?"  
-**DOĞRU SORU:** "Koherant sinyal, dev enerji havuzundaki modları faz-seçici tetikleyebilir mi?"
+```
+Koherans operatörü:    Ĉ = ρ_İnsan − ρ_thermal
+Kalp anteni:           b̂_out = b̂_in − √γ_rad × â_k
+Overlap dinamiği:      dη/dt = g²_eff × η(1-η)/(g²_eff+γ²_eff) − γ_eff η
+Süperradyans eşiği:    N_c = γ_dec/κ₁₂ ≈ 10-12 kişi  (kod: N_C_SUPERRADIANCE=11)
+Holevo sınırı:         η_max < 1 (Sırr-ı Kader)
+Parametrik tetikleme:  Ĥ_tetik = -μ₀B_s f(Ĉ) cos(ω_s t)(â_k + â_k†)
+Koherans kapısı:       f(C) = Θ(C-C₀) × [(C-C₀)/(1-C₀)]^β, C₀≈0.3, β≥2
+```
 
-Yanıt: **EVET** — Domino kaskadı ile toplam kazanç ~10¹⁴
-
-8 Aşama: Kalp dipol (10⁻¹⁶J) → Vagal (10⁻¹³J) → Talamus (10⁻¹¹J) →
-Korteks α (10⁻⁷J) → Beyin EM (10⁻¹⁰J) → Sch faz kilit (10⁻⁴J) →
-Sch mod amplif (10⁻³J) → η geri besleme (10⁻²J)
-
-Benzer mekanizmalar: Lazer (uyarılmış emisyon), FMO fotosentez, nükleer fisyon
-
----
-
-## 10. MAKALE DURUMU (BVT_Makale.docx)
-
-### Tamamlandı ✓
-- Giriş bölümü taslağı
-- Temel matematik çerçevesi
-- Süperradyans bölümü
-- Deneysel tasarım
-
-### Devam Ediyor 🔄
-- Bölüm 16.1: Parametrik tetikleme yeniden yazımı
-- Hiss-i Kablel Vuku bölümü (Mossbridge+Duggan-Tressoldi verileriyle)
-
-### Bekleyen ⏳
-- Kalp-beyin rezonans denklemi tam türetimi
-- TISE+TDSE çözümlerinin makaleye entegrasyonu
-- Ψ_Sonsuz enerji denklemi ve insan payı hesabı
-- REM/rüya/duru görü literatür araştırması
-- Sağlıklı kalp EM alanı literatür karşılaştırması
-- İbn Arabi ifadesi düzeltmesi (800 yıl önce → kuantum mekaniksel ifade)
-- "Metafizik yapmıyoruz" ifadesini kaldır
+**Domino kaskadı (enerji paradoksu çözümü):** Kalp dipol (10⁻¹⁶J) → Vagal → Talamus →
+Korteks α → Beyin EM → Sch faz kilit → Sch mod amplif → η geri besleme. Toplam kazanç ~10¹⁴.
 
 ---
 
-## 11. CUSTOM SKILLS (KULLANILABILIR KOMUTLAR)
+## 6. KRİTİK PARAMETRELER
+
+| Sabit (constants.py) | Değer | Kaynak |
+|---|---|---|
+| F_HEART | 0.1 Hz | HeartMath |
+| F_S1 | 7.83 Hz | GCI |
+| KAPPA_EFF | 21.9 rad/s | HeartMath kalibrasyon |
+| G_EFF | 5.06 rad/s | TISE türetimi |
+| Q_HEART / Q_S1 | 21.7 / 4.0 | HeartMath / GCI |
+| N_C_SUPERRADIANCE | 11 kişi | Literatür |
+| GAMMA_K / GAMMA_B | 0.01 / 1.0 s⁻¹ | Lindblad |
+| MU_HEART / MU_BRAIN | 10⁻⁴ / 10⁻⁷ A·m² | MCG/MEG |
+
+Tüm değerler `data/literature_values.json` ile çapraz doğrulanır.  
+**Kritik TISE buluşu:** |7⟩→|16⟩ geçişinde detuning = 0.003 Hz (kararlı rezonans).
+
+---
+
+## 7. KODLAMA STANDARTLARI
+
+```python
+# ZORUNLU:
+# 1. Türkçe docstring, İngilizce değişken isimleri
+# 2. NumPy vectorization (döngü yok)
+# 3. Tip hinti ZORUNLU — from typing import Final, Tuple, Optional
+# 4. Modül-düzeyinde sabitler: Final[float] ile
+# 5. Her modülde __main__ bloğu ile self-test
+# 6. Sabitler constants.py'dan — hardcode YASAK
+# 7. Docstring: "Referans: BVT_Makale.docx, Bölüm X."
+
+# 729-boyutlu Hilbert uzayı indeksleme:
+# flat_index = i*81 + j*9 + k  (i,j,k ∈ [0,8])
+# i: kalp modu, j: beyin modu, k: Schumann modu
+```
+
+---
+
+## 8. AGENT ORKESTRASYONU
+
+Görev tipi → kullanılacak agent:
+
+| Görev | Agent |
+|---|---|
+| Level çalıştır, NaN/Inf kontrol, çıktı doğrula | `bvt-simulate` |
+| Grafik/animasyon/tema düzelt | `bvt-viz` |
+| Literatür taraması, öngörü-makale eşleme | `bvt-explore` / `bvt-literatur` |
+| Denklem türetme, fizik doğrulama | `bvt-fizik` |
+| Sabitler-JSON karşılaştır | `bvt-constants` |
+
+**Paralel çalıştırma:** Bağımsız fazlar için birden fazla agent aynı anda başlatılabilir (örn: Level 16 kodu + Level 17 kodu eş zamanlı).
+
+---
+
+## 9. MARIMO DASHBOARD (TODO v6 FAZ 14)
+
+18 level tamamlandıktan sonra:
+
+```bash
+pip install marimo
+marimo edit bvt_dashboard.py   # Geliştirme modu (reaktif slider'lar)
+marimo run bvt_dashboard.py    # Sunum modu (kod gizli)
+```
+
+**Planlanan notebook'lar:**
+- `bvt_dashboard.py` — Ana dashboard (tüm level özeti)
+- `bvt_level11_explorer.py` — Topoloji derin inceleme
+- `bvt_level13_resonance.py` — Üçlü rezonans canlı
+- `bvt_level15_distance.py` — İki kişi mesafe taraması
+- `bvt_level17_music.py` — Müzik frekansı → grup koherans
+- `bvt_hkv_explorer.py` — Pre-stimulus oyun alanı
+
+---
+
+## 10. CUSTOM SKILLS
 
 ```
 /bvt-constants    → Tüm fiziksel sabitleri literature_values.json ile karşılaştır
@@ -262,14 +265,12 @@ Benzer mekanizmalar: Lazer (uyarılmış emisyon), FMO fotosentez, nükleer fisy
 
 ---
 
-## 12. ÖNEMLİ NOTLAR
+## 11. ÖNEMLİ NOTLAR
 
-1. **constants.py her şeyin kaynağıdır** — değer değişikliği sadece burada, `data/literature_values.json` ile doğrulanır
-2. **Tüm birimler SI** — conversion fonksiyonları `src/core/utils.py`'da
-3. **729 = 9³ boyutlu Hilbert uzayı**: kalp(9) ⊗ beyin(9) ⊗ Schumann(9); indeks: `i*81 + j*9 + k`
-4. **Kalp beyinden 1000× güçlü EM alan** — "kalp primer anten" tezi buradan
-5. **Koherans 10⁷× amplifikasyon sağlar** klasik rejimde bile
-6. **Pre-stimulus meta-analiz çok güçlü**: Mossbridge 6σ onaylıyor
-7. **E_Sonsuz = 10¹⁸ J**: Global jeomanyetik dahil — domino için yeterli
-8. **Kritik TISE buluşu**: |7⟩→|16⟩ geçişinde detuning = 0.003 Hz (kararlı rezonans)
-9. **Null prediction**: Ay fazı etkisi YOK — 6 derece detuning ile engellenmiş
+1. **Çıktı dizini `output/`** — (`results/` DEĞİL, eski CLAUDE.md'de yanlıştı)
+2. **main.py tek giriş noktası** — 12 faz; level 13-15 ayrı betik olarak direkt çalıştırılır
+3. **Level 13 (uclu_rezonans) hatalı** — η_BS/η_KS anında 1.0, TODO v6 FAZ 9.H'de yeniden türetme bekliyor
+4. **HTML→PNG frame sorunu** — `write_image()` ilk frame alıyor; TODO v6 FAZ 1.5'te fix bekliyor
+5. **MATLAB köprüsü** — `src/matlab_bridge.py`; MATLAB yüklü değilse NumPy/SciPy fallback devreye girer
+6. **155 test, 149 geçiyor** — 6 eski hata dokunulmadı; yeni fonksiyon yazılırken test zorunlu
+7. **Tüm birimler SI** — conversion fonksiyonları `src/core/utils.py`'da (planlanıyor)

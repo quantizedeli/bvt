@@ -1,8 +1,8 @@
 """
 BVT — Tek Giriş Noktası (main.py)
 ====================================
-Birliğin Varlığı Teoremi — 12 Fazlı Simülasyon Yöneticisi
-Güncelleme: Nisan 2026 — Q_S1=4.0 düzeltmesi, sabit merkezi yönetim
+Birliğin Varlığı Teoremi — 18 Fazlı Simülasyon Yöneticisi
+Güncelleme: Nisan 2026 — TODO v6 (level 13-18 eklendi, faz kilidi fix)
 
 Kullanım:
     python main.py                      # Tüm fazları + HTML + animasyon üret
@@ -15,7 +15,7 @@ Kullanım:
     python main.py --kontrol            # Bağımlılık + BVT sabitleri kontrolü
     python main.py --zaman-em-dalga     # Kalp EM dalga grafiğini yeniden üret
 
-12 Faz:
+18 Faz:
     Faz 1:  3D EM Alan Haritası (kalp+beyin+Ψ_Sonsuz)
     Faz 2:  Schumann Kavite Etkileşimi
     Faz 3:  Tam Kuantum Lindblad Dinamiği (QuTiP)
@@ -28,6 +28,12 @@ Kullanım:
     Faz 10: Ψ_Sonsuz Yapısı + 3D Yüzeyler (Çevre & Spektrum)
     Faz 11: Topoloji Karşılaştırması (düz/halka/temas, N_c_etkin)
     Faz 12: Seri-Paralel EM Faz Geçişi (PARALEL→HİBRİT→SERİ)
+    Faz 13: Üçlü Rezonans (Kalp↔Beyin↔Ψ_Sonsuz, 4 osilatör)
+    Faz 14: Merkez Birey (Halka + Koherant Merkez Senaryosu)
+    Faz 15: İki Kişi EM Etkileşim (mesafe taraması, 3 senaryo)
+    Faz 16: EM Dalga Girişim Deseni (yapıcı/yıkıcı/inkoherant)
+    Faz 17: Ses Frekansları ve Grup Koheransı (22 frekans katalogu)
+    Faz 18: REM Uyku Penceresi HKV (NREM/REM/Uyanık karşılaştırması)
 
 Çıktılar:
     output/level{N}/       ← Her fazın PNG+HTML çıktıları
@@ -155,6 +161,54 @@ FAZ_BİLGİ = {
         "tahmini_süre": "~3 dk",
         "hizli_args": ["--N", "6", "--t-end", "20"],
         "tam_args": ["--N", "10", "--t-end", "60"],
+    },
+    13: {
+        "isim": "Üçlü Rezonans (Kalp↔Beyin↔Ψ_Sonsuz)",
+        "açıklama": "4 osilatör ODE, faz kilitlenme, η_BS + η_KS overlap dinamiği",
+        "betik": "simulations/level13_uclu_rezonans.py",
+        "tahmini_süre": "~30s",
+        "hizli_args": ["--t-end", "30"],
+        "tam_args": ["--t-end", "60"],
+    },
+    14: {
+        "isim": "Merkez Birey (Halka + Koherant Merkez)",
+        "açıklama": "N_halka kişi + C=1.0 merkez birey, Δr ve Δ<C> ölçümü",
+        "betik": "simulations/level14_merkez_birey.py",
+        "tahmini_süre": "~30s",
+        "hizli_args": ["--N", "8", "--t-end", "30"],
+        "tam_args": ["--N", "15", "--t-end", "60"],
+    },
+    15: {
+        "isim": "İki Kişi EM Etkileşim",
+        "açıklama": "Mesafeye bağlı κ, 3 senaryo (PARALEL/HeartMath/SERİ), uzaklık taraması",
+        "betik": "simulations/level15_iki_kisi_em_etkilesim.py",
+        "tahmini_süre": "~20s",
+        "hizli_args": ["--t-end", "50"],
+        "tam_args": ["--t-end", "100"],
+    },
+    16: {
+        "isim": "EM Dalga Girişim Deseni",
+        "açıklama": "Yapıcı/yıkıcı/inkoherant girişim, frekans spektrumu, animasyon",
+        "betik": "simulations/level16_girisim_deseni.py",
+        "tahmini_süre": "~1 dk",
+        "hizli_args": ["--grid-n", "40", "--n-frames", "20"],
+        "tam_args": ["--grid-n", "80", "--n-frames", "40"],
+    },
+    17: {
+        "isim": "Ses Frekansları ve Grup Koheransı",
+        "açıklama": "22 frekans (Tibet çanı, şaman, antik), Schumann uyumu, top-10",
+        "betik": "simulations/level17_ses_frekanslari.py",
+        "tahmini_süre": "~1 dk",
+        "hizli_args": ["--N", "11", "--t-end", "60"],
+        "tam_args": ["--N", "11", "--t-end", "180"],
+    },
+    18: {
+        "isim": "REM Uyku Penceresi HKV",
+        "açıklama": "NREM/REM/Uyanık pre-stimulus dağılımı, BVT öngörüsü doğrulama",
+        "betik": "simulations/level18_rem_pencere.py",
+        "tahmini_süre": "~20s",
+        "hizli_args": ["--trials", "200"],
+        "tam_args": ["--trials", "1000"],
     },
 }
 

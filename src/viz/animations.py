@@ -219,11 +219,11 @@ def animasyon_kalp_koherant_vs_inkoherant(
 # ============================================================
 
 def animasyon_halka_kolektif_em(
-    N: int = 10,
+    N: int = 11,
     topology: str = "tam_halka",
     radius: float = 1.5,
-    t_end: float = 20.0,
-    n_frames: int = 40,
+    t_end: float = 60.0,
+    n_frames: int = 60,
     grid_n: int = 30,
     grid_extent: float = 3.0,
     output_path: str = "output/animations/halka_kolektif_em.html",
@@ -335,7 +335,7 @@ def animasyon_halka_kolektif_em(
     )]
 
     fig.update_layout(
-        title=f"BVT — N={N} Kişi Halka Topolojisi Kolektif EM Alanı",
+        title=f"BVT — N={N} Kişi Halka Topolojisi Kolektif EM Alanı" + (" (N_c Süperradyans Eşiği)" if N == 11 else ""),
         updatemenus=[dict(
             type="buttons", showactive=False,
             buttons=[
@@ -354,11 +354,13 @@ def animasyon_halka_kolektif_em(
 
     fig.write_html(output_path, include_plotlyjs="cdn")
     try:
-        try:
-            fig.update_layout(paper_bgcolor="white", plot_bgcolor="#f0f4f8", font=dict(color="#111111"))
-        except Exception:
-            pass
-        fig.write_image(output_path.replace(".html", ".png"))
+        mid_idx = len(plotly_frames) // 2
+        fig_snap = go.Figure(data=plotly_frames[mid_idx].data, layout=fig.layout)
+        fig_snap.update_layout(
+            paper_bgcolor="white", plot_bgcolor="#f0f4f8", font=dict(color="#111111"),
+            title=f"BVT — N={N} Halka Kolektif EM (t = {t_eval[mid_idx]:.0f}s)",
+        )
+        fig_snap.write_image(output_path.replace(".html", ".png"), width=700, height=600)
     except Exception:
         pass
     print(f"  Animasyon: {output_path}")
@@ -901,11 +903,13 @@ def animasyon_psi_sonsuz_etkilesim(
     print(f"  Psi_Sonsuz animasyon: {output_path}")
     try:
         png_path = output_path.replace(".html", ".png")
-        try:
-            fig.update_layout(paper_bgcolor="white", plot_bgcolor="#f0f4f8", font=dict(color="#111111"))
-        except Exception:
-            pass
-        fig.write_image(png_path, width=1400, height=500)
+        mid_idx = len(frames) // 2
+        fig_snap = go.Figure(data=frames[mid_idx].data, layout=fig.layout)
+        fig_snap.update_layout(
+            paper_bgcolor="white", plot_bgcolor="#f0f4f8", font=dict(color="#111111"),
+            title=f"BVT — Ψ_Sonsuz Etkileşim (t = {t_arr[mid_idx]:.1f}s)",
+        )
+        fig_snap.write_image(png_path, width=1400, height=500)
         print(f"  PNG: {png_path}")
     except Exception:
         pass
@@ -1147,11 +1151,13 @@ def animasyon_rezonans_ani(
     print(f"  Rezonans anı animasyon: {output_path}")
     try:
         png_path = output_path.replace(".html", ".png")
-        try:
-            fig.update_layout(paper_bgcolor="white", plot_bgcolor="#f0f4f8", font=dict(color="#111111"))
-        except Exception:
-            pass
-        fig.write_image(png_path, width=1400, height=600)
+        mid_idx = len(frames) // 2
+        fig_snap = go.Figure(data=frames[mid_idx].data, layout=fig.layout)
+        fig_snap.update_layout(
+            paper_bgcolor="white", plot_bgcolor="#f0f4f8", font=dict(color="#111111"),
+            title=f"BVT — Rezonans Anı (t = {t_arr[mid_idx]:.1f}s)",
+        )
+        fig_snap.write_image(png_path, width=1400, height=600)
         print(f"  PNG: {png_path}")
     except Exception:
         pass

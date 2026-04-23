@@ -193,34 +193,41 @@ def main() -> None:
     B_in_amp     = 1.0
     noise_level  = 0.3
 
+    # BVT doğru mantığı:
+    #   Koherant = faz kilidi (senkron pompa) → b_out yapıcı girişim → güçlü yayın
+    #   İnkoherant = rastgele faz (dephasing) → b_out yıkıcı/karışık girişim → zayıf yayın
     scenarios = {}
-    for name, alpha_init, pompa in [
-        ("Koherant (Meditasyon)", 3.0 + 0j, 0.02),
-        ("Inkoherant (Stres)",    0.2 + 0.5j, 0.0)
+    for name, phase_locked, pompa in [
+        ("Koherant (Faz Kilidi)",    True,  0.02),
+        ("Inkoherant (Rastgele Faz)", False, 0.02),
     ]:
-        rng       = np.random.default_rng(42)
-        alpha_k   = np.zeros(len(t_ant), dtype=complex)
-        alpha_k[0] = alpha_init
+        rng = np.random.default_rng(42)
+        alpha_k    = np.zeros(len(t_ant), dtype=complex)
+        alpha_k[0] = 1.0 + 0j  # aynı başlangıç genliği
         b_in  = np.zeros(len(t_ant), dtype=complex)
         b_out = np.zeros(len(t_ant), dtype=complex)
 
         for i in range(len(t_ant) - 1):
-            b_in[i]  = B_in_amp * np.cos(omega_sch * t_ant[i]) + \
-                       noise_level * rng.standard_normal()
-            d_alpha  = (
+            b_in[i] = B_in_amp * np.cos(omega_sch * t_ant[i]) + \
+                      noise_level * rng.standard_normal()
+            if phase_locked:
+                pump_phase = omega_k_ant * t_ant[i]          # kalp frekansıyla senkron
+            else:
+                pump_phase = omega_k_ant * t_ant[i] + rng.uniform(0, 2 * np.pi)  # rastgele
+            d_alpha = (
                 -1j * omega_k_ant * alpha_k[i]
                 - gamma_rad / 2 * alpha_k[i]
                 + np.sqrt(gamma_rad) * b_in[i]
-                + pompa * np.exp(-1j * omega_k_ant * t_ant[i])
+                + pompa * np.exp(-1j * pump_phase)
             )
             alpha_k[i + 1] = alpha_k[i] + d_alpha * dt
-            b_out[i]       = b_in[i] - np.sqrt(gamma_rad) * alpha_k[i]
+            b_out[i] = b_in[i] - np.sqrt(gamma_rad) * alpha_k[i]
 
-        b_in[-1] = b_in[-2]
+        b_in[-1]  = b_in[-2]
         b_out[-1] = b_out[-2]
 
         mean_dipol = float(np.mean(np.abs(alpha_k)))
-        mean_power = float(np.mean(np.abs(b_out)**2))
+        mean_power = float(np.mean(np.abs(b_out) ** 2))
         print(f"  {name}: |<a_k>|={mean_dipol:.4f}, P_yayilan={mean_power:.4f}")
 
         scenarios[name] = {
@@ -297,9 +304,9 @@ def main() -> None:
         ax = axes[1, 1]
         ax.plot(alpha_vals, eta_max_vals, "o-", color="purple", lw=2.5, ms=8)
         ax.fill_between(alpha_vals, eta_max_vals, alpha=0.2, color="purple")
-        ax.set_xlabel("Termal Sapma |alpha|  (dusuk = koherant)")
-        ax.set_ylabel("eta_max")
-        ax.set_title("Termal sapma artikca ortusme dustu")
+        ax.set_xlabel("Koherant Genlik |α| (yüksek = güçlü yayın)")
+        ax.set_ylabel("η_max")
+        ax.set_title("BVT: Koherant genlik arttıkça örtüşme artıyor")
 
         fig.suptitle("BVT Level 7 — Tek Kisi Tam Modeli", fontsize=15)
         plt.tight_layout()
