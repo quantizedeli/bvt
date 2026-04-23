@@ -122,6 +122,115 @@ def grup_koherans_dinamigi(
     return sonuclar
 
 
+def monte_carlo_r_final(
+    N: int,
+    K: float,
+    t_end: float = 60.0,
+    n_MC: int = 20,
+) -> tuple:
+    """
+    Büyük N için Monte Carlo r_final tahmini (n_MC rastgele tohumla).
+
+    Döndürür
+    --------
+    (mean_r, std_r) : float, float
+    """
+    r_vals = []
+    for seed in range(n_MC):
+        _, _, r = kuramoto_simule(N=N, K=K, t_end=t_end, n_t=200, seed=seed)
+        r_vals.append(float(r[-1]))
+    arr = np.array(r_vals)
+    return float(arr.mean()), float(arr.std())
+
+
+def n_tarama_analizi(
+    K: float,
+    t_end: float = 60.0,
+) -> dict:
+    """
+    N = [10..20, 25, 50, 100] taraması.
+    N ≤ 25: tam Kuramoto ODE.
+    N = 50, 100: Monte Carlo (20 tohum).
+
+    Döndürür
+    --------
+    tarama : dict  — N → {"r_mean", "r_std", "I_super", "mode"}
+    """
+    N_tam   = [10, 11, 12, 13, 15, 16, 17, 18, 19, 20, 25]
+    N_mc    = [50, 100]
+    tarama  = {}
+
+    print("  N taraması (tam Kuramoto):")
+    for N in N_tam:
+        _, _, r = kuramoto_simule(N=N, K=K, t_end=t_end, n_t=300, seed=42)
+        r_f = float(r[-1])
+        I_s = float(surperradyans_2(1.0, np.array([N]))[0])
+        tarama[N] = {"r_mean": r_f, "r_std": 0.0, "I_super": I_s, "mode": "ode"}
+        print(f"    N={N:3d} → r={r_f:.3f}")
+
+    print("  N taraması (Monte Carlo):")
+    for N in N_mc:
+        r_mean, r_std = monte_carlo_r_final(N=N, K=K, t_end=t_end, n_MC=20)
+        I_s = float(surperradyans_2(1.0, np.array([N]))[0])
+        tarama[N] = {"r_mean": r_mean, "r_std": r_std, "I_super": I_s, "mode": "mc"}
+        print(f"    N={N:3d} → r={r_mean:.3f} ± {r_std:.3f} (MC)")
+
+    return tarama
+
+
+def sekil_n_tarama(tarama: dict, output_dir: str) -> None:
+    """N-tarama özet şekli: r_final + I_super."""
+    N_all = sorted(tarama.keys())
+    r_means = [tarama[n]["r_mean"] for n in N_all]
+    r_stds  = [tarama[n]["r_std"]  for n in N_all]
+    I_vals  = [tarama[n]["I_super"] for n in N_all]
+    modes   = [tarama[n]["mode"]    for n in N_all]
+
+    ode_idx = [i for i, m in enumerate(modes) if m == "ode"]
+    mc_idx  = [i for i, m in enumerate(modes) if m == "mc"]
+    N_np = np.array(N_all)
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+
+    # r_final panel
+    ax1.plot([N_all[i] for i in ode_idx], [r_means[i] for i in ode_idx],
+             "o-", color="#2980B9", lw=2, ms=7, label="ODE")
+    mc_N = [N_all[i] for i in mc_idx]
+    mc_r = [r_means[i] for i in mc_idx]
+    mc_e = [r_stds[i]  for i in mc_idx]
+    ax1.errorbar(mc_N, mc_r, yerr=mc_e, fmt="s", color="#E74C3C", lw=2,
+                 ms=9, capsize=5, label="Monte Carlo (±σ)")
+    ax1.axvline(N_C_SUPERRADIANCE, color="green", ls="--", lw=1.5,
+                label=f"N_c={N_C_SUPERRADIANCE} (süperradyans)")
+    ax1.axhline(0.8, color="gray", ls=":", alpha=0.6, label="r=0.8 (seri eşiği)")
+    ax1.set_xlabel("Kişi sayısı N", fontsize=12)
+    ax1.set_ylabel("Kararlı durum r_∞", fontsize=12)
+    ax1.set_title("N → Senkronizasyon Düzeyi", fontsize=13)
+    ax1.legend(fontsize=9); ax1.grid(alpha=0.3)
+    ax1.set_ylim(0, 1.05)
+
+    # I_super panel (log)
+    ax2.loglog(N_np, np.array(I_vals), "o-", color="#8E44AD", lw=2, ms=7,
+               label="BVT süperradyans I∝N²r²")
+    ax2.loglog(N_np, N_np.astype(float), "--", color="gray", lw=1.5,
+               label="Klasik I∝N")
+    ax2.loglog(N_np, N_np.astype(float)**2, ":", color="orange", lw=1.5,
+               label="Teorik N²")
+    ax2.axvline(N_C_SUPERRADIANCE, color="green", ls="--", lw=1.5)
+    ax2.set_xlabel("Kişi sayısı N", fontsize=12)
+    ax2.set_ylabel("I / I₁", fontsize=12)
+    ax2.set_title("N → Süperradyans Kazanımı", fontsize=13)
+    ax2.legend(fontsize=9); ax2.grid(alpha=0.3, which="both")
+
+    fig.suptitle("BVT Level 4 — N Taraması [10–100]: ODE + Monte Carlo",
+                 fontsize=14, fontweight="bold")
+    plt.tight_layout()
+    out = os.path.join(output_dir, "L4_N_tarama.png")
+    plt.savefig(out, dpi=150, bbox_inches="tight")
+    plt.close()
+    print(f"  N-tarama PNG: {out}")
+
+
 def sekil_kaydet(sonuclar: dict, N_arr: np.ndarray, I_arr: np.ndarray,
                  output_dir: str, html: bool) -> None:
     """Şekilleri PNG ve HTML olarak kaydeder."""
@@ -284,6 +393,15 @@ def main():
     if len(I_arr) > 10:
         print(f"  N=11: I/I1 = {I_arr[10]:.0f} (beklenen: 121)")
     print(f"  N={args.N}: I/I1 = {I_arr[args.N-1]:.0f}")
+
+    # N taraması [10-100]
+    print("\n--- N Taraması [10–100]: ODE + Monte Carlo ---")
+    try:
+        t_tarama = min(args.t_end, 60.0)  # tarama için daha kısa süre
+        tarama = n_tarama_analizi(K=K, t_end=t_tarama)
+        sekil_n_tarama(tarama, args.output)
+    except Exception as e:
+        print(f"  [UYARI] N taraması atlandı: {e}")
 
     # Şekiller
     print("\n--- Şekiller Kaydediliyor ---")

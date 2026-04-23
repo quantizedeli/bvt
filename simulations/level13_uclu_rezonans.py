@@ -41,7 +41,7 @@ import matplotlib.pyplot as plt
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.core.constants import (
-    F_HEART, F_ALPHA, F_SCH_S1,
+    F_HEART, F_ALPHA, F_S1,
     KAPPA_EFF, G_EFF,
 )
 from src.viz.theme import apply_theme, get_palette
@@ -71,7 +71,7 @@ def uclu_rezonans_dinamik(
     """
     omega_K = 2 * np.pi * F_HEART
     omega_B = 2 * np.pi * F_ALPHA
-    omega_S = 2 * np.pi * F_SCH_S1
+    omega_S = 2 * np.pi * F_S1
     omega_Psi = omega_S
 
     kappa_KB  = KAPPA_EFF

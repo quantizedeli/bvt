@@ -132,7 +132,7 @@ def main() -> None:
         sonuc_p = N_kisi_tam_dinamik(
             konumlar=konumlar, C_baslangic=C_0_paralel, phi_baslangic=phi_0_paralel,
             t_span=(0, t_faz), dt=args.dt, f_geometri=0.35,
-            kappa_eff=KAPPA_EFF * 0.3,
+            kappa_eff=KAPPA_EFF * 0.1,
             cooperative_robustness=True,
         )
         _kaydet_faz(args.output, 1, sonuc_p, konumlar)
@@ -205,7 +205,7 @@ def main() -> None:
         sonuc_p = N_kisi_tam_dinamik(
             konumlar=konumlar, C_baslangic=C_0_p, phi_baslangic=phi_0_p,
             t_span=(0, t_faz), dt=args.dt, f_geometri=0.35,
-            kappa_eff=KAPPA_EFF * 0.3, cooperative_robustness=True,
+            kappa_eff=KAPPA_EFF * 0.1, cooperative_robustness=True,
         )
         sonuc_h = N_kisi_tam_dinamik(
             konumlar=konumlar, C_baslangic=sonuc_p["C_t"][:, -1],

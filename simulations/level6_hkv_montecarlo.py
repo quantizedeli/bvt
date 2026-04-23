@@ -255,33 +255,51 @@ def main() -> None:
         import matplotlib
         matplotlib.use("Agg")
         import matplotlib.pyplot as plt
+        from scipy.stats import gaussian_kde
 
         fig, axes = plt.subplots(1, 2, figsize=(14, 5))
 
-        # Pre-stimulus dağılımı
-        axes[0].hist(results["prestimulus_times"], bins=40, color="#8E44AD",
-                     alpha=0.7, edgecolor="black", linewidth=0.5)
+        # Pre-stimulus dağılımı + KDE
+        pre_arr = results["prestimulus_times"]
+        axes[0].hist(pre_arr, bins=40, color="#8E44AD",
+                     alpha=0.7, edgecolor="black", linewidth=0.5, density=True)
+        kde_pre = gaussian_kde(pre_arr, bw_method=0.3)
+        x_pre = np.linspace(0, 12, 300)
+        axes[0].plot(x_pre, kde_pre(x_pre), color="#1A1A8C", lw=2.5, label="KDE")
         axes[0].axvline(x=4.8, color="#E67E22", lw=2, linestyle="--",
                         label="HeartMath 4.8s")
         axes[0].axvline(x=results['mean_prestimulus_s'], color="red", lw=2,
-                        label=f"BVT mean={results['mean_prestimulus_s']:.1f}s")
+                        label=f"BVT ort={results['mean_prestimulus_s']:.1f}s")
         axes[0].set_xlabel("Pre-Stimulus Zamani (s)")
-        axes[0].set_ylabel("Siklik")
-        axes[0].set_title("Pre-Stimulus Dagilimi")
-        axes[0].legend()
+        axes[0].set_ylabel("Yogunluk")
+        axes[0].set_title("Pre-Stimulus Dagilimi (KDE)")
+        axes[0].legend(fontsize=9)
 
-        # ES dağılımı — x ekseni 0'dan 0.5'e sabitlendi
-        axes[1].hist(results["effect_sizes"], bins=40, color="#27AE60",
+        # ES dağılımı — x ekseni 0'dan 0.5'e sabitlendi, etiket çakışması giderildi
+        es_arr = results["effect_sizes"]
+        axes[1].hist(es_arr, bins=40, color="#27AE60",
                      alpha=0.7, edgecolor="black", linewidth=0.5)
-        axes[1].axvline(x=ES_MOSSBRIDGE, color="#E67E22", lw=2, linestyle="--",
-                        label=f"Mossbridge ES={ES_MOSSBRIDGE}")
-        axes[1].axvline(x=ES_DUGGAN, color="#2980B9", lw=2, linestyle="--",
-                        label=f"Duggan ES={ES_DUGGAN}")
+        ymax = axes[1].get_ylim()[1] if axes[1].get_ylim()[1] > 0 else 1
+        # Mossbridge çizgisi — üst 1/3
+        axes[1].axvline(x=ES_MOSSBRIDGE, color="#E67E22", lw=2, linestyle="--")
+        axes[1].annotate(f"Mossbridge\nES={ES_MOSSBRIDGE}",
+                         xy=(ES_MOSSBRIDGE, 0), xytext=(ES_MOSSBRIDGE - 0.055, 0.72),
+                         xycoords=("data", "axes fraction"),
+                         textcoords=("data", "axes fraction"),
+                         fontsize=9, color="#E67E22",
+                         arrowprops=dict(arrowstyle="->", color="#E67E22", lw=1.2))
+        # Duggan çizgisi — üst 2/3
+        axes[1].axvline(x=ES_DUGGAN, color="#2980B9", lw=2, linestyle="--")
+        axes[1].annotate(f"Duggan\nES={ES_DUGGAN}",
+                         xy=(ES_DUGGAN, 0), xytext=(ES_DUGGAN + 0.015, 0.55),
+                         xycoords=("data", "axes fraction"),
+                         textcoords=("data", "axes fraction"),
+                         fontsize=9, color="#2980B9",
+                         arrowprops=dict(arrowstyle="->", color="#2980B9", lw=1.2))
         axes[1].set_xlabel("Efekt Buyuklugu ES")
         axes[1].set_ylabel("Siklik")
         axes[1].set_title("ES Dagilimi")
         axes[1].set_xlim(0, 0.50)   # 0-0.5 arasi sabit eksen
-        axes[1].legend()
 
         fig.suptitle("BVT Level 6 -- Pre-Stimulus Monte Carlo", fontsize=13)
         fig.tight_layout()
@@ -391,6 +409,7 @@ def main() -> None:
         import matplotlib
         matplotlib.use("Agg")
         import matplotlib.pyplot as plt
+        from scipy.stats import gaussian_kde
 
         print("\n=== BVT v4.0 IKI POPULASYON MODELI ===")
         iki_pop = monte_carlo_iki_populasyon(
@@ -446,15 +465,25 @@ def main() -> None:
 
         ax = axs[1, 1]
         karma = np.concatenate([iki_pop["prestimulus_times_A"], iki_pop["prestimulus_times_B"]])
-        ax.hist(karma, bins=50, color="purple", alpha=0.7, edgecolor="black")
+        ax.hist(karma, bins=50, color="purple", alpha=0.55, edgecolor="black", density=True,
+                label="Karma histogram")
+        # KDE — iki mod ortaya çıkar
+        kde_karma = gaussian_kde(karma, bw_method=0.25)
+        x_k = np.linspace(0, 10, 400)
+        ax.plot(x_k, kde_karma(x_k), color="#1A1A8C", lw=2.5, label="KDE (iki mod)")
+        # A/B ayrı KDE'leri
+        kde_A = gaussian_kde(iki_pop["prestimulus_times_A"], bw_method=0.3)
+        kde_B = gaussian_kde(iki_pop["prestimulus_times_B"], bw_method=0.3)
+        ax.plot(x_k, kde_A(x_k) * 0.3, color=colors_A, lw=1.5, linestyle="--",
+                alpha=0.7, label=f"Pop A KDE (×0.3)")
+        ax.plot(x_k, kde_B(x_k) * 0.7, color=colors_B, lw=1.5, linestyle="--",
+                alpha=0.7, label=f"Pop B KDE (×0.7)")
         ax.axvline(np.mean(karma), color="red", linestyle="--",
                    label=f"Karma ort = {np.mean(karma):.2f}s")
         ax.axvline(4.8, color="orange", linestyle=":", label="HeartMath 4.8s")
-        ax.axvline(iki_pop["mean_prestim_A"], color=colors_A, linestyle="-.", alpha=0.5)
-        ax.axvline(iki_pop["mean_prestim_B"], color=colors_B, linestyle="-.", alpha=0.5)
         ax.set_xlabel("Pre-Stimulus Zamani (s)")
-        ax.set_title("Karma Populasyon — HeartMath Ne Goruyor?", fontweight="bold")
-        ax.legend(); ax.set_xlim(0, 10)
+        ax.set_title("Karma Populasyon — KDE iki mod gosteriyor", fontweight="bold")
+        ax.legend(fontsize=8); ax.set_xlim(0, 10)
         ax.set_facecolor("white")
 
         fig2.patch.set_facecolor("white")

@@ -1710,9 +1710,9 @@ def sekil_3d_kalp_isosurface(output_path: Optional[str] = None) -> Optional[Any]
     if not PLOTLY_OK:
         return None
 
-    # 3D ızgara: kalp orijinde, z-yönünde dipol
-    n = 25
-    extent = 0.5  # m
+    # 3D ızgara: kalp orijinde, z-yönünde dipol (3m × 3m × 3m)
+    n = 30
+    extent = 1.5  # m — ±1.5m = 3m toplam
     ax_lin = np.linspace(-extent, extent, n)
     X, Y, Z = np.meshgrid(ax_lin, ax_lin, ax_lin, indexing="ij")
 
@@ -1786,24 +1786,200 @@ def sekil_3d_kalp_isosurface(output_path: Optional[str] = None) -> Optional[Any]
         name="Beyin",
     ))
 
+    _ax_style = dict(
+        backgroundcolor="#0a0e17",
+        gridcolor="#2a3050",
+        showbackground=True,
+        tickfont=dict(color="white", size=11),
+        titlefont=dict(color="white", size=13),
+    )
     fig.update_layout(
         title=dict(
-            text="BVT — Kalp + Beyin 3D Manyetik Dipol Alani |B| (pT)",
-            font=dict(size=20),
+            text="BVT — Kalp + Beyin 3D Manyetik Dipol Alani |B| (pT) — 3m kube",
+            font=dict(size=18, color="white"),
         ),
         scene=dict(
-            xaxis_title="x (m)", yaxis_title="y (m)", zaxis_title="z (m)",
+            xaxis=dict(title="x (m)", **_ax_style),
+            yaxis=dict(title="y (m)", **_ax_style),
+            zaxis=dict(title="z (m)", **_ax_style),
             bgcolor="#0a0e17",
-            xaxis=dict(backgroundcolor="#0a0e17"),
-            yaxis=dict(backgroundcolor="#0a0e17"),
-            zaxis=dict(backgroundcolor="#0a0e17"),
             camera=dict(eye=dict(x=1.5, y=1.5, z=1.0)),
         ),
         width=W_SQ, height=W_SQ,
         template=TMPL,
         paper_bgcolor="#0a0e17",
+        font=dict(color="white"),
     )
 
+    if output_path:
+        _html_kaydet(fig, output_path)
+    return fig
+
+
+def sekil_3d_iki_kisi_isosurface(
+    mesafe_m: float = 0.9,
+    output_path: Optional[str] = None,
+) -> Optional[Any]:
+    """
+    İki kişi arası mesafeye göre kalp EM alanı 3D isosurface.
+
+    Parametreler
+    -----------
+    mesafe_m : kişiler arası mesafe (m). 3 standart değer: 0.3, 0.9, 3.0
+    """
+    if not PLOTLY_OK:
+        return None
+
+    n = 28
+    extent = max(mesafe_m * 1.2, 1.5)
+    ax_lin = np.linspace(-extent, extent, n)
+    X, Y, Z = np.meshgrid(ax_lin, ax_lin, ax_lin, indexing="ij")
+
+    mu0_4pi = 1e-7
+    mu_heart = MU_HEART  # 1e-4 A·m²
+    m_hat = np.array([0, 0, 1])
+    half_d = mesafe_m / 2.0
+
+    def _B_dipol_3d(cx: float) -> np.ndarray:
+        Rx = X - cx; Ry = Y; Rz = Z
+        R = np.sqrt(Rx**2 + Ry**2 + Rz**2) + 1e-4
+        m_r = m_hat[2] * Rz / R
+        Bx_ = mu0_4pi * mu_heart / R**3 * (3*m_r*Rx/R - m_hat[0])
+        By_ = mu0_4pi * mu_heart / R**3 * (3*m_r*Ry/R - m_hat[1])
+        Bz_ = mu0_4pi * mu_heart / R**3 * (3*m_r*Rz/R - m_hat[2])
+        return np.sqrt(Bx_**2 + By_**2 + Bz_**2) / 1e-12  # pT
+
+    B1 = _B_dipol_3d(-half_d)
+    B2 = _B_dipol_3d(+half_d)
+    B_total = B1 + B2  # süperpozisyon
+
+    x_f = X.flatten().tolist()
+    y_f = Y.flatten().tolist()
+    z_f = Z.flatten().tolist()
+    v_f = np.clip(B_total, 0.01, 5000).flatten().tolist()
+
+    fig = go.Figure()
+    fig.add_trace(go.Isosurface(
+        x=x_f, y=y_f, z=z_f, value=v_f,
+        isomin=1.0, isomax=300.0,
+        surface_count=4,
+        colorscale="Plasma",
+        caps=dict(x_show=False, y_show=False, z_show=False),
+        opacity=0.30,
+        colorbar=dict(title="|B| (pT)", tickfont=dict(color="white"),
+                      titlefont=dict(color="white")),
+        name="|B| toplam",
+    ))
+    for cx, lbl in [(-half_d, "Kişi 1"), (+half_d, "Kişi 2")]:
+        fig.add_trace(go.Scatter3d(
+            x=[cx], y=[0], z=[0],
+            mode="markers+text",
+            marker=dict(size=10, color="red"),
+            text=[lbl], textposition="top center",
+            textfont=dict(color="white"),
+            name=lbl,
+        ))
+
+    _ax_style = dict(
+        backgroundcolor="#0a0e17", gridcolor="#2a3050",
+        showbackground=True,
+        tickfont=dict(color="white", size=11),
+        titlefont=dict(color="white", size=13),
+    )
+    fig.update_layout(
+        title=dict(text=f"BVT — İki Kişi Kalp EM Isosurface (d={mesafe_m}m)",
+                   font=dict(size=17, color="white")),
+        scene=dict(
+            xaxis=dict(title="x (m)", **_ax_style),
+            yaxis=dict(title="y (m)", **_ax_style),
+            zaxis=dict(title="z (m)", **_ax_style),
+            bgcolor="#0a0e17",
+            camera=dict(eye=dict(x=1.8, y=1.2, z=0.8)),
+        ),
+        width=W_SQ, height=W_SQ,
+        template=TMPL,
+        paper_bgcolor="#0a0e17",
+        font=dict(color="white"),
+    )
+    if output_path:
+        _html_kaydet(fig, output_path)
+    return fig
+
+
+def sekil_3d_em_alan_volumetrik(output_path: Optional[str] = None) -> Optional[Any]:
+    """
+    Kalp EM alanı go.Volume hacimsel görselleştirmesi (3m kube).
+
+    go.Volume: her hücrenin opaklığı değerle orantılı → doluluk hissi verir.
+    """
+    if not PLOTLY_OK:
+        return None
+
+    n = 22  # go.Volume için daha küçük ızgara yeterli
+    extent = 1.5  # m
+    ax_lin = np.linspace(-extent, extent, n)
+    X, Y, Z = np.meshgrid(ax_lin, ax_lin, ax_lin, indexing="ij")
+
+    mu0_4pi = 1e-7
+    mu_heart = MU_HEART
+    R = np.sqrt(X**2 + Y**2 + Z**2) + 1e-4
+    m_r = Z / R
+    Bz = mu0_4pi * mu_heart / R**3 * (3*m_r*Z/R - 1)
+    B_mag_log = np.log10(
+        np.clip(np.sqrt(
+            (mu0_4pi*mu_heart/R**3*(3*m_r*X/R))**2 +
+            (mu0_4pi*mu_heart/R**3*(3*m_r*Y/R))**2 +
+            Bz**2
+        ) / 1e-12 + 1e-6, 1e-6, None)
+    )
+
+    fig = go.Figure(go.Volume(
+        x=X.flatten().tolist(),
+        y=Y.flatten().tolist(),
+        z=Z.flatten().tolist(),
+        value=B_mag_log.flatten().tolist(),
+        isomin=float(B_mag_log.min()),
+        isomax=float(B_mag_log.max()),
+        opacity=0.12,
+        surface_count=18,
+        colorscale="Hot",
+        colorbar=dict(
+            title="log₁₀|B| (pT)",
+            tickfont=dict(color="white"),
+            titlefont=dict(color="white"),
+        ),
+        name="Hacimsel |B|",
+    ))
+    fig.add_trace(go.Scatter3d(
+        x=[0], y=[0], z=[0],
+        mode="markers+text",
+        marker=dict(size=12, color="red"),
+        text=["Kalp"], textposition="top center",
+        textfont=dict(color="white"),
+    ))
+    _ax_style = dict(
+        backgroundcolor="#0a0e17", gridcolor="#2a3050",
+        showbackground=True,
+        tickfont=dict(color="white", size=11),
+        titlefont=dict(color="white", size=13),
+    )
+    fig.update_layout(
+        title=dict(
+            text="BVT — Kalp EM Alanı Hacimsel (go.Volume, 3m kube)",
+            font=dict(size=17, color="white"),
+        ),
+        scene=dict(
+            xaxis=dict(title="x (m)", **_ax_style),
+            yaxis=dict(title="y (m)", **_ax_style),
+            zaxis=dict(title="z (m)", **_ax_style),
+            bgcolor="#0a0e17",
+            camera=dict(eye=dict(x=1.5, y=1.5, z=1.0)),
+        ),
+        width=W_SQ, height=W_SQ,
+        template=TMPL,
+        paper_bgcolor="#0a0e17",
+        font=dict(color="white"),
+    )
     if output_path:
         _html_kaydet(fig, output_path)
     return fig
@@ -1852,6 +2028,10 @@ def tum_sekilleri_kaydet(output_dir: str = "output/html", full_dim: bool = False
         ("topoloji_karsilastirma",  sekil_topoloji_karsilastirma),
         ("seri_paralel_em",         sekil_seri_paralel_em),
         ("3d_kalp_isosurface",      sekil_3d_kalp_isosurface),
+        ("3d_iki_kisi_03m",         lambda p: sekil_3d_iki_kisi_isosurface(0.3, p)),
+        ("3d_iki_kisi_09m",         lambda p: sekil_3d_iki_kisi_isosurface(0.9, p)),
+        ("3d_iki_kisi_3m",          lambda p: sekil_3d_iki_kisi_isosurface(3.0, p)),
+        ("em_alan_volumetrik",      sekil_3d_em_alan_volumetrik),
     ]
 
     print(f"HTML sekilleri {output_dir} dizinine kaydediliyor...")

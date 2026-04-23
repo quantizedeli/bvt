@@ -68,8 +68,9 @@ def iki_kisi_senaryosu(
     rng = np.random.default_rng(seed)
     phi_baslangic = rng.uniform(0, 2 * np.pi, 2)
     f_geo = 0.15 if mod == "temas" else 0.0
-    # Mesafeye bağlı kappa: uzakta zayıf bağlaşım
-    kappa_scale = max(0.1, min(1.0, 1.0 / (1 + d_mesafe)))
+    # Dipol r⁻³ bağlaşım yasası: κ ∝ μ/r³ (normalizasyon referans=0.9m)
+    D_REF = 0.9  # HeartMath referans mesafesi
+    kappa_scale = min(1.0, (D_REF / max(d_mesafe, 0.1)) ** 3)
     kappa = KAPPA_EFF * kappa_scale
 
     sonuc = N_kisi_tam_dinamik(
@@ -195,15 +196,20 @@ def main():
     for ax in axs2:
         apply_theme(ax, "light")
 
+    # r⁻³ teorik eğrisi
+    d_theory = np.logspace(-1, 0.7, 100)
+    r_theory = np.clip((0.9 / d_theory) ** 3, 0, 1)
+    axs2[0].semilogx(d_theory, r_theory, "--", color="gray", alpha=0.5, lw=1.5,
+                     label="κ∝r⁻³ (teorik)")
     axs2[0].semilogx(uzakliklar, r_sonlar, "o-", color=colors["koherant"],
-                     lw=2.5, markersize=8)
+                     lw=2.5, markersize=8, label="BVT simülasyon")
     axs2[0].axhline(0.8, color=colors["tam_halka"], linestyle="--",
                     label="Seri eşiği")
     axs2[0].axvline(0.9, color=colors["heartmath"], linestyle=":",
                     label="HeartMath 0.9m")
     axs2[0].set_xlabel("Mesafe (m)"); axs2[0].set_ylabel("r_son")
-    axs2[0].set_title("Mesafe → Senkronizasyon")
-    axs2[0].legend()
+    axs2[0].set_title("Mesafe → Senkronizasyon (κ∝r⁻³)")
+    axs2[0].legend(fontsize=8)
 
     axs2[1].semilogx(uzakliklar, dC_sonlar, "o-", color=colors["bvt_nominal"],
                      lw=2.5, markersize=8)

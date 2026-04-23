@@ -1165,6 +1165,249 @@ def animasyon_rezonans_ani(
 
 
 # ============================================================
+# FAZ 5.3: EM ALAN ZAMANSAL ETKİLEŞİM ANİMASYONU
+# ============================================================
+
+def animasyon_em_alan_zaman_etkilesim(
+    n_frames: int = 50,
+    t_end: float = 10.0,
+    grid_n: int = 30,
+    output_path: str = "output/animations/em_alan_zaman_etkilesim.html",
+) -> Optional[str]:
+    """
+    Kalp + beyin EM alanlarının zamansal etkileşimi (z=0 kesiti).
+
+    Kalp (z=0, ω_K = 2π×0.1 Hz) ve beyin (z=0.3m, ω_B = 2π×10 Hz)
+    dipol alanlarının süperpozisyonu: B_total(x,y,t) animasyonu.
+
+    Çıktı: HTML animasyon + PNG orta-kare snapshot.
+    """
+    if not PLOTLY_AVAILABLE:
+        return None
+
+    os.makedirs(os.path.dirname(output_path) or "output/animations", exist_ok=True)
+
+    mu0_4pi = 1e-7
+    mu_heart  = MU_HEART          # 1e-4 A·m²
+    mu_brain  = MU_HEART * 1e-3   # 1e-7 A·m²
+    omega_K   = 2 * np.pi * F_HEART   # 0.628 rad/s
+    omega_B   = 2 * np.pi * 10.0      # 62.8 rad/s (alpha band)
+
+    ax = np.linspace(-1.5, 1.5, grid_n)
+    Xg, Yg = np.meshgrid(ax, ax, indexing="ij")
+    Zg = np.zeros_like(Xg)
+
+    t_arr = np.linspace(0, t_end, n_frames)
+    frames = []
+
+    def _B_dipol_xy(mu: float, omega: float, t: float, z_src: float) -> np.ndarray:
+        amp = np.cos(omega * t)
+        Rx = Xg; Ry = Yg; Rz = Zg - z_src
+        R = np.sqrt(Rx**2 + Ry**2 + Rz**2) + 1e-4
+        m_r = Rz / R  # m_hat = z
+        Bx_ = mu0_4pi * mu * amp / R**3 * (3*m_r*Rx/R)
+        By_ = mu0_4pi * mu * amp / R**3 * (3*m_r*Ry/R)
+        Bz_ = mu0_4pi * mu * amp / R**3 * (3*m_r*Rz/R - 1)
+        return np.sqrt(Bx_**2 + By_**2 + Bz_**2) / 1e-12  # pT
+
+    B_max = 0.0
+    for t in t_arr:
+        B = _B_dipol_xy(mu_heart, omega_K, t, 0.0) + _B_dipol_xy(mu_brain, omega_B, t, 0.3)
+        B_max = max(B_max, float(B.max()))
+
+    for i, t in enumerate(t_arr):
+        B = _B_dipol_xy(mu_heart, omega_K, t, 0.0) + _B_dipol_xy(mu_brain, omega_B, t, 0.3)
+        B_log = np.log10(B + 0.01)
+        frames.append(go.Frame(
+            data=[go.Heatmap(
+                z=B_log.T,
+                x=ax.tolist(), y=ax.tolist(),
+                colorscale="Hot",
+                zmin=-2, zmax=float(np.log10(B_max + 0.01)),
+                colorbar=dict(title="log₁₀|B| (pT)", tickfont=dict(size=11)),
+            )],
+            name=str(i),
+            layout=go.Layout(title_text=f"Kalp+Beyin EM Etkileşimi  t={t:.2f}s"),
+        ))
+
+    fig = go.Figure(
+        data=frames[0].data,
+        frames=frames,
+        layout=go.Layout(
+            title="BVT — Kalp + Beyin EM Alan Zamansal Etkileşimi (z=0 kesiti)",
+            xaxis_title="x (m)", yaxis_title="y (m)",
+            width=900, height=800,
+            template="plotly_dark",
+            updatemenus=[dict(
+                type="buttons",
+                buttons=[
+                    dict(label="▶", method="animate",
+                         args=[None, {"frame": {"duration": 80, "redraw": True},
+                                      "fromcurrent": True}]),
+                    dict(label="⏸", method="animate",
+                         args=[[None], {"frame": {"duration": 0}, "mode": "immediate"}]),
+                ],
+                x=0.05, y=1.05, direction="left",
+            )],
+            sliders=[dict(
+                steps=[dict(method="animate", args=[[str(i)],
+                            {"frame": {"duration": 0, "redraw": True}, "mode": "immediate"}],
+                            label=f"{t:.1f}s") for i, t in enumerate(t_arr)],
+                x=0.05, y=0, len=0.9,
+            )],
+        ),
+    )
+
+    fig.write_html(output_path, include_plotlyjs="cdn")
+
+    # PNG snapshot — orta kare
+    try:
+        mid = len(frames) // 2
+        fig_snap = go.Figure(data=frames[mid].data, layout=fig.layout)
+        fig_snap.update_layout(
+            paper_bgcolor="white", plot_bgcolor="#f0f4f8",
+            font=dict(color="#111111"),
+            title=f"Kalp+Beyin EM (t={t_arr[mid]:.1f}s)",
+        )
+        png_path = output_path.replace(".html", ".png")
+        fig_snap.write_image(png_path, width=900, height=800)
+        print(f"  PNG: {png_path}")
+    except Exception:
+        pass
+
+    return output_path
+
+
+# ============================================================
+# FAZ 1.2: KALP EM ZAMANSAL ÇOK-SENARYO ANİMASYON
+# ============================================================
+
+def animasyon_kalp_em_zaman_multi(
+    n_frames: int = 50,
+    t_end: float = 10.0,
+    grid_n: int = 28,
+    output_path: str = "output/animations/kalp_em_zaman_multi.html",
+) -> Optional[str]:
+    """
+    7 senaryo: farklı C düzeyleri + kalp+beyin + kalp+Ψ + iki kalp.
+
+    Her senaryo için ayrı Heatmap paneli; 2×4 ızgara (son panel boş).
+    Çıktı: HTML animasyon + PNG orta-kare snapshot.
+    """
+    if not PLOTLY_AVAILABLE:
+        return None
+
+    os.makedirs(os.path.dirname(output_path) or "output/animations", exist_ok=True)
+
+    mu0_4pi = 1e-7
+    mu_heart = MU_HEART
+    omega_K  = 2 * np.pi * F_HEART
+    omega_B  = 2 * np.pi * 10.0
+    omega_Psi = 2 * np.pi * 7.83
+
+    ax = np.linspace(-1.2, 1.2, grid_n)
+    Xg, Yg = np.meshgrid(ax, ax, indexing="ij")
+
+    def _dipol_mag(mu: float, omega: float, t: float,
+                   cx: float = 0.0, cy: float = 0.0, z_src: float = 0.0) -> np.ndarray:
+        amp = np.cos(omega * t)
+        Rx = Xg - cx; Ry = Yg - cy; Rz = -z_src
+        R = np.sqrt(Rx**2 + Ry**2 + Rz**2) + 1e-4
+        m_r = Rz / R
+        Bz_ = mu0_4pi * mu * amp / R**3 * (3*m_r*Rz/R - 1)
+        Bx_ = mu0_4pi * mu * amp / R**3 * (3*m_r*Rx/R)
+        By_ = mu0_4pi * mu * amp / R**3 * (3*m_r*Ry/R)
+        return np.sqrt(Bx_**2 + By_**2 + Bz_**2) / 1e-12
+
+    SENARYOLAR = [
+        ("C=0.2 (düşük)",    lambda t: _dipol_mag(mu_heart*0.2,  omega_K, t)),
+        ("C=0.5 (orta)",     lambda t: _dipol_mag(mu_heart*0.5,  omega_K, t)),
+        ("C=0.85 (yüksek)",  lambda t: _dipol_mag(mu_heart*0.85, omega_K, t)),
+        ("C=1.0 (tam)",      lambda t: _dipol_mag(mu_heart*1.0,  omega_K, t)),
+        ("Kalp+Beyin",       lambda t: (_dipol_mag(mu_heart, omega_K, t)
+                                        + _dipol_mag(mu_heart*1e-3, omega_B, t, z_src=0.3))),
+        ("Kalp+Ψ∞(Sch.)",   lambda t: (_dipol_mag(mu_heart, omega_K, t)
+                                        + _dipol_mag(mu_heart*2e-3, omega_Psi, t))),
+        ("İki Kalp (0.6m)",  lambda t: (_dipol_mag(mu_heart, omega_K, t, cx=-0.3)
+                                        + _dipol_mag(mu_heart, omega_K, t, cx=+0.3))),
+    ]
+
+    n_s = len(SENARYOLAR)
+    rows, cols = 2, 4
+
+    t_arr = np.linspace(0, t_end, n_frames)
+
+    def _make_traces(t: float) -> list:
+        traces = []
+        for i, (lbl, fn) in enumerate(SENARYOLAR):
+            row = i // cols + 1
+            col = i % cols + 1
+            B = fn(t)
+            B_log = np.log10(B + 0.01)
+            traces.append(go.Heatmap(
+                z=B_log.T, x=ax.tolist(), y=ax.tolist(),
+                colorscale="Hot", zmin=-2, zmax=2,
+                showscale=(i == 0),
+                colorbar=dict(title="log₁₀|B|", len=0.45, y=0.75) if i == 0 else {},
+            ))
+        return traces
+
+    from plotly.subplots import make_subplots as _msub
+    fig_base = _msub(rows=rows, cols=cols,
+                     subplot_titles=[s[0] for s in SENARYOLAR] + [""],
+                     shared_xaxes=False)
+
+    init_traces = _make_traces(t_arr[0])
+    for i, tr in enumerate(init_traces):
+        row = i // cols + 1
+        col = i % cols + 1
+        fig_base.add_trace(tr, row=row, col=col)
+
+    frames = []
+    for fi, t in enumerate(t_arr):
+        traces = _make_traces(t)
+        frames.append(go.Frame(data=traces, name=str(fi),
+                               layout=go.Layout(title_text=f"Kalp EM Çok-Senaryo  t={t:.2f}s")))
+
+    fig_base.frames = frames
+    fig_base.update_layout(
+        title="BVT — Kalp EM Zaman Çok-Senaryo (7 Panel)",
+        height=700, width=1400,
+        template="plotly_dark",
+        updatemenus=[dict(
+            type="buttons",
+            buttons=[
+                dict(label="▶", method="animate",
+                     args=[None, {"frame": {"duration": 80, "redraw": True}, "fromcurrent": True}]),
+                dict(label="⏸", method="animate",
+                     args=[[None], {"frame": {"duration": 0}, "mode": "immediate"}]),
+            ],
+            x=0.05, y=1.05,
+        )],
+    )
+
+    fig_base.write_html(output_path, include_plotlyjs="cdn")
+    print(f"  HTML: {output_path}")
+
+    # PNG orta kare
+    try:
+        mid = len(frames) // 2
+        fig_snap = go.Figure(data=frames[mid].data, layout=fig_base.layout)
+        fig_snap.update_layout(
+            paper_bgcolor="white", plot_bgcolor="#f0f4f8",
+            font=dict(color="#111111"),
+            title=f"Kalp EM Çok-Senaryo (t={t_arr[mid]:.1f}s)",
+        )
+        png_path = output_path.replace(".html", ".png")
+        fig_snap.write_image(png_path, width=1400, height=700)
+        print(f"  PNG: {png_path}")
+    except Exception:
+        pass
+
+    return output_path
+
+
+# ============================================================
 # SELF-TEST
 # ============================================================
 
