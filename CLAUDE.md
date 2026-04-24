@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Proje:** Birliğin Varlığı Teoremi (BVT) / Theorem of the Unity of Existence  
 **Yazar:** Ahmet Kemal Acar | **Güncelleme:** Nisan 2026  
-**Durum:** Aktif geliştirme — 18 simülasyon level mevcut, TODO v7 tamamlandı; TODO v8 (Marimo html-wasm + fizik düzeltmeleri) devam ediyor
+**Durum:** Aktif geliştirme — TODO v9 aktif (MP4 pipeline + Plotly Dash + fizik hataları)
 
 ---
 
@@ -18,7 +18,7 @@ kavramlarının kuantum mekaniksel karşılığını kurar.
 
 **Ana tez: COHERENCE ⟹ UNITY**
 
-**Aktif görev takibi:** `BVT_Oturum6_Rapor_ve_TODO_v8.md` — TODO v7 uygulama sonrası Kemal'in geribildirimine dayalı öncelikli düzeltmeler (Marimo html-wasm, 7-panel, Level 15 dipol, Python MP4).
+**Aktif görev takibi:** `BVT_ClaudeCode_TODO_v9.md` — MP4 pipeline (FAZ A), Plotly Dash (FAZ B), fizik düzeltmeleri (FAZ C), kritik grafikler (FAZ D), makale şekilleri (FAZ E), temizlik (FAZ F).
 
 ---
 
@@ -26,7 +26,8 @@ kavramlarının kuantum mekaniksel karşılığını kurar.
 
 ```bash
 # Bağımlılıkları kur
-pip install "numpy>=1.24" "scipy>=1.11" "qutip>=5.0" "matplotlib>=3.5" "plotly>=5.0" pytest marimo
+pip install "numpy>=1.24" "scipy>=1.11" "qutip>=5.0" "matplotlib>=3.5" "plotly>=5.0" pytest
+pip install "imageio>=2.30" "imageio-ffmpeg>=0.4.9" "dash>=2.14" "dash-bootstrap-components>=1.5"
 
 # Bağımlılık + sabit kontrolü
 python main.py --kontrol
@@ -43,6 +44,13 @@ python main.py --hizli
 # Belirli fazlar
 python main.py --phases 9 10 11
 python main.py --faz 7
+
+# MP4 animasyonları üret (output/animations/*.mp4)
+python main.py --mp4
+python scripts/mp4_olustur.py --hangi tumu
+
+# Plotly Dash dashboard (Marimo yerine — Windows'ta stabil)
+python bvt_dashboard/app.py          # → http://localhost:8050 otomatik açılır
 
 # Yalnızca etkileşimli HTML şekilleri
 python main.py --interaktif
@@ -62,16 +70,8 @@ pytest tests/ -v --tb=short
 # Tek test dosyası
 pytest tests/test_constants.py -v
 
-# Marimo — geliştirme modu
-marimo edit bvt_studio/nb04_uclu_rezonans.py
-marimo run  bvt_studio/bvt_dashboard.py       # Sunum modu (kod gizli)
-
-# Marimo export (WASM — slider çalışır, server gerektirmez)
-# ÖNEMLİ: `html` DEĞİL, her zaman `html-wasm` kullan!
-marimo export html-wasm bvt_studio/nb04_uclu_rezonans.py -o output/marimo/nb04/ --mode run
-
-# main.py üzerinden toplu export (WASM'a güncelleme bekliyor — mevcut kod `html` kullanıyor)
-python main.py --marimo-export    # → output/marimo/ altında notebook.html
+# ffmpeg path doğrulama (Windows)
+python -c "from src.viz.mp4_ffmpeg_path import FFMPEG; print(FFMPEG)"
 ```
 
 **Çıktı dizini:** `output/` (her level için `output/levelN/`, animasyonlar `output/animations/`, HTML `output/html/`)
@@ -90,9 +90,11 @@ Katman 2: src/solvers/{tise,tdse,lindblad,cascade}.py
 Katman 3: src/models/{em_field,schumann,pre_stimulus,multi_person,
                       em_field_composite,berry_phase,entropy,vagal,
                       two_person,multi_person_em_dynamics,population_hkv}.py
-Katman 4: src/viz/{plots_static,plots_interactive,animations,theme}.py
+Katman 4: src/viz/{plots_static,plots_interactive,animations,theme,mp4_ffmpeg_path,mp4_exporter}.py
 Katman 5: simulations/level{1-18}_*.py  ← Sadece orchestration
           main.py                        ← 18-faz tek giriş noktası
+Katman 6: bvt_dashboard/app.py          ← Plotly Dash interaktif arayüz
+          scripts/mp4_olustur.py        ← 5 kritik MP4 üretici
 ```
 
 **Kural:** constants.py dışında hiçbir dosyada değer hardcode edilmez.
@@ -103,7 +105,7 @@ Katman 5: simulations/level{1-18}_*.py  ← Sadece orchestration
 
 ```
 bvt_project/
-├── main.py                    ← 18-faz CLI yöneticisi (--phases, --hizli, --html, --animasyon, --marimo-export)
+├── main.py                    ← 18-faz CLI yöneticisi (--phases, --hizli, --html, --animasyon, --mp4)
 ├── requirements.txt
 ├── src/
 │   ├── core/
@@ -111,64 +113,46 @@ bvt_project/
 │   │   ├── operators.py       ← Ĉ operatörü, f(C) kapısı, â/b̂ merdiven
 │   │   └── hamiltonians.py    ← H_0, H_int, H_tetik (729×729)
 │   ├── solvers/
-│   │   ├── tise.py            ← Zamana bağımsız Schrödinger
-│   │   ├── tdse.py            ← Runge-Kutta TDSE + overlap ODE
-│   │   ├── lindblad.py        ← QuTiP Lindblad sarmalayıcı
-│   │   └── cascade.py         ← 8-aşamalı domino kaskad ODE
+│   │   ├── tise.py, tdse.py, lindblad.py, cascade.py
 │   ├── models/
-│   │   ├── em_field.py              ← Kalp dipol 3D alan
-│   │   ├── em_field_composite.py    ← Kalp+beyin+Ψ_Sonsuz kompozit
-│   │   ├── schumann.py              ← Schumann kavite modeli
-│   │   ├── pre_stimulus.py          ← 5-katmanlı HKV + iki-popülasyon MC
-│   │   ├── population_hkv.py        ← Analitik iki-popülasyon HKV modeli
-│   │   ├── multi_person.py          ← Kuramoto + süperradyans (basit)
-│   │   ├── multi_person_em_dynamics.py ← N-kişi zaman bağımlı EM dinamiği
-│   │   ├── berry_phase.py           ← Berry fazı γ hesabı
-│   │   ├── entropy.py               ← Von Neumann entropi, entanglement
-│   │   ├── vagal.py                 ← Vagal transfer fonksiyonu
-│   │   └── two_person.py            ← Yukawa potansiyeli, 2-kişi overlap
+│   │   ├── em_field.py, em_field_composite.py, schumann.py
+│   │   ├── pre_stimulus.py, population_hkv.py
+│   │   ├── multi_person.py
+│   │   ├── multi_person_em_dynamics.py  ← V_matrix ODE entegrasyonu (TODO v9 C.1)
+│   │   ├── berry_phase.py, entropy.py, vagal.py, two_person.py
 │   └── viz/
-│       ├── plots_static.py          ← Matplotlib PNG (makale şekilleri)
-│       ├── plots_interactive.py     ← Plotly HTML dashboard şekilleri
-│       ├── animations.py            ← Plotly frame animasyonları + GIF
-│       └── theme.py                 ← BVT görsel tema sistemi (light/dark)
+│       ├── plots_static.py, plots_interactive.py
+│       ├── animations.py      ← go.Frame traces= fix gerekiyor (TODO v9 C.3)
+│       ├── theme.py
+│       ├── mp4_ffmpeg_path.py ← Windows ffmpeg path fix (imageio-ffmpeg)
+│       └── mp4_exporter.py    ← 3-yöntem MP4 üretici (matplotlib/imageio/CLI)
 ├── simulations/
-│   ├── level1_em_3d.py        ← 3D kalp EM haritası (~30 dk, r_max=3m)
-│   ├── level2_cavity.py       ← Schumann kavite, g_eff doğrulama
-│   ├── level3_qutip.py        ← QuTiP Lindblad (~1 saat)
-│   ├── level4_multiperson.py  ← Kuramoto, N² süperradyans
-│   ├── level5_hybrid.py       ← Maxwell+Schrödinger hibrit
-│   ├── level6_hkv_montecarlo.py ← Pre-stimulus MC + advanced wave
-│   ├── level7_tek_kisi.py     ← Tek kişi Lindblad + kalp anteni
-│   ├── level8_iki_kisi.py     ← Dipol-dipol + batarya ODE
-│   ├── level9_v2_kalibrasyon.py ← κ_eff, g_eff, Q_kalp türetimi
-│   ├── level10_psi_sonsuz.py  ← Ψ_Sonsuz yapısı + 3D yüzeyler
-│   ├── level11_topology.py    ← 4 topoloji karşılaştırması
-│   ├── level12_seri_paralel_em.py ← PARALEL→HİBRİT→SERİ geçişi
-│   ├── level13_uclu_rezonans.py   ← Dörtlü rezonans (C_KB ±1 kaotik salınım — TODO v8'de düzeltme bekliyor)
-│   ├── level14_merkez_birey.py    ← Halka+merkez koherant birey
-│   ├── level15_iki_kisi_em_etkilesim.py ← İki kişi mesafe taraması (r⁻³ dipol BUG: r_son mesafeden bağımsız — TODO v8)
-│   ├── level16_girisim_deseni.py  ← EM dalga girişim yapıcı/yıkıcı/inkoherant
-│   ├── level17_ses_frekanslari.py ← 22 enstrüman frekans katalogu + grup koherans (tuning sorunlu — TODO v8)
-│   ├── level18_rem_pencere.py     ← REM/NREM/Uyanık HKV karşılaştırması
-│   └── uret_zaman_em_dalga.py     ← Kalp+beyin EM dalga grafiği
-├── output/                    ← Tüm çıktılar burada (results/ DEĞİL)
+│   ├── level1_em_3d.py ... level18_rem_pencere.py
+│   └── uret_zaman_em_dalga.py
+├── bvt_dashboard/             ← YENİ — Plotly Dash (Marimo yerine)
+│   ├── app.py                 ← Ana Dash app, `python bvt_dashboard/app.py`
+│   ├── README.md
+│   ├── callbacks/             ← halka.py, iki_kisi.py, n_olcekleme.py, hkv.py, em_3d.py
+│   └── layouts/sekmeler.py
+├── scripts/
+│   ├── mp4_olustur.py         ← 5 kritik MP4 (Rabi, Lindblad, EM, Halka, Domino)
+│   ├── fig_kuantum_sehpa.py   ← 4-ayak deneysel sehpa şekli
+│   ├── bvt_literatur_karsilastirma.py
+│   └── bvt_bolum14_mt_sentez.py
+├── output/
 │   ├── level{N}/              ← Her faz çıktıları
 │   ├── html/                  ← Plotly HTML şekilleri
-│   ├── animations/            ← HTML + GIF + MP4
+│   ├── animations/            ← HTML + GIF + MP4 (≥3 MP4 hedef)
 │   └── RESULTS_LOG.md
 ├── tests/                     ← 155 test (149 geçiyor, 6 eski hata)
-├── data/
-│   └── literature_values.json ← Tüm deneysel referans değerler
+├── data/literature_values.json
 ├── docs/
 │   ├── architecture.md
 │   ├── BVT_equations_reference.md
-│   ├── BVT_Literatur_Arastirma_Raporu.md ← 553 satır, 7 konu
+│   ├── BVT_Literatur_Arastirma_Raporu.md
 │   └── simulation_levels.md
-├── scripts/                   ← Yardımcı betikler (literatür karşılaştırma vb.)
-├── skills/                    ← 6 custom skill (bvt-constants, bvt-simulate vb.)
-├── BVT_ClaudeCode_TODO_v7.md  ← Önceki oturum görev listesi (15 FAZ — kısmen uygulandı)
-└── BVT_Oturum6_Rapor_ve_TODO_v8.md  ← Aktif görev listesi (v7 sonrası düzeltme öncelikleri)
+├── archive/marimo_deprecated/ ← Eski Marimo notebook'lar (bvt_studio → buraya taşındı)
+└── .claude/agents/            ← bvt-simulate, bvt-viz, bvt-literatur, bvt-fizik, bvt-marimo
 ```
 
 ---
@@ -183,6 +167,7 @@ Süperradyans eşiği:    N_c = γ_dec/κ₁₂ ≈ 10-12 kişi  (kod: N_C_SUPER
 Holevo sınırı:         η_max < 1 (Sırr-ı Kader)
 Parametrik tetikleme:  Ĥ_tetik = -μ₀B_s f(Ĉ) cos(ω_s t)(â_k + â_k†)
 Koherans kapısı:       f(C) = Θ(C-C₀) × [(C-C₀)/(1-C₀)]^β, C₀≈0.3, β≥2
+V_matrix r⁻³ kuplaj:  V[i,j] = (D_REF / r_ij)³, normalize edilmiş [0,1]
 ```
 
 **Domino kaskadı (enerji paradoksu çözümü):** Kalp dipol (10⁻¹⁶J) → Vagal → Talamus →
@@ -237,53 +222,47 @@ Görev tipi → kullanılacak agent:
 | Grafik/animasyon/tema düzelt | `bvt-viz` | `.claude/agents/bvt-viz.md` |
 | Literatür taraması, öngörü-makale eşleme | `bvt-literatur` | `.claude/agents/bvt-literatur.md` |
 | Denklem türetme, fizik doğrulama | `bvt-fizik` | `.claude/agents/bvt-fizik.md` |
-| Marimo notebook yaz/güncelle, anywidget | `bvt-marimo` | `.claude/agents/bvt-marimo.md` |
 | Kapsamlı keşif/araştırma | `general-purpose` | — |
 
 **Paralel çalıştırma:** Bağımsız fazlar için birden fazla agent aynı anda başlatılabilir.
-Örnek: `bvt-simulate` (Level çalıştır) + `bvt-marimo` (Marimo notebook güncelle) eş zamanlı.
 
 ---
 
-## 9. MARIMO BVT STUDIO (FAZ 13 — TAMAMLANDI)
+## 9. İNTERAKTİF SİSTEM — PLOTLY DASH (AKTİF)
 
-`bvt_studio/` klasöründe 10 reaktif notebook:
+`bvt_dashboard/` klasöründe 5 sekmeli Plotly Dash arayüzü:
 
 ```bash
-pip install "marimo==0.9.14" plotly scipy anywidget
-marimo edit bvt_studio/nb04_uclu_rezonans.py   # Geliştirme modu
-marimo run  bvt_studio/bvt_dashboard.py         # Sunum modu (kod gizli)
+pip install "dash>=2.14" "dash-bootstrap-components>=1.5"
+python bvt_dashboard/app.py    # → http://localhost:8050 otomatik açılır
 ```
 
-**Tamamlanan notebook'lar:**
-- `bvt_dashboard.py` — Ana panel, 18 level + 9 NB özet
-- `nb01_halka_topoloji.py` — 4 topoloji, N-kişi, Kuramoto
-- `nb02_iki_kisi_mesafe.py` — r⁻³ kuplaj, EM alan
-- `nb03_n_kisi_olcekleme.py` — N=[10..100], log-log süperradyans
-- `nb04_uclu_rezonans.py` — Kalp↔Beyin↔Ψ_Sonsuz ODE, 3 pump profili
-- `nb05_hkv_iki_populasyon.py` — Pre-stimulus, KS testi, KDE dual-mode
-- `nb06_ses_frekanslari.py` — 22 enstrüman, mo.audio, koherans bonusu
-- `nb07_girisim_deseni.py` — EM girişim yapıcı/yıkıcı/inkoherant
-- `nb08_em_alan_3d_live.py` — Three.js anywidget + Plotly Volume fallback
-- `nb09_literatur_explorer.py` — 40+ çalışma, filtre, ES grafikleri
+**5 sekme:** Halka Topolojisi | İki Kişi Mesafe | N-Ölçekleme | HKV Pre-stimulus | EM 3D Alan  
+**Her sekme:** sol %30 slider kontroller, sağ %70 Plotly grafik (canlı güncellenir).
 
-**Marimo versiyonu:** 0.9.14 zorunlu (yeni versiyonlarda narwhals uyumsuzluğu var)
+**Neden Dash (Marimo yerine):** Windows + Python 3.11 + Marimo ASGI websocket crash — 3 oturumda çözülemedi. Dash: tek `python app.py`, websocket yok, localhost:8050, kararlı.
 
-**KRİTİK — Export komutu:**
-```bash
-# YANLIŞ (boş sayfa üretir — main.py'deki mevcut hata):
-marimo export html notebook.py -o output.html
-
-# DOĞRU (slider çalışan WASM, server gerektirmez):
-marimo export html-wasm notebook.py -o output_dir/ --mode run
-```
-`main.py`'deki `marimo_export()` fonksiyonu (satır 522-565) `html` kullanıyor — TODO v8 FAZ A'da `html-wasm` olarak değiştirilecek.
-
-**widgets/** klasörü: `bvt_studio/widgets/` altında Three.js anywidget bileşenleri (nb08 için).
+**Marimo durumu:** `archive/marimo_deprecated/` altında (silinmedi). Tekrar deneme — kullanma.
 
 ---
 
-## 10. CUSTOM SKILLS
+## 10. MP4 PIPELINE
+
+```bash
+# ffmpeg path (Windows — pip ile gelir, sistem PATH gerektirmez)
+python -c "from src.viz.mp4_ffmpeg_path import FFMPEG; print(FFMPEG)"
+
+# 5 kritik MP4 üret
+python scripts/mp4_olustur.py --hangi tumu
+python main.py --mp4
+```
+
+**3-yöntemli `mp4_exporter.py`:** matplotlib FuncAnimation → imageio → ffmpeg CLI (yedek sırası).  
+**Plotly → MP4:** `plotly_to_mp4(fig_frames, output, fps)` — PNG üretir, ffmpeg CLI birleştirir.
+
+---
+
+## 11. CUSTOM SKILLS
 
 ```
 /bvt-constants    → Tüm fiziksel sabitleri literature_values.json ile karşılaştır
@@ -296,15 +275,30 @@ marimo export html-wasm notebook.py -o output_dir/ --mode run
 
 ---
 
-## 11. ÖNEMLİ NOTLAR
+## 12. ÖNEMLİ NOTLAR (v9 itibariyle)
 
 1. **Çıktı dizini `output/`** — (`results/` DEĞİL)
 2. **main.py tek giriş noktası** — 18 faz; tüm levellar `--phases N` ile çalıştırılır
-3. **Marimo export `html-wasm` zorunlu** — `html` komutu boş sayfa üretir (TODO v8 FAZ A'da düzeltilecek)
-4. **Level 13 C_KB** — ±1 arası kaotik salınım (monoton yükseliş beklenirdi), TODO v8'de Hamiltoniyen yeniden türetme
-5. **Level 15 dipol r⁻³** — `r_son` mesafeden bağımsız (0.1m ile 5m için aynı değer), TODO v8'de fizik düzeltmesi
-6. **Level 17 tuning** — Tüm 22 frekans ΔC ≈ 0.69 (Schumann rezonantı 2-3× fark göstermeliydi), TODO v8
-7. **kalp_em_zaman_multi.png** — 7 panel tasarlanmış fakat sadece sol üst doluyor, TODO v8 FAZ B
-8. **MATLAB MP4 kaldırılıyor** — `src/matlab_bridge.py` yerine Python (imageio/ffmpeg) ile MP4, TODO v8 FAZ D
+3. **Marimo KALICI OLARAK BIRAKILDI** — `archive/marimo_deprecated/` altında; yeniden deneme
+4. **MP4 için `imageio-ffmpeg`** — `src/viz/mp4_ffmpeg_path.py` import edilince ffmpeg otomatik bulunur
+5. **Plotly subplot frame hatası** — `go.Frame(data=traces, traces=list(range(N)))` ZORUNLU; `traces=` eksikse sadece ilk panel dolar
+6. **Level 15 dipol r⁻³** — `V_matrix` ODE'ye entegre edilmeli; sanity: `d=0.1m → r_son>0.9`, `d=5m → r_son<0.5`
+7. **Level 13 C_KB** — başlangıç `C_KB(0) = 0.1`, `t_end = 30s`; sonuç monoton artış
+8. **Level 17 tuning** — Lorentzian rezonans; Tibet çanı (6.68 Hz) DO3'tan (130 Hz) 10× fazla ΔC
 9. **155 test, 149 geçiyor** — 6 eski hata dokunulmadı; yeni fonksiyon yazılırken test zorunlu
-10. **`psi_sonsuz` panelleri ve `rezonans_ani`** — Orta + sağ paneller boş, legend "trace 0..7", TODO v8
+10. **HTML→PNG snapshot** — `write_image()` ilk frame'i (t=0, boş) alır; `orta_idx = len(frames) // 2` kullan
+
+---
+
+## 13. KAÇINILACAK HATALAR (Önceki Oturumlardan)
+
+| Hata | Doğru Yaklaşım |
+|---|---|
+| Test etmeden commit | Her yeni fonksiyon: `python -c "from modul import fn; print(fn())"` |
+| `go.Frame(data=...)` traces= eksik | `traces=list(range(len(SENARYOLAR)))` ekle, `len(fig.data)` kontrol et |
+| MATLAB Engine | Python `imageio-ffmpeg` + `matplotlib.animation` |
+| `marimo export html` | Marimo BIRAKILDI — kullanma |
+| Parametre değişikliği için yeni dosya üretme | Aynı dosyayı overwrite et |
+| V_matrix normalize etmemek | `V_norm = V / V_max`; K_bonus terimi kullanma |
+| Fiziksel sanity check eksikliği | Her simülasyon sonunda beklenen trendi yazdır |
+| Sabit import yanlış (`F_SCH_S1` yerine `F_S1`) | Import'tan sonra `python -c "from simulations.levelN import *"` çalıştır |

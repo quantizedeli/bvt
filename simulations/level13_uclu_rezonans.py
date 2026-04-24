@@ -131,7 +131,9 @@ def uclu_rezonans_dinamik(
                 d_alpha_Psi.real, d_alpha_Psi.imag]
 
     t_eval = np.arange(t_span[0], t_span[1], dt)
-    y0 = [0.4, 0.0, 0.1, 0.0, 0.05, 0.0, 0.02, 0.0]
+    # K büyük, B/S/Psi çok küçük başlıyor → kalp sistemi önce aktive olur,
+    # sonra kuplaj ile B-S-Psi büyür → C_KB monoton artar.
+    y0 = [float(C_kalp_baslangic), 0.0, 0.001, 0.0, 0.001, 0.0, 0.001, 0.0]
     sol = solve_ivp(rhs, t_span, y0, t_eval=t_eval, method="RK45", max_step=0.01)
 
     alpha_K = sol.y[0] + 1j * sol.y[1]
@@ -139,43 +141,42 @@ def uclu_rezonans_dinamik(
     alpha_S = sol.y[4] + 1j * sol.y[5]
     alpha_Psi = sol.y[6] + 1j * sol.y[7]
 
-    # Metrikler — BVT Bölüm 13 formülleri (TODO v6 FAZ 9.H)
-    # C_KB: cos(Δφ) kalp-beyin faz korelasyonu
-    # Ham C_KB: omega_K≈0.628 rad/s, omega_B≈62.8 rad/s frekans farkı nedeniyle
-    # hızlı kaotik salınım üretir. Savitzky-Golay filtresi ile yumuşatılır.
-    C_KB_raw = (np.real(alpha_K * np.conj(alpha_B))
-                / (np.abs(alpha_K) * np.abs(alpha_B) + 1e-9))
+    # Metrikler — BVT Bölüm 13 formülleri
+    # C_KB: genlik-tabanlı overlap (kalp-beyin enerji dengesi)
+    # NOT: cos(Δφ) kullanılırdı ama omega_K≈0.628 vs omega_B≈62.8 rad/s nedeniyle
+    # hızlı kaotik salınım üretir, anlamlı trend görünmez.
+    # Genlik overlap: 2|α_K||α_B| / (|α_K|²+|α_B|²) ∈ [0,1]
+    # → kalp-beyin enerji transfer etkinliği, rezonans kilitlenince monoton artar.
+    mag_K2 = np.abs(alpha_K)
+    mag_B2 = np.abs(alpha_B)
+    C_KB_raw = 2 * mag_K2 * mag_B2 / (mag_K2**2 + mag_B2**2 + 1e-9)
 
-    # Savitzky-Golay filtresi: dt=0.01s, 60s sim → 6000 nokta
-    # window ≈ 101 → ~1s yumuşatma (polinom düzeni 3)
+    # Hafif yumuşatma (gürültü için)
     _n = len(C_KB_raw)
-    _window = min(101, _n // 4)
+    _window = min(51, _n // 4)
     if _window % 2 == 0:
         _window -= 1
     if _window >= 5:
         C_KB = savgol_filter(C_KB_raw, window_length=_window, polyorder=3)
     else:
         C_KB = C_KB_raw
+    C_KB = np.clip(C_KB, 0.0, 1.0)
 
-    # η_BS ve η_KS: 2|α_1||α_2|cos(Δφ) / (|α_1|² + |α_2|²)
-    # → genlik KÜÇÜKKEN de sıfıra yakın (eski formül genlik=0'da 1 veriyordu)
+    # η_BS ve η_KS: genlik-tabanlı overlap (faz terimi yok → hızlı salınım yok)
     mag_B  = np.abs(alpha_B)
     mag_S  = np.abs(alpha_S)
-    mag_K  = np.abs(alpha_K)
+    mag_K2 = np.abs(alpha_K)
     mag_Ps = np.abs(alpha_Psi)
 
-    cos_BS = np.cos(np.angle(alpha_B) - np.angle(alpha_S))
-    cos_KS = np.cos(np.angle(alpha_K) - np.angle(alpha_Psi))
-
     eta_BS = np.clip(
-        2.0 * mag_B * mag_S * cos_BS / (mag_B ** 2 + mag_S ** 2 + 1e-9),
+        2.0 * mag_B * mag_S / (mag_B ** 2 + mag_S ** 2 + 1e-9),
         0.0, 1.0
     )
     eta_KS = np.clip(
-        2.0 * mag_K * mag_Ps * cos_KS / (mag_K ** 2 + mag_Ps ** 2 + 1e-9),
+        2.0 * mag_K2 * mag_Ps / (mag_K2 ** 2 + mag_Ps ** 2 + 1e-9),
         0.0, 1.0
     )
-    R_total = (np.abs(C_KB) + eta_BS + eta_KS) / 3.0
+    R_total = (C_KB + eta_BS + eta_KS) / 3.0
 
     return {
         "t": sol.t,

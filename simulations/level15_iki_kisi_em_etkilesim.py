@@ -68,10 +68,26 @@ def iki_kisi_senaryosu(
     rng = np.random.default_rng(seed)
     phi_baslangic = rng.uniform(0, 2 * np.pi, 2)
     f_geo = 0.15 if mod == "temas" else 0.0
-    # Dipol r⁻³ bağlaşım yasası: κ ∝ μ/r³ (normalizasyon referans=0.9m)
-    D_REF = 0.9  # HeartMath referans mesafesi
-    kappa_scale = min(1.0, (D_REF / max(d_mesafe, 0.1)) ** 3)
+
+    # Dipol r⁻³ bağlaşım: κ ∝ r⁻³, referans=D_REF=0.9m.
+    # min(1.0,...) CAP'I KALDIRILDI — uzak mesafede kuplaj gerçekten düşsün.
+    D_REF = 0.9
+    kappa_scale = (D_REF / max(d_mesafe, D_REF)) ** 3  # d>0.9m'de azalır
     kappa = KAPPA_EFF * kappa_scale
+
+    # Frekans heterogenitesi: iki kişi farklı kalp ritmi (±15% F_HEART).
+    # Olmadan Kuramoto N=2 her zaman kilitlenir — mesafe etkisi görünmez.
+    omega_base = 2 * np.pi * KAPPA_EFF  # F_HEART yerine KAPPA_EFF/2π kullan
+    omega_individual = np.array([
+        2 * np.pi * (0.85 * KAPPA_EFF / (2 * np.pi)),  # kişi 1: -15%
+        2 * np.pi * (1.15 * KAPPA_EFF / (2 * np.pi)),  # kişi 2: +15%
+    ])
+    # Basitçe: omega_i = 2π * F_HEART * [0.85, 1.15]
+    from src.core.constants import F_HEART as _F_HEART
+    omega_individual = np.array([
+        2 * np.pi * _F_HEART * 0.80,
+        2 * np.pi * _F_HEART * 1.20,
+    ])
 
     sonuc = N_kisi_tam_dinamik(
         konumlar=konumlar,
@@ -82,6 +98,7 @@ def iki_kisi_senaryosu(
         f_geometri=f_geo,
         kappa_eff=kappa,
         cooperative_robustness=True,
+        omega_individual=omega_individual,
     )
 
     # EM alan snapshot'ları

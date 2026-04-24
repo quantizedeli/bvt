@@ -721,7 +721,9 @@ def main():
     parser.add_argument("--zaman-em-dalga", action="store_true",
                         help="Kalp-Beyin 3D EM dalga grafiğini fiziksel parametrelerle üret")
     parser.add_argument("--marimo-export", action="store_true",
-                        help="Marimo notebook'ları statik HTML olarak export et (output/marimo/)")
+                        help="[KALDIRILDI] Marimo yerine: python bvt_dashboard/app.py")
+    parser.add_argument("--mp4", action="store_true",
+                        help="MP4 animasyonları üret (output/animations/*.mp4)")
     args = parser.parse_args()
 
     # ---- Özel modlar ----
@@ -745,9 +747,19 @@ def main():
         return 0
 
     if getattr(args, "marimo_export", False):
-        başlık_yazdır("Marimo BVT Studio — Statik HTML Export")
-        marimo_export(args.output)
+        print("[UYARI] Marimo desteği kaldırıldı (Windows websocket sorunu).")
+        print("  Yerine: python bvt_dashboard/app.py  (Plotly Dash)")
         return 0
+
+    if getattr(args, "mp4", False):
+        başlık_yazdır("BVT MP4 Animasyonları")
+        import subprocess
+        proc = subprocess.run(
+            [sys.executable, os.path.join(ROOT, "scripts", "mp4_olustur.py"),
+             "--hangi", "tumu"],
+            cwd=ROOT,
+        )
+        return proc.returncode
 
     if getattr(args, "zaman_em_dalga", False):
         import subprocess

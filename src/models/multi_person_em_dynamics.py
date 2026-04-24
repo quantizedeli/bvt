@@ -239,6 +239,7 @@ def N_kisi_tam_dinamik(
     gamma_eff: float = GAMMA_DEC,
     f_geometri: float = 0.0,
     cooperative_robustness: bool = True,
+    omega_individual: np.ndarray = None,
 ) -> Dict:
     """
     N kişi için zamana bağlı koherans ve faz dinamiği.
@@ -299,7 +300,11 @@ def N_kisi_tam_dinamik(
     else:
         gamma_etkin = gamma_eff
 
-    omega = 2 * np.pi * f_kalp
+    # Per-kişi frekans: omega_individual verilmişse kullan, yoksa herkese aynı
+    if omega_individual is not None:
+        omega_vec = np.asarray(omega_individual, dtype=float)
+    else:
+        omega_vec = np.full(N_p, 2 * np.pi * f_kalp)
 
     def rhs(t_val: float, y: np.ndarray) -> np.ndarray:
         C = y[:N_p]
@@ -308,8 +313,8 @@ def N_kisi_tam_dinamik(
         dC = -gamma_etkin * C + kappa_etkin / N_p * np.sum(
             V_norm * (C[np.newaxis, :] - C[:, np.newaxis]), axis=1
         )
-        # Faz dinamiği — V_norm ağırlıklı Kuramoto
-        dphi = omega + kappa_etkin / N_p * np.sum(
+        # Faz dinamiği — V_norm ağırlıklı Kuramoto + per-kişi frekans
+        dphi = omega_vec + kappa_etkin / N_p * np.sum(
             V_norm * np.sin(phi[np.newaxis, :] - phi[:, np.newaxis]), axis=1
         )
         return np.concatenate([dC, dphi])

@@ -1,174 +1,308 @@
 """
-BVT MP4 Exporter — Python-only (MATLAB yok)
-matplotlib.animation.FFMpegWriter + imageio fallback.
+BVT MP4 Exporter — 3-Yöntemli Python-only (MATLAB yok, sistem ffmpeg opsiyonel).
+
+Yöntem sırası:
+  1. matplotlib FuncAnimation + FFMpegWriter (en yüksek kalite)
+  2. imageio frame sekansı → MP4 (imageio-ffmpeg ile)
+  3. ffmpeg CLI subprocess (yedek)
 
 Kullanım:
-    from src.viz.mp4_exporter import fig_frames_to_mp4, ffmpeg_kontrol
+    from src.viz.mp4_exporter import mp4_uret_matplotlib, plotly_to_mp4
 """
 from __future__ import annotations
 
+import io
 import os
 import subprocess
-from typing import Callable, Optional
+import tempfile
+from typing import Callable, List, Optional, Sequence
 
 import numpy as np
 
+# ffmpeg path otomatik set
+try:
+    from src.viz.mp4_ffmpeg_path import FFMPEG
+except ImportError:
+    FFMPEG = os.environ.get("IMAGEIO_FFMPEG_EXE", "ffmpeg")
 
-def ffmpeg_kontrol() -> bool:
-    """FFmpeg kurulu ve PATH'te mi kontrol et. Yoksa kurulum kılavuzu yaz."""
+
+# ============================================================
+# YARDIMCI
+# ============================================================
+
+def _cikti_hazirla(output_path: str) -> None:
+    os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
+
+
+def ffmpeg_mevcut() -> bool:
+    if not FFMPEG:
+        return False
     try:
-        proc = subprocess.run(
-            ["ffmpeg", "-version"], capture_output=True, timeout=10
-        )
+        proc = subprocess.run([FFMPEG, "-version"], capture_output=True, timeout=10)
         return proc.returncode == 0
-    except FileNotFoundError:
-        print("UYARI: FFmpeg bulunamadi. MP4 uretime atlanacak.")
-        print("  Windows kurulum: choco install ffmpeg")
-        print("  veya: https://ffmpeg.org/download.html -> PATH'e ekle")
+    except Exception:
         return False
 
 
-def fig_frames_to_mp4(
-    update_func: Callable,
+# ============================================================
+# YÖNTEM 1 — matplotlib FuncAnimation + FFMpegWriter
+# ============================================================
+
+def mp4_uret_matplotlib(
+    fig_guncelle: Callable[[int], None],
     n_frames: int,
     output_path: str,
     fps: int = 20,
     bitrate: int = 1800,
+    dpi: int = 100,
 ) -> Optional[str]:
     """
-    Matplotlib figure frame'lerini MP4'e yaz.
-
-    Parametreler
-    ------------
-    update_func : callable
-        update_func(frame_idx: int) -> matplotlib.figure.Figure
-        Her frame icin cagrilir; figure'u gunceller veya yeni olusturur.
-    n_frames : int
-        Toplam frame sayisi.
-    output_path : str
-        Cikti MP4 yolu (orn. "output/animations/kalp_em.mp4").
-    fps : int
-        Saniyedeki kare sayisi (varsayilan 20).
-    bitrate : int
-        Video bit hizi kbps (varsayilan 1800).
-
-    Donus
-    -----
-    str | None — basarili ise output_path, basarisiz ise None.
+    FFMpegWriter context manager ile MP4 üret (FuncAnimation kullanmaz).
+    fig_guncelle(i) her frame için yeni fig döndürür; context manager ile kaydedilir.
     """
-    import matplotlib
-    matplotlib.use("Agg")
-    import matplotlib.pyplot as plt
-    import matplotlib.animation as animation
-
-    if not ffmpeg_kontrol():
-        return _imageio_fallback(update_func, n_frames, output_path, fps)
-
-    os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
-
-    fig = update_func(0)
-
-    def _animate(i):
-        fig.clear()
-        update_func(i)
-        return fig.get_axes()
-
-    anim = animation.FuncAnimation(
-        fig, _animate, frames=n_frames, interval=1000 // fps, blit=False
-    )
+    if not ffmpeg_mevcut():
+        print(f"  [MP4-Y1] ffmpeg bulunamadi, Yontem 2'ye geçiliyor...")
+        return None
 
     try:
-        writer = animation.FFMpegWriter(fps=fps, bitrate=bitrate, codec="libx264")
-        anim.save(output_path, writer=writer, dpi=100)
-        plt.close(fig)
+        import matplotlib
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+        import matplotlib.animation as anim
+
+        _cikti_hazirla(output_path)
+        writer = anim.FFMpegWriter(
+            fps=fps, bitrate=bitrate, codec="libx264",
+            extra_args=["-pix_fmt", "yuv420p"],
+        )
+        # İlk frame'den fig al (boyut için)
+        fig0 = fig_guncelle(0)
+        with writer.saving(fig0, output_path, dpi=dpi):
+            writer.grab_frame()
+            plt.close(fig0)
+            for i in range(1, n_frames):
+                fig = fig_guncelle(i)
+                # fig0'ı yeniden kullanamayız; writer fig0'a bağlı.
+                # fig'i PNG'ye çek, fig0'a yükle.
+                buf = io.BytesIO()
+                fig.savefig(buf, format="png", dpi=dpi, bbox_inches="tight")
+                buf.seek(0)
+                plt.close(fig)
+                fig0.clear()
+                fig0.add_subplot(111)
+                from matplotlib.image import imread as _imread
+                img = _imread(buf)
+                fig0.get_axes()[0].imshow(img)
+                fig0.get_axes()[0].axis("off")
+                writer.grab_frame()
+        plt.close("all")
+        size = os.path.getsize(output_path)
+        print(f"  [MP4-Y1] {os.path.basename(output_path)} ({size//1024}KB)")
         return output_path
     except Exception as exc:
-        print(f"  FFmpeg MP4 hatasi: {exc}")
-        plt.close(fig)
-        return _imageio_fallback(update_func, n_frames, output_path, fps)
+        print(f"  [MP4-Y1] Hata: {exc}")
+        return None
 
 
-def _imageio_fallback(
-    update_func: Callable,
+# ============================================================
+# YÖNTEM 2 — imageio frame sekansı
+# ============================================================
+
+def mp4_uret_imageio(
+    fig_guncelle: Callable[[int], None],
     n_frames: int,
     output_path: str,
-    fps: int,
+    fps: int = 20,
+    dpi: int = 80,
 ) -> Optional[str]:
-    """imageio ile GIF/MP4 fallback (ffmpeg yok ise)."""
+    """imageio ile PNG sekansından MP4 (imageio-ffmpeg ile)."""
     try:
         import imageio
-        import io
         import matplotlib
         matplotlib.use("Agg")
         import matplotlib.pyplot as plt
 
-        frames = []
+        _cikti_hazirla(output_path)
+        frames_buf = []
         for i in range(n_frames):
-            fig = update_func(i)
+            fig = fig_guncelle(i)
             buf = io.BytesIO()
-            fig.savefig(buf, format="png", dpi=80, bbox_inches="tight")
+            fig.savefig(buf, format="png", dpi=dpi, bbox_inches="tight")
             buf.seek(0)
-            frames.append(imageio.imread(buf))
+            frames_buf.append(imageio.v2.imread(buf))
             plt.close(fig)
 
-        # MP4 yerine GIF yaz
-        gif_path = output_path.replace(".mp4", ".gif")
-        imageio.mimsave(gif_path, frames, fps=fps)
-        print(f"  [GIF-FALLBACK] {os.path.basename(gif_path)}")
-        return gif_path
-    except ImportError:
-        print("  imageio da yuklu degil. pip install imageio")
-        return None
+        imageio.mimsave(output_path, frames_buf, fps=fps, codec="libx264",
+                        output_params=["-pix_fmt", "yuv420p"])
+        size = os.path.getsize(output_path)
+        print(f"  [MP4-Y2] {os.path.basename(output_path)} ({size//1024}KB)")
+        return output_path
     except Exception as exc:
-        print(f"  imageio fallback hatasi: {exc}")
+        print(f"  [MP4-Y2] Hata: {exc}")
         return None
 
 
-def kalp_em_mp4(
-    output_path: str = "output/animations/kalp_em_zaman.mp4",
-    n_frames: int = 30,
-    t_end: float = 10.0,
-    grid_n: int = 40,
-    extent: float = 3.0,
+# ============================================================
+# YÖNTEM 3 — ffmpeg CLI subprocess (PNG dizini → MP4)
+# ============================================================
+
+def mp4_uret_cli(
+    fig_guncelle: Callable[[int], None],
+    n_frames: int,
+    output_path: str,
+    fps: int = 20,
+    dpi: int = 80,
 ) -> Optional[str]:
-    """
-    Tek kalp dipol EM alaninin zamanla degisim animasyonu — Python MP4.
-    Referans: BVT_Makale.docx, Bolum 3 (Kalp anteni modeli).
-    """
-    import matplotlib.pyplot as plt
-    import matplotlib.colors as mcolors
+    """PNG dosyaları üretip ffmpeg CLI ile birleştir."""
+    if not ffmpeg_mevcut():
+        print("  [MP4-Y3] ffmpeg bulunamadi.")
+        return None
 
     try:
-        from src.core.constants import F_HEART, MU_HEART
-    except ImportError:
+        import matplotlib
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+
+        _cikti_hazirla(output_path)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            for i in range(n_frames):
+                fig = fig_guncelle(i)
+                fig.savefig(os.path.join(tmpdir, f"frame_{i:05d}.png"),
+                            dpi=dpi, bbox_inches="tight")
+                plt.close(fig)
+
+            cmd = [
+                FFMPEG, "-y", "-framerate", str(fps),
+                "-i", os.path.join(tmpdir, "frame_%05d.png"),
+                "-c:v", "libx264", "-pix_fmt", "yuv420p",
+                "-crf", "22", output_path,
+            ]
+            proc = subprocess.run(cmd, capture_output=True, timeout=120)
+            if proc.returncode != 0:
+                print(f"  [MP4-Y3] ffmpeg hatası: {proc.stderr.decode()[:200]}")
+                return None
+
+        size = os.path.getsize(output_path)
+        print(f"  [MP4-Y3] {os.path.basename(output_path)} ({size//1024}KB)")
+        return output_path
+    except Exception as exc:
+        print(f"  [MP4-Y3] Hata: {exc}")
         return None
 
-    omega = 2 * np.pi * F_HEART
-    t_vals = np.linspace(0, t_end, n_frames)
 
-    x = np.linspace(-extent / 2, extent / 2, grid_n)
-    z = np.linspace(-extent / 2, extent / 2, grid_n)
-    X, Z = np.meshgrid(x, z)
-    R = np.sqrt(X**2 + Z**2)
-    R = np.where(R < 0.05, 0.05, R)
+# ============================================================
+# ANA API — otomatik yöntem seçimi
+# ============================================================
 
-    def _update(i: int):
-        t = t_vals[i]
-        B = MU_HEART * np.cos(omega * t) / R**3
-        B_log = np.log10(np.abs(B) + 1e-20)
+def mp4_uret(
+    fig_guncelle: Callable[[int], None],
+    n_frames: int,
+    output_path: str,
+    fps: int = 20,
+) -> Optional[str]:
+    """
+    MP4 üret: Y1 → Y2 → Y3 sırasıyla dener, ilk başarılıyı döndürür.
+    """
+    for yontem in [mp4_uret_matplotlib, mp4_uret_imageio, mp4_uret_cli]:
+        sonuc = yontem(fig_guncelle, n_frames, output_path, fps=fps)
+        if sonuc and os.path.exists(sonuc) and os.path.getsize(sonuc) > 1000:
+            return sonuc
+    print(f"  [MP4] BAŞARISIZ: {output_path}")
+    return None
 
-        fig, ax = plt.subplots(figsize=(6, 5))
-        im = ax.contourf(X, Z, B_log, levels=20, cmap="plasma")
-        fig.colorbar(im, ax=ax, label="log₁₀|B| (T)")
-        ax.set_title(f"Kalp EM Alan — t={t:.1f}s, r_max={extent}m")
-        ax.set_xlabel("x (m)")
-        ax.set_ylabel("z (m)")
-        return fig
 
-    return fig_frames_to_mp4(_update, n_frames, output_path)
+# ============================================================
+# PLOTLY → MP4
+# ============================================================
 
+def plotly_to_mp4(
+    fig_frames: List,
+    fig_base,
+    output_path: str,
+    fps: int = 15,
+    dpi: int = 72,
+) -> Optional[str]:
+    """
+    Plotly fig frame listesinden MP4 üret.
+    Her frame PNG'ye çevrilir, ardından ffmpeg ile birleştirilir.
+
+    Parametreler
+    ------------
+    fig_frames : Plotly frame listesi (go.Frame)
+    fig_base   : go.Figure — temel şekil (layout bilgisi)
+    """
+    try:
+        import plotly.graph_objects as go
+        import plotly.io as pio
+
+        _cikti_hazirla(output_path)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            for i, frame in enumerate(fig_frames):
+                # Frame data'sını fig_base'e uygula
+                fig_snap = go.Figure(fig_base)
+                for j, trace_data in enumerate(frame.data):
+                    if j < len(fig_snap.data):
+                        fig_snap.data[j].update(trace_data)
+                png_path = os.path.join(tmpdir, f"frame_{i:05d}.png")
+                pio.write_image(fig_snap, png_path, width=1280, height=720, scale=1)
+
+            if not ffmpeg_mevcut():
+                print("  [PLOTLY→MP4] ffmpeg yok, GIF'e düşülüyor...")
+                try:
+                    import imageio
+                    frames_buf = []
+                    for i in range(len(fig_frames)):
+                        frames_buf.append(
+                            imageio.v2.imread(os.path.join(tmpdir, f"frame_{i:05d}.png"))
+                        )
+                    gif_path = output_path.replace(".mp4", ".gif")
+                    imageio.mimsave(gif_path, frames_buf, fps=fps)
+                    return gif_path
+                except Exception:
+                    return None
+
+            cmd = [
+                FFMPEG, "-y", "-framerate", str(fps),
+                "-i", os.path.join(tmpdir, "frame_%05d.png"),
+                "-c:v", "libx264", "-pix_fmt", "yuv420p",
+                "-crf", "22", output_path,
+            ]
+            proc = subprocess.run(cmd, capture_output=True, timeout=300)
+            if proc.returncode != 0:
+                print(f"  [PLOTLY→MP4] Hata: {proc.stderr.decode()[:200]}")
+                return None
+
+        size = os.path.getsize(output_path)
+        print(f"  [PLOTLY→MP4] {os.path.basename(output_path)} ({size//1024}KB)")
+        return output_path
+    except Exception as exc:
+        print(f"  [PLOTLY→MP4] Hata: {exc}")
+        return None
+
+
+# ============================================================
+# SELF-TEST
+# ============================================================
 
 if __name__ == "__main__":
-    print("FFmpeg durumu:", "OK" if ffmpeg_kontrol() else "EKSIK")
-    p = kalp_em_mp4(n_frames=5, output_path="output/test_mp4.mp4")
-    print("Test cikti:", p)
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    print(f"ffmpeg: {FFMPEG or 'YOK'}")
+    print(f"ffmpeg çalışıyor: {ffmpeg_mevcut()}")
+
+    def _test_fig(i: int):
+        t = np.linspace(0, 2 * np.pi, 200)
+        fig, ax = plt.subplots(figsize=(6, 4))
+        ax.plot(t, np.sin(t + i * 0.2), "b-", lw=2)
+        ax.set_title(f"Test frame {i}")
+        ax.set_ylim(-1.2, 1.2)
+        return fig
+
+    os.makedirs("output/animations", exist_ok=True)
+    sonuc = mp4_uret(_test_fig, n_frames=20, output_path="output/animations/test_mp4.mp4")
+    if sonuc and os.path.getsize(sonuc) > 5000:
+        print(f"BASARILI: {sonuc} ({os.path.getsize(sonuc)//1024}KB)")
+    else:
+        print("BASARISIZ veya çok küçük")

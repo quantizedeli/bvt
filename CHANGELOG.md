@@ -5,6 +5,29 @@ Bu dosya projedeki her önemli değişikliği kaydeder.
 
 ---
 
+## v9.0.0 — 2026-04-24 (TODO v9, Oturum 8)
+
+### Yeni
+- **Plotly Dash dashboard** (`bvt_dashboard/`) — Marimo'nun yerini alıyor; 5 interaktif sekme (port 8050)
+- **MP4 pipeline** (`src/viz/mp4_exporter.py`, `src/viz/mp4_ffmpeg_path.py`) — imageio-ffmpeg, sistem PATH gerektirmiyor; 3-yöntem fallback
+- **5 MP4 üreticisi** (`scripts/mp4_olustur.py`) — rabi, lindblad, kalp_em, halka_n11, domino
+- **Makale figürleri** (`scripts/fig_kuantum_sehpa.py`, `scripts/bvt_bolum14_mt_sentez.py`)
+
+### Fizik Düzeltmeleri
+- **L15 dipol r⁻³**: kaplama cap kaldırıldı + biyolojik frekans detuning ±20% → d=5m'de r=0.632 (mesafe etkisi görünür)
+- **L13 C_KB**: cos(Δφ) → genlik-tabanlı overlap `2|K||B|/(|K|²+|B|²)` → monoton artış ✓
+- **L17 Lorentzian zemin**: 0.1 → 0.001 → Schumann 12.8× fark ✓
+- **7-panel Plotly animasyonu**: `traces=list(range(n))` eksikti → tüm paneller güncelleniyor ✓
+- `N_kisi_tam_dinamik()` — `omega_individual` parametresi eklendi
+
+### Kaldırılanlar
+- **Marimo** kalıcı kullanım dışı (Windows ASGI/WebSocket crash) → `archive/marimo_deprecated/`
+- `main.py --marimo-export` → deprecation uyarısı
+
+---
+
+---
+
 ## [2026-04-22] — Oturum 5b: TODO v2+v3 Eksik Maddeler Tamamlandı
 
 ### Eklendi

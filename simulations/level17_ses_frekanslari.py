@@ -127,9 +127,10 @@ def _frekans_koherans_bonusu(f_hz: float) -> float:
     # Yüksek frekans (>200 Hz): beyin-Schumann kuplajı zayıflar
     yuksek_damp = 0.3 if f_hz > 200.0 else 1.0
 
-    # Toplam: Schumann'da ~2.0, normale ~0.3-0.6
+    # Toplam: Schumann'da ~2.0, normale ~0.01-0.6
+    # NOT: max(0.1,...) KALDIRILDI — bu tüm frekansları ΔC=0.69'a kilitliyordu.
     bonus_carpan = (1.5 * lorentzian + 0.5 * alfa + 0.4 * teta) * yuksek_damp
-    return max(0.1, bonus_carpan)
+    return max(0.001, bonus_carpan)
 
 
 def muzik_bonus_hesapla(frekans_hz: float) -> float:

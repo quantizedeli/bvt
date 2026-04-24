@@ -1,174 +1,142 @@
-# BVT — Birligin Varligi Teoremi
+# BVT — Birliğin Varlığı Teoremi
 
 **Yazar:** Ahmet Kemal Acar  
-**Guncelleme:** Nisan 2026  
-**Durum:** Aktif gelistirme — makale + sayisal simulasyon
+**Güncelleme:** Nisan 2026  
+**Durum:** Aktif geliştirme — 18 simülasyon level, Plotly Dash dashboard, 8 MP4 animasyon
 
 ---
 
-## Proje Ozeti
+## Proje Özeti
 
-BVT (Birligin Varligi Teoremi), insan kalp-beyin sisteminin evrensel EM alanlariyla
-etkilesimini formalize eden matematiksel bir yapiya sahiptir. Ibn Arabi'nin
-Vahdet-i Vucud kavramlarinin kuantum mekaniksel karsiligini kurar.
+BVT (Birliğin Varlığı Teoremi), insan kalp-beyin sisteminin evrensel EM alanlarıyla
+etkileşimini formalize eden matematiksel bir yapıya sahiptir. İbn Arabi'nin
+Vahdet-i Vücud kavramlarının kuantum mekaniksel karşılığını kurar.
 
 **Ana tez: COHERENCE => UNITY**
 
 ---
 
-## Hizli Baslangic
+## Hızlı Başlangıç
 
 ```bash
-# Bagimliliklar
-pip install "numpy>=1.24" "scipy>=1.11" "qutip>=5.0" "matplotlib>=3.5" "plotly>=5.0"
+# Bağımlılıklar
+pip install "numpy>=1.24" "scipy>=1.11" "qutip>=5.0" "matplotlib>=3.5" \
+            "plotly>=5.0" "dash>=2.18" "dash-bootstrap-components>=1.6" \
+            imageio imageio-ffmpeg pytest
 
-# Seviye 1 — 3D EM alan haritasi (~30 dk)
-python simulations/level1_em_3d.py --output results/level1
+# Tüm 18 level
+python main.py
 
-# Seviye 11 — Topoloji karsilastirmasi
-python simulations/level11_topology.py
+# Hızlı test (kısa parametreler)
+python main.py --hizli
 
-# Seviye 12 — Seri/paralel faz gecisi
-python simulations/level12_seri_paralel_em.py
+# Dash dashboard (tarayıcıda otomatik açılır — http://localhost:8050)
+python bvt_dashboard/app.py
 
-# Tum testler
+# MP4 animasyonları üret (output/animations/)
+python scripts/mp4_olustur.py --hangi tumu
+
+# Tüm testler
 pytest tests/ -v --tb=short
 ```
 
 ---
 
-## Proje Yapisi
+## Proje Yapısı
 
 ```
-bvt_claude_code/
-+-- src/
-|   +-- core/
-|   |   +-- constants.py          Fiziksel sabitler (BASLANGIC NOKTASI)
-|   |   +-- operators.py          Koherans operatoru, f(C) kapisi
-|   |   +-- hamiltonians.py       H_0, H_int, H_tetik (729x729)
-|   +-- solvers/
-|   |   +-- tise.py               Zamana bagimsiz Schrodinger
-|   |   +-- tdse.py               Zamana bagli Schrodinger (RK4)
-|   |   +-- lindblad.py           Acik kuantum sistem (QuTiP)
-|   |   +-- cascade.py            8-asamali domino kaskad ODE
-|   +-- models/
-|   |   +-- em_field.py           Kalp/beyin 3D dipol EM alani
-|   |   +-- multi_person_em_dynamics.py  N-kisi zaman bagli EM dinamigi (YENI)
-|   |   +-- schumann.py           Schumann kavite modeli
-|   |   +-- pre_stimulus.py       5-katman HKV + advanced wave
-|   |   +-- berry_phase.py        Berry fazi hesabi
-|   |   +-- entropy.py            Von Neumann entropi, entanglement
-|   |   +-- vagal.py              Vagal transfer fonksiyonu
-|   |   +-- two_person.py         Iki kisi Yukawa potansiyeli
-|   +-- viz/
-|   |   +-- plots_static.py       Matplotlib PNG sekilleri
-|   |   +-- plots_interactive.py  Plotly HTML dashboard
-|   |   +-- animations.py         Plotly HTML animasyonlar (YENI)
-|   +-- matlab_bridge.py          Python-MATLAB kopru (fallback destekli)
-+-- simulations/
-|   +-- level1_em_3d.py           3D EM haritalama
-|   +-- level2_cavity.py          Schumann kavite etkilesimi
-|   +-- level3_qutip.py           QuTiP Lindblad (~1 saat)
-|   +-- level4_multiperson.py     N-kisi Kuramoto + superradyans
-|   +-- level5_hybrid.py          Maxwell+Schrodinger hibrit
-|   +-- level6_hkv_montecarlo.py  Pre-stimulus MC (~3 saat)
-|   +-- level7_tek_kisi.py        Tek kisi tam analizi
-|   +-- level11_topology.py       Topoloji karsilastirmasi (YENI)
-|   +-- level12_seri_paralel_em.py Seri/paralel EM faz gecisi (YENI)
-+-- matlab_scripts/
-|   +-- matlab_pde_em_3d.m        MATLAB 3D harmonik Maxwell cozucu (YENI)
-+-- tests/
-|   +-- test_constants.py
-|   +-- test_operators.py
-|   +-- test_hamiltonians.py
-|   +-- test_solvers.py
-|   +-- test_calibration.py
-|   +-- test_multi_person_em.py   (YENI — 19 test)
-+-- archive/old_py_notebooks/     Eski Python betikleri
-+-- data/
-|   +-- literature_values.json    Deneysel referans degerler
-+-- docs/
-|   +-- architecture.md
-|   +-- BVT_equations_reference.md
-|   +-- simulation_levels.md
-+-- CHANGELOG.md
-+-- CLAUDE.md
+bvt_claude_code_4/
+├── main.py                    ← 18-level CLI (--phases, --hizli, --mp4)
+├── bvt_dashboard/             ← Plotly Dash interaktif dashboard
+│   ├── app.py                 ← Giriş noktası (port 8050)
+│   ├── layouts/sekmeler.py    ← 5 sekme düzeni
+│   └── callbacks/             ← halka, iki_kisi, n_olcekleme, hkv, em_3d
+├── src/
+│   ├── core/
+│   │   ├── constants.py       ← Tüm fiziksel sabitler (BAŞLANGIÇ NOKTASI)
+│   │   ├── operators.py       ← Koherans operatörü, f(C) kapısı
+│   │   └── hamiltonians.py    ← H_0, H_int, H_tetik (729×729)
+│   ├── solvers/
+│   │   ├── tise.py            ← Zamana bağımsız Schrödinger
+│   │   ├── tdse.py            ← RK4 TDSE + overlap ODE
+│   │   ├── lindblad.py        ← QuTiP Lindblad
+│   │   └── cascade.py         ← 8-aşamalı domino kaskad ODE
+│   ├── models/                ← em_field, schumann, multi_person_em_dynamics...
+│   └── viz/
+│       ├── mp4_ffmpeg_path.py ← imageio-ffmpeg otomatik path
+│       ├── mp4_exporter.py    ← 3-yöntem MP4 üretici
+│       ├── plots_static.py    ← Matplotlib PNG
+│       ├── plots_interactive.py ← Plotly HTML
+│       ├── animations.py      ← Plotly frame animasyonları
+│       └── theme.py           ← BVT tema sistemi
+├── simulations/               ← level1..level18 (orchestration katmanı)
+├── scripts/
+│   ├── mp4_olustur.py         ← 5 MP4 üreticisi
+│   ├── bvt_bolum14_mt_sentez.py ← Bölüm 14 MT figürü
+│   ├── fig_kuantum_sehpa.py   ← 4 bacak kuantum tablo figürü
+│   └── bvt_literatur_karsilastirma.py
+├── output/
+│   ├── level{N}/              ← Level çıktıları
+│   ├── animations/            ← 8 MP4 animasyon
+│   └── figures/               ← Makale figürleri
+├── archive/
+│   └── marimo_deprecated/     ← Eski Marimo notebook'lar (kullanım dışı)
+├── tests/                     ← 155 test
+└── data/literature_values.json
 ```
 
 ---
 
-## Temel Denklemler
+## Simülasyon Seviyeleri
 
-| Denklem | Formul |
-|---|---|
-| Koherans operatoru | C_hat = rho_Insan - rho_thermal |
-| Koherans kapisi | f(C) = theta(C-C0) * ((C-C0)/(1-C0))^beta |
-| Superradyans esigi | N_c = gamma_dec / kappa_12 ~= 10-12 kisi |
-| Kalp anteni | b_out = b_in - sqrt(gamma_rad) * a_k |
-| Parametrik tetikleme | H_tetik = -mu0*B_s*f(C)*cos(w_s*t)*(a_k+a_k_dag) |
+| Level | Konu | Süre |
+|-------|------|------|
+| 1 | 3D kalp EM haritası | ~30 dk |
+| 2 | Schumann kavite | ~5 dk |
+| 3 | QuTiP Lindblad | ~60 dk |
+| 4 | N-kişi Kuramoto | ~10 dk |
+| 5 | Maxwell+Schrödinger hibrit | ~15 dk |
+| 6 | HKV Monte Carlo | ~180 dk |
+| 7 | Tek kişi tam analizi | ~5 dk |
+| 8 | İki kişi dipol-dipol | ~5 dk |
+| 9 | κ_eff kalibrasyon | ~5 dk |
+| 10 | Ψ_Sonsuz yapısı | ~5 dk |
+| 11 | 4 topoloji karşılaştırması | ~10 dk |
+| 12 | Paralel→Seri faz geçişi | ~10 dk |
+| 13 | Kalp+Beyin+Ψ_Sonsuz rezonansı | ~5 dk |
+| 14 | Halka+merkez koherant birey | ~10 dk |
+| 15 | İki kişi mesafe taraması (r⁻³) | ~30 dk |
+| 16 | EM dalga girişim deseni | ~5 dk |
+| 17 | 22 enstrüman frekans koheransı | ~10 dk |
+| 18 | REM/NREM/Uyanık HKV | ~10 dk |
 
 ---
 
-## Kritik Parametreler
+## Dashboard (Plotly Dash)
 
-| Parametre | Deger | Kaynak |
-|---|---|---|
-| f_kalp | 0.1 Hz | HeartMath |
-| mu_kalp | 1e-4 A*m^2 | MCG |
-| kappa_eff | 21.9 rad/s | HeartMath kalibrasyon |
-| N_c (superradyans) | 11 kisi | Celardo 2014 |
-| C_threshold | 0.3 | BVT teorisi |
-| Pre-stimulus (kalp) | 4.8 s | HeartMath |
-| Mossbridge meta ES | 0.21 (6 sigma) | 26 calisma |
-
----
-
-## Animasyonlar
-
-```python
-from src.viz.animations import (
-    animasyon_kalp_koherant_vs_inkoherant,
-    animasyon_halka_kolektif_em,
-)
-
-# Koherant vs inkoherant karsilastirma
-animasyon_kalp_koherant_vs_inkoherant(output_path="output/animations/koherant.html")
-
-# N-kisi halka topolojisi
-animasyon_halka_kolektif_em(N=8, output_path="output/animations/halka.html")
+```bash
+python bvt_dashboard/app.py
+# → http://localhost:8050 (otomatik açılır)
 ```
 
----
+5 interaktif sekme:
+- **Halka Topolojisi** — N slider, 4 topoloji
+- **İki Kişi Mesafe** — d slider, κ∝r⁻³ kuplaj
+- **N-Ölçekleme** — Süperradyans N²
+- **HKV Pre-stimulus** — KS testi
+- **EM 3D Alan** — Heatmap
 
-## MATLAB Entegrasyonu
-
-```python
-from src.matlab_bridge import bvt_pde_3d_solve, matlab_symbolic_derivation
-
-# 3D PDE cozumu (MATLAB varsa gercek dalga, yoksa Python fallback)
-B, X, Y, Z = bvt_pde_3d_solve(positions, moments, f_kalp=0.1)
-
-# Sembolik turetim -> LaTeX
-latex_str = matlab_symbolic_derivation("bvt_koherans_kapisi")
-```
+> Not: Marimo, Windows WebSocket uyumsuzluğu nedeniyle kalıcı olarak kaldırıldı.
+> Eski notebook'lar `archive/marimo_deprecated/` altındadır.
 
 ---
 
-## Test Durumu
+## Temel Fiziksel Sabitler
 
-```
-pytest tests/ -v
-
-tests/test_constants.py     PASS
-tests/test_operators.py     PASS
-tests/test_hamiltonians.py  PASS
-tests/test_solvers.py       PASS (6 known failures: QuTiP/optional deps)
-tests/test_calibration.py   PASS
-tests/test_multi_person_em.py  19/19 PASS (YENI)
-```
-
----
-
-## Lisans
-
-Akademik kullanim. Yazar izni olmadan yayin yapilamaz.
+| Sabit | Değer | Kaynak |
+|-------|-------|--------|
+| F_HEART | 0.1 Hz | HeartMath |
+| F_S1 | 7.83 Hz | GCI Schumann |
+| KAPPA_EFF | 21.9 rad/s | TISE türetimi |
+| G_EFF | 5.06 rad/s | TISE türetimi |
+| N_C_SUPERRADIANCE | 11 kişi | Literatür |

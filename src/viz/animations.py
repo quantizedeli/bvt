@@ -1577,11 +1577,15 @@ def animasyon_kalp_em_zaman_multi(
         fig_base.add_trace(tr, row=r, col=c)
 
     # Animasyon frame'leri
+    # traces=[...] ZORUNLU: subplot grid'de doğru eşleme için her trace'in indeksi verilmeli.
+    # Eksik olursa sadece ilk panel güncellenir.
+    n_traces = len(SENARYOLAR)
     frames = []
     for fi, t in enumerate(t_arr):
         traces = _make_traces(t)
         frames.append(go.Frame(
             data=traces,
+            traces=list(range(n_traces)),
             name=str(fi),
             layout=go.Layout(title_text=(
                 f"BVT Kalp EM — 7 Senaryo Karşılaştırma (3m menzil)  t={t:.2f}s"
