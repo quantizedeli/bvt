@@ -223,6 +223,13 @@ def main():
     plt.close()
     print(f"  Uzaklık tarama PNG: {out_uzak}")
 
+    # Dipol r⁻³ doğrulama: mesafe küçük → r_son büyük, mesafe büyük → r_son küçük
+    print("\n  Mesafe tarama testi (r⁻³ doğrulama):")
+    for d_test in [0.1, 0.3, 0.9, 1.5, 3.0, 5.0]:
+        s_test, _, _ = iki_kisi_senaryosu(d_mesafe=d_test, t_end=30.0)
+        r_son_test = float(s_test["r_t"][-1])
+        print(f"    d={d_test:.1f}m: r_son={r_son_test:.3f}")
+
     # Veri kaydet
     np.savez(
         os.path.join(args.output, "L15_iki_kisi_data.npz"),

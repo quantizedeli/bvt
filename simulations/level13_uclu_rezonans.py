@@ -34,6 +34,7 @@ if sys.platform == "win32":
 
 import numpy as np
 from scipy.integrate import solve_ivp
+from scipy.signal import savgol_filter
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -140,8 +141,21 @@ def uclu_rezonans_dinamik(
 
     # Metrikler — BVT Bölüm 13 formülleri (TODO v6 FAZ 9.H)
     # C_KB: cos(Δφ) kalp-beyin faz korelasyonu
-    C_KB = (np.real(alpha_K * np.conj(alpha_B))
-            / (np.abs(alpha_K) * np.abs(alpha_B) + 1e-9))
+    # Ham C_KB: omega_K≈0.628 rad/s, omega_B≈62.8 rad/s frekans farkı nedeniyle
+    # hızlı kaotik salınım üretir. Savitzky-Golay filtresi ile yumuşatılır.
+    C_KB_raw = (np.real(alpha_K * np.conj(alpha_B))
+                / (np.abs(alpha_K) * np.abs(alpha_B) + 1e-9))
+
+    # Savitzky-Golay filtresi: dt=0.01s, 60s sim → 6000 nokta
+    # window ≈ 101 → ~1s yumuşatma (polinom düzeni 3)
+    _n = len(C_KB_raw)
+    _window = min(101, _n // 4)
+    if _window % 2 == 0:
+        _window -= 1
+    if _window >= 5:
+        C_KB = savgol_filter(C_KB_raw, window_length=_window, polyorder=3)
+    else:
+        C_KB = C_KB_raw
 
     # η_BS ve η_KS: 2|α_1||α_2|cos(Δφ) / (|α_1|² + |α_2|²)
     # → genlik KÜÇÜKKEN de sıfıra yakın (eski formül genlik=0'da 1 veriyordu)
@@ -167,7 +181,8 @@ def uclu_rezonans_dinamik(
         "t": sol.t,
         "alpha_K": alpha_K, "alpha_B": alpha_B,
         "alpha_S": alpha_S, "alpha_Psi": alpha_Psi,
-        "C_KB": C_KB, "eta_BS": eta_BS, "eta_KS": eta_KS,
+        "C_KB": C_KB, "C_KB_raw": C_KB_raw,
+        "eta_BS": eta_BS, "eta_KS": eta_KS,
         "R_total": R_total,
         "pump_profili": np.array([P_t(tt) for tt in sol.t]),
     }
@@ -200,14 +215,18 @@ def figur_uclu_rezonans_6panel(sonuc: dict, output_path: str, mode: str = "light
     ax1.legend(fontsize=8)
     ax1.grid(alpha=0.3)
 
-    # Panel 2: Kalp-beyin koheransı C_KB(t)
+    # Panel 2: Kalp-beyin koheransı C_KB(t) — Savgol filtreli
     ax2 = axs[0, 1]
     apply_theme(ax2, mode=mode)
-    ax2.plot(sonuc["t"], sonuc["C_KB"], color=colors["koherant"], lw=3)
+    # Ham sinyali arka planda soluk göster
+    ax2.plot(sonuc["t"], sonuc["C_KB_raw"], color=colors["koherant"],
+             lw=1, alpha=0.25, label="Ham C_KB")
+    ax2.plot(sonuc["t"], sonuc["C_KB"], color=colors["koherant"], lw=3,
+             label="Savgol filtreli")
     ax2.axhline(0.3, color=colors["duz"], linestyle="--", lw=1.5, label="C₀ eşiği")
     ax2.set_xlabel("Zaman (s)"); ax2.set_ylabel("C_KB(t)")
-    ax2.set_title("Kalp-Beyin Koheransı", fontweight="bold")
-    ax2.legend()
+    ax2.set_title("Kalp-Beyin Koheransı (Savgol filtreli)", fontweight="bold")
+    ax2.legend(fontsize=8)
 
     # Panel 3: Beyin-Schumann overlap η_BS(t)
     ax3 = axs[1, 0]
@@ -299,7 +318,8 @@ def main():
 
     np.savez(
         os.path.join(args.output, "L13_uclu_rezonans_data.npz"),
-        t=sonuc["t"], C_KB=sonuc["C_KB"], eta_BS=sonuc["eta_BS"],
+        t=sonuc["t"], C_KB=sonuc["C_KB"], C_KB_raw=sonuc["C_KB_raw"],
+        eta_BS=sonuc["eta_BS"],
         eta_KS=sonuc["eta_KS"], R_total=sonuc["R_total"],
     )
     print(f"  NPZ: {os.path.join(args.output, 'L13_uclu_rezonans_data.npz')}")

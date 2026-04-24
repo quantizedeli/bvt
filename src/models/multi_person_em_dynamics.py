@@ -244,8 +244,13 @@ def N_kisi_tam_dinamik(
     N kişi için zamana bağlı koherans ve faz dinamiği.
 
     Kuramoto + dipol-dipol etkileşimi + koherans difüzyon dinamiği:
-        dφ_i/dt = ω + (K_bonus/N) Σ_j sin(φ_j − φ_i)
-        dC_i/dt = -γ_etkin C_i + K_bonus/N Σ_j V_ij (C_j − C_i)
+        dφ_i/dt = ω + (κ_eff/N) Σ_j V_norm_ij sin(φ_j − φ_i)
+        dC_i/dt = -γ_etkin C_i + κ_eff/N Σ_j V_norm_ij (C_j − C_i)
+
+    NOT: V matrisi normalize edilir (max|V|=1) — böylece dipol r⁻³ mesafe
+    bağımlılığı koherans transferine yansır. K_bonus yerine kappa_eff
+    direkt kullanılır; geometri bonusu V_norm üzerinden değil kappa ölçeği
+    üzerinden uygulanır.
 
     Parametreler
     -----------
@@ -266,7 +271,8 @@ def N_kisi_tam_dinamik(
         'phi_t': (N, n_t) her kişi için φ(t)
         'r_t': (n_t,) Kuramoto düzen parametresi r(t)
         'N_c_etkin': etkin kritik süperradyans eşiği
-        'V_matrix': (N, N) dipol-dipol etkileşim matrisi
+        'V_matrix': (N, N) dipol-dipol etkileşim matrisi (normalize edilmemiş)
+        'V_norm': (N, N) normalize V matrisi (max|V|=1)
         'gamma_etkin': kullanılan etkin gamma değeri
 
     Referans: BVT_Makale, Bölüm 11 — N-kişi kolektif dinamiği.
@@ -276,7 +282,16 @@ def N_kisi_tam_dinamik(
     t_eval = np.arange(t_span[0], t_span[1], dt)
 
     V = dipol_dipol_etkilesim_matrisi(konumlar)
-    K_bonus = kappa_eff * (1 + f_geometri)
+
+    # V matrisini normalize et: max|V|=1 yaparak r⁻³ ağırlığını koru.
+    # Bu sayede yakın mesafe → güçlü bağlaşım, uzak mesafe → zayıf bağlaşım
+    # farkı koherans transferine ve faz dinamiğine yansır.
+    # K_bonus kullanmak yerine kappa_eff × (1+f_geometri) katsayısı ölçekler.
+    V_max = np.max(np.abs(V)) + 1e-30  # sıfır bölme koruması
+    V_norm = V / V_max
+
+    # Geometri bonusu: kuplaj katsayısına uygulanır (V_norm zaten r⁻³ şekli taşıyor)
+    kappa_etkin = kappa_eff * (1.0 + f_geometri)
 
     # Cooperative robustness: halka topolojisi dephasing'e karşı koruma sağlar
     if cooperative_robustness:
@@ -289,11 +304,13 @@ def N_kisi_tam_dinamik(
     def rhs(t_val: float, y: np.ndarray) -> np.ndarray:
         C = y[:N_p]
         phi = y[N_p:]
-        dC = -gamma_etkin * C + K_bonus / N_p * np.sum(
-            V * (C[np.newaxis, :] - C[:, np.newaxis]), axis=1
+        # Koherans transferi — V_norm ile r⁻³ mesafe bağımlılığı korunuyor
+        dC = -gamma_etkin * C + kappa_etkin / N_p * np.sum(
+            V_norm * (C[np.newaxis, :] - C[:, np.newaxis]), axis=1
         )
-        dphi = omega + K_bonus / N_p * np.sum(
-            np.sin(phi[np.newaxis, :] - phi[:, np.newaxis]), axis=1
+        # Faz dinamiği — V_norm ağırlıklı Kuramoto
+        dphi = omega + kappa_etkin / N_p * np.sum(
+            V_norm * np.sin(phi[np.newaxis, :] - phi[:, np.newaxis]), axis=1
         )
         return np.concatenate([dC, dphi])
 
@@ -311,6 +328,7 @@ def N_kisi_tam_dinamik(
         "r_t": r_t,
         "N_c_etkin": N_C_SUPERRADIANCE / (1 + f_geometri),
         "V_matrix": V,
+        "V_norm": V_norm,
         "gamma_etkin": gamma_etkin,
     }
 

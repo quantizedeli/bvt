@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Proje:** Birliğin Varlığı Teoremi (BVT) / Theorem of the Unity of Existence  
 **Yazar:** Ahmet Kemal Acar | **Güncelleme:** Nisan 2026  
-**Durum:** Aktif geliştirme — 15 simülasyon level mevcut, TODO v6 (18 level + Marimo) devam ediyor
+**Durum:** Aktif geliştirme — 18 simülasyon level mevcut, TODO v7 tamamlandı; TODO v8 (Marimo html-wasm + fizik düzeltmeleri) devam ediyor
 
 ---
 
@@ -18,7 +18,7 @@ kavramlarının kuantum mekaniksel karşılığını kurar.
 
 **Ana tez: COHERENCE ⟹ UNITY**
 
-**Aktif görev takibi:** `BVT_ClaudeCode_TODO_v6.md` — 13 FAZ, ~45 madde, hedef 18 level + Marimo dashboard.
+**Aktif görev takibi:** `BVT_Oturum6_Rapor_ve_TODO_v8.md` — TODO v7 uygulama sonrası Kemal'in geribildirimine dayalı öncelikli düzeltmeler (Marimo html-wasm, 7-panel, Level 15 dipol, Python MP4).
 
 ---
 
@@ -34,7 +34,7 @@ python main.py --kontrol
 # Faz listesi
 python main.py --listele
 
-# Tüm 12 faz (tam)
+# Tüm 18 faz (tam)
 python main.py
 
 # Hızlı test (kısa parametreler)
@@ -62,9 +62,16 @@ pytest tests/ -v --tb=short
 # Tek test dosyası
 pytest tests/test_constants.py -v
 
-# Marimo dashboard (kurulumdan sonra)
-marimo edit bvt_dashboard.py
-marimo run bvt_dashboard.py
+# Marimo — geliştirme modu
+marimo edit bvt_studio/nb04_uclu_rezonans.py
+marimo run  bvt_studio/bvt_dashboard.py       # Sunum modu (kod gizli)
+
+# Marimo export (WASM — slider çalışır, server gerektirmez)
+# ÖNEMLİ: `html` DEĞİL, her zaman `html-wasm` kullan!
+marimo export html-wasm bvt_studio/nb04_uclu_rezonans.py -o output/marimo/nb04/ --mode run
+
+# main.py üzerinden toplu export (WASM'a güncelleme bekliyor — mevcut kod `html` kullanıyor)
+python main.py --marimo-export    # → output/marimo/ altında notebook.html
 ```
 
 **Çıktı dizini:** `output/` (her level için `output/levelN/`, animasyonlar `output/animations/`, HTML `output/html/`)
@@ -84,8 +91,8 @@ Katman 3: src/models/{em_field,schumann,pre_stimulus,multi_person,
                       em_field_composite,berry_phase,entropy,vagal,
                       two_person,multi_person_em_dynamics,population_hkv}.py
 Katman 4: src/viz/{plots_static,plots_interactive,animations,theme}.py
-Katman 5: simulations/level{1-15}_*.py  ← Sadece orchestration
-          main.py                        ← 12-faz tek giriş noktası
+Katman 5: simulations/level{1-18}_*.py  ← Sadece orchestration
+          main.py                        ← 18-faz tek giriş noktası
 ```
 
 **Kural:** constants.py dışında hiçbir dosyada değer hardcode edilmez.
@@ -96,7 +103,7 @@ Katman 5: simulations/level{1-15}_*.py  ← Sadece orchestration
 
 ```
 bvt_project/
-├── main.py                    ← 12-faz CLI yöneticisi (--phases, --hizli, --html, --animasyon)
+├── main.py                    ← 18-faz CLI yöneticisi (--phases, --hizli, --html, --animasyon, --marimo-export)
 ├── requirements.txt
 ├── src/
 │   ├── core/
@@ -138,9 +145,12 @@ bvt_project/
 │   ├── level10_psi_sonsuz.py  ← Ψ_Sonsuz yapısı + 3D yüzeyler
 │   ├── level11_topology.py    ← 4 topoloji karşılaştırması
 │   ├── level12_seri_paralel_em.py ← PARALEL→HİBRİT→SERİ geçişi
-│   ├── level13_uclu_rezonans.py   ← Dörtlü rezonans (TODO v6 FAZ 9.H'de düzeltme bekliyor)
+│   ├── level13_uclu_rezonans.py   ← Dörtlü rezonans (C_KB ±1 kaotik salınım — TODO v8'de düzeltme bekliyor)
 │   ├── level14_merkez_birey.py    ← Halka+merkez koherant birey
-│   ├── level15_iki_kisi_em_etkilesim.py ← İki kişi mesafe taraması
+│   ├── level15_iki_kisi_em_etkilesim.py ← İki kişi mesafe taraması (r⁻³ dipol BUG: r_son mesafeden bağımsız — TODO v8)
+│   ├── level16_girisim_deseni.py  ← EM dalga girişim yapıcı/yıkıcı/inkoherant
+│   ├── level17_ses_frekanslari.py ← 22 enstrüman frekans katalogu + grup koherans (tuning sorunlu — TODO v8)
+│   ├── level18_rem_pencere.py     ← REM/NREM/Uyanık HKV karşılaştırması
 │   └── uret_zaman_em_dalga.py     ← Kalp+beyin EM dalga grafiği
 ├── output/                    ← Tüm çıktılar burada (results/ DEĞİL)
 │   ├── level{N}/              ← Her faz çıktıları
@@ -157,7 +167,8 @@ bvt_project/
 │   └── simulation_levels.md
 ├── scripts/                   ← Yardımcı betikler (literatür karşılaştırma vb.)
 ├── skills/                    ← 6 custom skill (bvt-constants, bvt-simulate vb.)
-└── BVT_ClaudeCode_TODO_v6.md  ← Aktif görev listesi (13 FAZ)
+├── BVT_ClaudeCode_TODO_v7.md  ← Önceki oturum görev listesi (15 FAZ — kısmen uygulandı)
+└── BVT_Oturum6_Rapor_ve_TODO_v8.md  ← Aktif görev listesi (v7 sonrası düzeltme öncelikleri)
 ```
 
 ---
@@ -258,6 +269,18 @@ marimo run  bvt_studio/bvt_dashboard.py         # Sunum modu (kod gizli)
 
 **Marimo versiyonu:** 0.9.14 zorunlu (yeni versiyonlarda narwhals uyumsuzluğu var)
 
+**KRİTİK — Export komutu:**
+```bash
+# YANLIŞ (boş sayfa üretir — main.py'deki mevcut hata):
+marimo export html notebook.py -o output.html
+
+# DOĞRU (slider çalışan WASM, server gerektirmez):
+marimo export html-wasm notebook.py -o output_dir/ --mode run
+```
+`main.py`'deki `marimo_export()` fonksiyonu (satır 522-565) `html` kullanıyor — TODO v8 FAZ A'da `html-wasm` olarak değiştirilecek.
+
+**widgets/** klasörü: `bvt_studio/widgets/` altında Three.js anywidget bileşenleri (nb08 için).
+
 ---
 
 ## 10. CUSTOM SKILLS
@@ -275,10 +298,13 @@ marimo run  bvt_studio/bvt_dashboard.py         # Sunum modu (kod gizli)
 
 ## 11. ÖNEMLİ NOTLAR
 
-1. **Çıktı dizini `output/`** — (`results/` DEĞİL, eski CLAUDE.md'de yanlıştı)
-2. **main.py tek giriş noktası** — 12 faz; level 13-15 ayrı betik olarak direkt çalıştırılır
-3. **Level 13 (uclu_rezonans) hatalı** — η_BS/η_KS anında 1.0, TODO v6 FAZ 9.H'de yeniden türetme bekliyor
-4. **HTML→PNG frame sorunu** — `write_image()` ilk frame alıyor; TODO v6 FAZ 1.5'te fix bekliyor
-5. **MATLAB köprüsü** — `src/matlab_bridge.py`; MATLAB yüklü değilse NumPy/SciPy fallback devreye girer
-6. **155 test, 149 geçiyor** — 6 eski hata dokunulmadı; yeni fonksiyon yazılırken test zorunlu
-7. **Tüm birimler SI** — conversion fonksiyonları `src/core/utils.py`'da (planlanıyor)
+1. **Çıktı dizini `output/`** — (`results/` DEĞİL)
+2. **main.py tek giriş noktası** — 18 faz; tüm levellar `--phases N` ile çalıştırılır
+3. **Marimo export `html-wasm` zorunlu** — `html` komutu boş sayfa üretir (TODO v8 FAZ A'da düzeltilecek)
+4. **Level 13 C_KB** — ±1 arası kaotik salınım (monoton yükseliş beklenirdi), TODO v8'de Hamiltoniyen yeniden türetme
+5. **Level 15 dipol r⁻³** — `r_son` mesafeden bağımsız (0.1m ile 5m için aynı değer), TODO v8'de fizik düzeltmesi
+6. **Level 17 tuning** — Tüm 22 frekans ΔC ≈ 0.69 (Schumann rezonantı 2-3× fark göstermeliydi), TODO v8
+7. **kalp_em_zaman_multi.png** — 7 panel tasarlanmış fakat sadece sol üst doluyor, TODO v8 FAZ B
+8. **MATLAB MP4 kaldırılıyor** — `src/matlab_bridge.py` yerine Python (imageio/ffmpeg) ile MP4, TODO v8 FAZ D
+9. **155 test, 149 geçiyor** — 6 eski hata dokunulmadı; yeni fonksiyon yazılırken test zorunlu
+10. **`psi_sonsuz` panelleri ve `rezonans_ani`** — Orta + sağ paneller boş, legend "trace 0..7", TODO v8

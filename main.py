@@ -2,7 +2,7 @@
 BVT — Tek Giriş Noktası (main.py)
 ====================================
 Birliğin Varlığı Teoremi — 18 Fazlı Simülasyon Yöneticisi
-Güncelleme: Nisan 2026 — TODO v6 (level 13-18 eklendi, faz kilidi fix)
+Güncelleme: Nisan 2026 — TODO v8 (Marimo html-wasm, fizik düzeltmeleri, Python MP4)
 
 Kullanım:
     python main.py                      # Tüm fazları + HTML + animasyon üret
@@ -68,11 +68,12 @@ sys.path.insert(0, ROOT)
 FAZ_BİLGİ = {
     1: {
         "isim": "3D EM Alan Haritası",
-        "açıklama": "Kalp + beyin + Ψ_Sonsuz kompozit EM alan",
+        "açıklama": "Kalp + beyin + Ψ_Sonsuz kompozit EM alan, r_max=3m",
         "betik": "simulations/level1_em_3d.py",
         "tahmini_süre": "~30 dk",
         "hizli_args": ["--n-r", "20", "--n-theta", "20"],
         "tam_args": ["--n-r", "60", "--n-theta", "60"],
+        "html": True,
     },
     2: {
         "isim": "Schumann Kavite Etkileşimi",
@@ -81,6 +82,7 @@ FAZ_BİLGİ = {
         "tahmini_süre": "~2 dk",
         "hizli_args": ["--t-end", "3", "--n-points", "100"],
         "tam_args": ["--t-end", "10", "--n-points", "500"],
+        "html": True,
     },
     3: {
         "isim": "Tam Kuantum Lindblad (QuTiP)",
@@ -89,14 +91,16 @@ FAZ_BİLGİ = {
         "tahmini_süre": "~1 saat",
         "hizli_args": ["--t-end", "10", "--n-points", "50"],
         "tam_args": ["--t-end", "60", "--n-points", "200"],
+        "html": True,
     },
     4: {
         "isim": "N-Kişi Senkronizasyon & Süperradyans",
-        "açıklama": "Kuramoto model, N² ölçekleme, kritik eşik",
+        "açıklama": "Kuramoto model, N² ölçekleme, kritik eşik N_c=11",
         "betik": "simulations/level4_multiperson.py",
         "tahmini_süre": "~5 dk",
         "hizli_args": ["--N", "10", "--t-end", "100"],
         "tam_args": ["--N", "25", "--t-end", "300"],
+        "html": True,
     },
     5: {
         "isim": "Hibrit Maxwell+Schrödinger",
@@ -105,6 +109,7 @@ FAZ_BİLGİ = {
         "tahmini_süre": "~15 dk (n-max=9), ~saniyeler (n-max=4)",
         "hizli_args": ["--t-end", "5", "--n-points", "50", "--n-max", "4"],
         "tam_args": ["--t-end", "30", "--n-points", "200", "--n-max", "9"],
+        "html": True,
     },
     6: {
         "isim": "Pre-stimulus Monte Carlo (HKV)",
@@ -113,6 +118,7 @@ FAZ_BİLGİ = {
         "tahmini_süre": "~3 saat",
         "hizli_args": ["--trials", "50", "--advanced-wave"],
         "tam_args": ["--trials", "1000", "--parallel", "8", "--advanced-wave"],
+        "html": True,
     },
     7: {
         "isim": "Tek Kişi Tam Modeli",
@@ -121,6 +127,7 @@ FAZ_BİLGİ = {
         "tahmini_süre": "~15s",
         "hizli_args": ["--t-end", "5", "--N", "4"],
         "tam_args": ["--t-end", "10", "--N", "5"],
+        "html": True,
     },
     8: {
         "isim": "İki Kişi + Pil Analojisi",
@@ -129,14 +136,16 @@ FAZ_BİLGİ = {
         "tahmini_süre": "~10s",
         "hizli_args": ["--t-end", "50"],
         "tam_args": ["--t-end", "100"],
+        "html": True,
     },
     9: {
         "isim": "V2 Parametre Kalibrasyonu",
-        "açıklama": "κ_eff, Q_kalp, g_eff türetimi + σ_f üstel fit + deneysel karşılaştırma",
+        "açıklama": "κ_eff=21.9, Q_kalp=21.7, g_eff=5.06 türetimi + deneysel karşılaştırma",
         "betik": "simulations/level9_v2_kalibrasyon.py",
         "tahmini_süre": "~10s",
         "hizli_args": [],
         "tam_args": [],
+        "html": True,
     },
     10: {
         "isim": "Ψ_Sonsuz Yapısı + 3D Yüzeyler",
@@ -145,30 +154,34 @@ FAZ_BİLGİ = {
         "tahmini_süre": "~15s",
         "hizli_args": [],
         "tam_args": [],
+        "html": True,
     },
     11: {
         "isim": "Topoloji Karşılaştırması",
         "açıklama": "Düz/yarım-halka/tam-halka/temas — N_c_etkin & N ölçekleme analizi",
         "betik": "simulations/level11_topology.py",
         "tahmini_süre": "~2 dk",
-        "hizli_args": ["--N", "12", "--t-end", "20"],
+        "hizli_args": ["--N", "11", "--t-end", "20"],
         "tam_args": ["--N", "20", "--t-end", "60"],
+        "html": True,
     },
     12: {
         "isim": "Seri-Paralel EM Faz Geçişi",
-        "açıklama": "PARALEL→HİBRİT→SERİ geçişi, kolektif güç, EM alan animasyonu",
+        "açıklama": "PARALEL(0-20s)→HİBRİT(20-40s)→SERİ(40-60s), kolektif güç",
         "betik": "simulations/level12_seri_paralel_em.py",
         "tahmini_süre": "~3 dk",
         "hizli_args": ["--N", "6", "--t-end", "20"],
         "tam_args": ["--N", "10", "--t-end", "60"],
+        "html": True,
     },
     13: {
         "isim": "Üçlü Rezonans (Kalp↔Beyin↔Ψ_Sonsuz)",
-        "açıklama": "4 osilatör ODE, faz kilitlenme, η_BS + η_KS overlap dinamiği",
+        "açıklama": "4 osilatör ODE, faz kilitlenme, C_KB Savgol filtreli, η_BS + η_KS",
         "betik": "simulations/level13_uclu_rezonans.py",
         "tahmini_süre": "~30s",
         "hizli_args": ["--t-end", "30"],
         "tam_args": ["--t-end", "60"],
+        "html": False,  # --html argümanı yok
     },
     14: {
         "isim": "Merkez Birey (Halka + Koherant Merkez)",
@@ -177,30 +190,34 @@ FAZ_BİLGİ = {
         "tahmini_süre": "~30s",
         "hizli_args": ["--N", "8", "--t-end", "30"],
         "tam_args": ["--N", "15", "--t-end", "60"],
+        "html": False,  # --html argümanı yok
     },
     15: {
         "isim": "İki Kişi EM Etkileşim",
-        "açıklama": "Mesafeye bağlı κ, 3 senaryo (PARALEL/HeartMath/SERİ), uzaklık taraması",
+        "açıklama": "r⁻³ dipol kuplaj (V_norm fix), mesafe taraması [0.1-5m], 3 senaryo",
         "betik": "simulations/level15_iki_kisi_em_etkilesim.py",
         "tahmini_süre": "~20s",
         "hizli_args": ["--t-end", "50"],
         "tam_args": ["--t-end", "100"],
+        "html": False,  # --html argümanı yok
     },
     16: {
         "isim": "EM Dalga Girişim Deseni",
-        "açıklama": "Yapıcı/yıkıcı/inkoherant girişim, frekans spektrumu, animasyon",
+        "açıklama": "Yapıcı/yıkıcı/inkoherant girişim, mesafe=0.9m, frekans spektrumu",
         "betik": "simulations/level16_girisim_deseni.py",
         "tahmini_süre": "~1 dk",
         "hizli_args": ["--grid-n", "40", "--n-frames", "20"],
         "tam_args": ["--grid-n", "80", "--n-frames", "40"],
+        "html": False,  # --html argümanı yok
     },
     17: {
         "isim": "Ses Frekansları ve Grup Koheransı",
-        "açıklama": "22 frekans (Tibet çanı, şaman, antik), Schumann uyumu, top-10",
+        "açıklama": "22 frekans, Schumann 7.83Hz Lorentzian rezonans piki, top-10",
         "betik": "simulations/level17_ses_frekanslari.py",
         "tahmini_süre": "~1 dk",
         "hizli_args": ["--N", "11", "--t-end", "60"],
         "tam_args": ["--N", "11", "--t-end", "180"],
+        "html": False,  # --html argümanı yok
     },
     18: {
         "isim": "REM Uyku Penceresi HKV",
@@ -209,6 +226,7 @@ FAZ_BİLGİ = {
         "tahmini_süre": "~20s",
         "hizli_args": ["--trials", "200"],
         "tam_args": ["--trials", "1000"],
+        "html": False,  # --html argümanı yok
     },
 }
 
@@ -267,20 +285,19 @@ def çevre_kontrol() -> dict:
             print(f"    {renk('✗', 'kırmızı')} {paket} — YÜKLÜ DEĞİL")
             durum[paket] = False
 
-    # MATLAB
+    # FFmpeg (Python MP4 için — MATLAB artık kullanılmıyor)
     try:
-        from src.matlab_bridge import matlab_durumu_kontrol
-        matlab_durum = matlab_durumu_kontrol()
-        if matlab_durum.get("engine_aktif"):
-            versiyon = matlab_durum.get("versiyon", "")
-            print(f"    {renk('✓', 'yeşil')} matlab.engine — {versiyon}")
-            durum["matlab"] = True
+        import subprocess as _sp
+        _proc = _sp.run(["ffmpeg", "-version"], capture_output=True, timeout=5)
+        if _proc.returncode == 0:
+            print(f"    {renk('✓', 'yeşil')} ffmpeg — MP4 üretimi aktif")
+            durum["ffmpeg"] = True
         else:
-            print(f"    {renk('!', 'sarı')} matlab.engine — import OK ama engine başlatılamadı")
-            durum["matlab"] = False
-    except ImportError:
-        print(f"    {renk('!', 'sarı')} matlab.engine — bulunamadı (Python fallback kullanılır)")
-        durum["matlab"] = False
+            print(f"    {renk('!', 'sarı')} ffmpeg — bulunamadı, GIF fallback kullanılır")
+            durum["ffmpeg"] = False
+    except (FileNotFoundError, Exception):
+        print(f"    {renk('!', 'sarı')} ffmpeg — kurulu değil (choco install ffmpeg)")
+        durum["ffmpeg"] = False
 
     # BVT fiziksel sabitler özeti
     print("\n  BVT fiziksel sabitler (constants.py):")
@@ -340,7 +357,8 @@ def faz_çalıştır(
     faz_output = os.path.join(output_dir, f"level{faz_no}")
 
     cmd = [sys.executable, betik, "--output", faz_output] + args_ek
-    if html:
+    # Sadece --html destekleyen level'lara geç (13-18 desteklemiyor)
+    if html and bilgi.get("html", True):
         cmd.append("--html")
 
     print(f"\n  Komut: {' '.join(cmd)}")
@@ -364,18 +382,18 @@ def faz_çalıştır(
 
 def animasyon_üret(output_dir: str, hizli: bool = False) -> list:
     """
-    Tüm animasyonları üretir: Plotly HTML, GIF ve MATLAB MP4.
+    Tüm animasyonları üretir: Plotly HTML + GIF (Python-only, MATLAB yok).
 
     Üretilen dosyalar (animations/ altında):
         kalp_koherant_vs_inkoherant.html   — Koherant vs inkoherant karşılaştırma
-        halka_kolektif_em.html             — N=10 halka kolektif EM (Plotly)
+        halka_kolektif_em.html             — N=11 halka kolektif EM (Plotly, 60s)
         psi_sonsuz_etkilesim.html/.png     — Psi_Sonsuz overlap eta(t) + Schumann + Domino
         rezonans_ani.html/.png             — Rezonans anı: frekans kilitleme (4 panel)
-        kalp_em_zaman.gif/.mp4             — Tek kalp EM zamanla değişimi (MATLAB MP4)
-        n_kisi_em.gif/.mp4                 — N=10 halka kolektif EM (MATLAB MP4)
-        em_alan_zaman_etkilesim.html       — EM alan × kalp/beyin zaman etkileşimi (v6)
-        kalp_em_zaman_multi.html           — Kalp EM çok-senaryo karşılaştırma (v6)
-        halka_N11.html / halka_N19.html / halka_N50.html  — N varyantları (v6)
+        kalp_em_zaman.gif                  — Tek kalp EM zamanla değişimi (matplotlib GIF)
+        n_kisi_em.gif                      — N=11 halka kolektif EM (matplotlib GIF)
+        em_alan_zaman_etkilesim.html       — EM alan × kalp/beyin zaman etkileşimi
+        kalp_em_zaman_multi.html           — Kalp EM 7-senaryo karşılaştırma
+        halka_N11.html / halka_N19.html / halka_N50.html  — N varyantları
 
     Parametreler
     ------------
@@ -386,7 +404,7 @@ def animasyon_üret(output_dir: str, hizli: bool = False) -> list:
     --------
     uretilen_dosyalar : list[str]
     """
-    print("\n  Animasyonlar uretiliyor (HTML + GIF + MATLAB MP4)...")
+    print("\n  Animasyonlar uretiliyor (HTML + GIF, Python-only)...")
     uretilen = []
     try:
         from src.viz.animations import (
@@ -415,15 +433,15 @@ def animasyon_üret(output_dir: str, hizli: bool = False) -> list:
             uretilen.append(p)
             print(f"  [HTML] kalp_koherant_vs_inkoherant.html")
 
-        # 2. N=10 halka kolektif EM (Plotly HTML)
+        # 2. N=11 halka kolektif EM (Plotly HTML) — TODO v8 B.4: N=11, 60s
         p = animasyon_halka_kolektif_em(
-            N=6 if hizli else 10, t_end=10.0 if hizli else 20.0,
+            N=6 if hizli else 11, t_end=10.0 if hizli else 60.0,
             n_frames=n_frames, grid_n=grid_n,
             output_path=os.path.join(anim_dir, "halka_kolektif_em.html"),
         )
         if p:
             uretilen.append(p)
-            print(f"  [HTML] halka_kolektif_em.html  (N={'6' if hizli else '10'})")
+            print(f"  [HTML] halka_kolektif_em.html  (N={'6' if hizli else '11'}, t={'10' if hizli else '60'}s)")
 
         # 3. Psi_Sonsuz etkilesim (Plotly HTML + PNG)
         p = animasyon_psi_sonsuz_etkilesim(
@@ -443,7 +461,7 @@ def animasyon_üret(output_dir: str, hizli: bool = False) -> list:
             uretilen.append(p)
             print(f"  [HTML] rezonans_ani.html")
 
-        # 5. Kalp EM zamanla (GIF + MATLAB MP4)
+        # 5. Kalp EM zamanla (GIF, Python-only)
         gif_path = os.path.join(anim_dir, "kalp_em_zaman.gif")
         p = kalp_em_gif(
             n_frames=20 if hizli else 30, t_end=5.0 if hizli else 10.0,
@@ -451,28 +469,18 @@ def animasyon_üret(output_dir: str, hizli: bool = False) -> list:
         )
         if p:
             uretilen.append(p)
-            mp4 = gif_path.replace(".gif", ".mp4")
-            if os.path.exists(mp4):
-                uretilen.append(mp4)
-                print(f"  [GIF+MP4] kalp_em_zaman.gif / .mp4")
-            else:
-                print(f"  [GIF] kalp_em_zaman.gif")
+            print(f"  [GIF] kalp_em_zaman.gif")
 
-        # 6. N-kisi halka kolektif EM (GIF + MATLAB MP4)
+        # 6. N=11 halka kolektif EM GIF (Python-only) — TODO v8 B.4
         gif_path = os.path.join(anim_dir, "n_kisi_em.gif")
         p = n_kisi_em_gif(
-            N=6 if hizli else 10,
-            n_frames=15 if hizli else 25, t_end=10.0 if hizli else 20.0,
+            N=6 if hizli else 11,
+            n_frames=15 if hizli else 25, t_end=10.0 if hizli else 60.0,
             grid_n=20 if hizli else 30, output_path=gif_path,
         )
         if p:
             uretilen.append(p)
-            mp4 = gif_path.replace(".gif", ".mp4")
-            if os.path.exists(mp4):
-                uretilen.append(mp4)
-                print(f"  [GIF+MP4] n_kisi_em.gif / .mp4  (N={'6' if hizli else '10'})")
-            else:
-                print(f"  [GIF] n_kisi_em.gif")
+            print(f"  [GIF] n_kisi_em.gif  (N={'6' if hizli else '11'})")
 
         # 7. EM alan × kalp/beyin zaman etkileşimi (v6, Plotly HTML)
         p = animasyon_em_alan_zaman_etkilesim(
@@ -483,9 +491,9 @@ def animasyon_üret(output_dir: str, hizli: bool = False) -> list:
             uretilen.append(p)
             print(f"  [HTML] em_alan_zaman_etkilesim.html")
 
-        # 8. Kalp EM çok-senaryo karşılaştırma (v6, Plotly HTML)
+        # 8. Kalp EM 7-senaryo karşılaştırma, EXTENT=3m (TODO v8 B.1)
         p = animasyon_kalp_em_zaman_multi(
-            n_frames=20 if hizli else 50, t_end=10.0 if hizli else 30.0,
+            n_frames=10 if hizli else 30, t_end=5.0 if hizli else 15.0,
             output_path=os.path.join(anim_dir, "kalp_em_zaman_multi.html"),
         )
         if p:
@@ -506,10 +514,9 @@ def animasyon_üret(output_dir: str, hizli: bool = False) -> list:
 
         html_sayisi = sum(1 for f in uretilen if f.endswith(".html"))
         gif_sayisi  = sum(1 for f in uretilen if f.endswith(".gif"))
-        mp4_sayisi  = sum(1 for f in uretilen if f.endswith(".mp4"))
         print(
             f"\n  Animasyon ozeti: {html_sayisi} HTML  "
-            f"{gif_sayisi} GIF  {mp4_sayisi} MP4  "
+            f"{gif_sayisi} GIF  "
             f"→ {anim_dir}"
         )
     except Exception as exc:
@@ -519,17 +526,50 @@ def animasyon_üret(output_dir: str, hizli: bool = False) -> list:
     return uretilen
 
 
+def _marimo_html_komutu() -> tuple:
+    """
+    Marimo versiyonuna göre doğru HTML export komutunu döndürür.
+
+    0.9.x: html (tek dosya, .html uzantısı)
+    0.11+: html-wasm (dizin, index.html + assets/, slider çalışır)
+
+    Döndürür: (komut_listesi_şablon, çıktı_mod)
+        çıktı_mod = "dosya" veya "dizin"
+    """
+    import subprocess
+    try:
+        yardim = subprocess.run(
+            ["marimo", "export", "--help"],
+            capture_output=True, text=True, timeout=10
+        )
+        if "html-wasm" in yardim.stdout:
+            # Yeni versiyon: html-wasm destekli, dizin çıktısı
+            return ["marimo", "export", "html-wasm", "{nb}", "-o", "{out}", "--mode", "run"], "dizin"
+        else:
+            # 0.9.x: sadece html, tek dosya çıktısı
+            return ["marimo", "export", "html", "{nb}", "-o", "{out}"], "dosya"
+    except Exception:
+        return ["marimo", "export", "html", "{nb}", "-o", "{out}"], "dosya"
+
+
 def marimo_export(output_dir: str) -> list:
     """
-    bvt_studio/ içindeki tüm Marimo notebook'ları statik HTML olarak export eder.
+    bvt_studio/ içindeki Marimo notebook'larını HTML export eder.
 
-    marimo çalışmadan tarayıcıda açılabilen self-contained HTML dosyaları üretir.
-    Çıktı dizini: output_dir/marimo/
+    Marimo 0.9.x: `marimo export html` → tek .html dosyası (statik görünüm)
+    Marimo 0.11+: `marimo export html-wasm` → index.html + assets/ (slider çalışır)
+
+    Interaktif kullanım için (her versiyonda çalışır):
+        python bvt_studio/run_marimo.py edit nb01_halka_topoloji
     """
     import subprocess
     studio_dir = os.path.join(ROOT, "bvt_studio")
     marimo_out = os.path.join(output_dir, "marimo")
     os.makedirs(marimo_out, exist_ok=True)
+
+    cmd_sablon, cikti_modu = _marimo_html_komutu()
+    mod_label = "WASM" if cikti_modu == "dizin" else "HTML"
+    print(f"  Marimo export modu: {mod_label} ({'html-wasm' if cikti_modu == 'dizin' else 'html'})")
 
     notebooks = [
         "bvt_dashboard.py",
@@ -547,22 +587,40 @@ def marimo_export(output_dir: str) -> list:
     uretilen = []
     for nb in notebooks:
         nb_path = os.path.join(studio_dir, nb)
-        out_html = os.path.join(marimo_out, nb.replace(".py", ".html"))
+        if not os.path.exists(nb_path):
+            print(f"  [ATLA] {nb} bulunamadı")
+            continue
+
+        if cikti_modu == "dizin":
+            out_hedef = os.path.join(marimo_out, nb.replace(".py", ""))
+            os.makedirs(out_hedef, exist_ok=True)
+            beklenen = os.path.join(out_hedef, "index.html")
+        else:
+            out_hedef = os.path.join(marimo_out, nb.replace(".py", ".html"))
+            beklenen = out_hedef
+
+        cmd = [c.replace("{nb}", nb_path).replace("{out}", out_hedef)
+               for c in cmd_sablon]
         try:
             proc = subprocess.run(
-                ["marimo", "export", "html", nb_path, "-o", out_html],
-                cwd=ROOT, capture_output=True, timeout=120
+                cmd, cwd=ROOT, capture_output=True,
+                timeout=300 if cikti_modu == "dizin" else 120
             )
-            if proc.returncode == 0 and os.path.exists(out_html):
-                uretilen.append(out_html)
-                print(f"  [MARIMO] {nb.replace('.py', '.html')}")
+            if proc.returncode == 0 and os.path.exists(beklenen):
+                uretilen.append(beklenen)
+                print(f"  [{mod_label}] {nb.replace('.py', '')} → {os.path.basename(beklenen)}")
             else:
                 stderr = proc.stderr.decode(errors="replace")[:200]
-                print(f"  [UYARI] {nb} export hatası: {stderr}")
+                print(f"  [UYARI] {nb}: {stderr.splitlines()[0] if stderr else 'bilinmeyen hata'}")
         except Exception as exc:
-            print(f"  [UYARI] {nb} export hatası: {exc}")
+            print(f"  [UYARI] {nb}: {exc}")
 
-    print(f"\n  Marimo export: {len(uretilen)}/{len(notebooks)} notebook → {marimo_out}")
+    print(f"\n  Marimo {mod_label} export: {len(uretilen)}/{len(notebooks)} notebook → {marimo_out}")
+    if cikti_modu == "dizin" and uretilen:
+        print(f"  Tarayicida acmak icin: python bvt_studio/serve_local.py")
+    elif cikti_modu == "dosya" and uretilen:
+        print(f"  Statik HTML (slider calismiyor). Interaktif icin:")
+        print(f"  python bvt_studio/run_marimo.py edit nb01_halka_topoloji")
     return uretilen
 
 
@@ -774,7 +832,7 @@ def main():
     # ---- ANİMASYONLAR (--animasyon veya tüm fazlar çalıştırıldığında üret) ----
     üret_anim = args.animasyon or (not args.faz and not args.phases)
     if üret_anim:
-        başlık_yazdır("Animasyonlar (HTML + GIF + MP4)", "-")
+        başlık_yazdır("Animasyonlar (HTML + GIF)", "-")
         anim_dosyalar = animasyon_üret(args.output, hizli=args.hizli)
     else:
         print(f"\n  {renk('ℹ Animasyonlar atlandı', 'sarı')} (--animasyon ile üret)")
@@ -797,7 +855,6 @@ def main():
         print(f"  {renk('Basarisiz fazlar: ' + str(başarısız), 'kırmızı')}")
 
     # Çıktı sayımı
-    mp4_sayisi  = sum(1 for f in anim_dosyalar if f.endswith(".mp4"))
     gif_sayisi  = sum(1 for f in anim_dosyalar if f.endswith(".gif"))
     html_anim   = sum(1 for f in anim_dosyalar if f.endswith(".html"))
     html_sekil  = len([f for f in os.listdir(html_dir) if f.endswith(".html")]) if os.path.isdir(html_dir) else 0
@@ -805,7 +862,6 @@ def main():
     print(f"\n  Cikti dosyalari:")
     print(f"    HTML animasyon : {html_anim}  → {anim_dir}")
     print(f"    GIF video      : {gif_sayisi}  → {anim_dir}")
-    print(f"    MP4 video      : {mp4_sayisi}  → {anim_dir}")
     print(f"    HTML grafik    : {html_sekil}  → {html_dir}")
     print(f"\n  Ana cikti dizini: {os.path.abspath(args.output)}")
 

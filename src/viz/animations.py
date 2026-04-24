@@ -670,13 +670,37 @@ def n_kisi_em_gif(
     r_arr = sonuc["r_t"]
     ax_vals = np.linspace(-grid_extent, grid_extent, grid_n)
 
-    fig, ax = plt.subplots(figsize=(6, 6), facecolor="#0a0e17")
+    fig, ax = plt.subplots(figsize=(7, 6), facecolor="#0a0e17")
     ax.set_facecolor("#0a0e17")
     im = ax.imshow(frames_B[0].T, origin="lower", cmap="hot", norm=norm,
                    extent=[-grid_extent, grid_extent, -grid_extent, grid_extent],
                    interpolation="bilinear")
-    scatter = ax.scatter(konumlar[:, 0], konumlar[:, 1], c="cyan", s=60, zorder=5)
-    fig.colorbar(im, ax=ax, label="|B| (pT)")
+
+    # Her kişiyi bireysel C_i değeriyle viridis renk haritasına göre renklendir
+    # C_per_person [0..1] normalize — viridis(0)=koyu mor, viridis(1)=sarı
+    C_norm = np.clip(C_per_person, 0.0, 1.0)
+    kisi_renkleri = [plt.cm.viridis(ci) for ci in C_norm]
+    scatter = ax.scatter(
+        konumlar[:, 0], konumlar[:, 1],
+        c=kisi_renkleri, s=150, edgecolors="black", linewidth=1.5, zorder=5,
+    )
+    # Her kişinin üstüne C_i değerini yaz
+    annots = []
+    for ki, (kpos, ci) in enumerate(zip(konumlar, C_norm)):
+        ann = ax.annotate(
+            f"{ci:.2f}", (kpos[0], kpos[1]),
+            xytext=(0, 12), textcoords="offset points",
+            ha="center", fontsize=7, fontweight="bold", color="white",
+            zorder=6,
+        )
+        annots.append(ann)
+
+    # Koherans colorbar
+    sm = plt.cm.ScalarMappable(cmap="viridis", norm=plt.Normalize(0, 1))
+    sm.set_array([])
+    fig.colorbar(sm, ax=ax, label="Bireysel Koherans C_i", shrink=0.6, pad=0.01)
+    # EM alan colorbar
+    fig.colorbar(im, ax=ax, label="|B| (pT)", location="bottom", shrink=0.7, pad=0.12)
     ax.set_xlabel("x (m)", color="white"); ax.set_ylabel("y (m)", color="white")
     ax.tick_params(colors="white")
     title = ax.set_title("", color="white", fontsize=11)
@@ -686,7 +710,10 @@ def n_kisi_em_gif(
         t_idx = int(t_indices[i])
         r_val = float(r_arr[min(t_idx, len(r_arr)-1)])
         label = "SERI" if r_val > 0.8 else ("HIBRIT" if r_val > 0.3 else "PARALEL")
-        title.set_text(f"BVT N={N} Halka | t={t_eval[i]:.1f}s | r={r_val:.3f} [{label}]")
+        # N ve t_final bilgisi başlığa eklendi
+        title.set_text(
+            f"BVT N={N}, t={t_eval[i]:.1f}s | r={r_val:.3f} [{label}]"
+        )
         return [im, title]
 
     anim = FuncAnimation(fig, update, frames=n_frames, interval=1000 // fps, blit=True)
@@ -699,14 +726,27 @@ def n_kisi_em_gif(
         print(f"  [HATA] GIF kaydedilemedi: {exc}")
         return None
 
-    # PNG thumbnail (beyaz arkaplan)
+    # PNG thumbnail (beyaz arkaplan) — bireysel C_i viridis renklendirme
     png_path = output_path.replace(".gif", "_thumbnail.png")
-    fig2, ax2 = plt.subplots(figsize=(6, 6), facecolor="white")
+    fig2, ax2 = plt.subplots(figsize=(7, 6), facecolor="white")
     ax2.set_facecolor("#f0f4f8")
-    ax2.imshow(frames_B[-1].T, origin="lower", cmap="hot", norm=norm,
-               extent=[-grid_extent, grid_extent, -grid_extent, grid_extent])
-    ax2.scatter(konumlar[:, 0], konumlar[:, 1], c="blue", s=60, zorder=5)
-    ax2.set_title(f"BVT N={N} Halka — Son Kare (t={t_end:.0f}s)", color="#111")
+    im2 = ax2.imshow(frames_B[-1].T, origin="lower", cmap="hot", norm=norm,
+                     extent=[-grid_extent, grid_extent, -grid_extent, grid_extent])
+    # Viridis renklendirme thumbnail'da da
+    kisi_renkleri2 = [plt.cm.viridis(ci) for ci in C_norm]
+    ax2.scatter(konumlar[:, 0], konumlar[:, 1],
+                c=kisi_renkleri2, s=150, edgecolors="black", linewidth=1.5, zorder=5)
+    for kpos, ci in zip(konumlar, C_norm):
+        ax2.annotate(
+            f"{ci:.2f}", (kpos[0], kpos[1]),
+            xytext=(0, 12), textcoords="offset points",
+            ha="center", fontsize=7, fontweight="bold", color="#111",
+        )
+    sm2 = plt.cm.ScalarMappable(cmap="viridis", norm=plt.Normalize(0, 1))
+    sm2.set_array([])
+    fig2.colorbar(sm2, ax=ax2, label="Bireysel Koherans C_i", shrink=0.6)
+    fig2.colorbar(im2, ax=ax2, label="|B| (pT)", location="bottom", shrink=0.7, pad=0.12)
+    ax2.set_title(f"BVT N={N}, t={t_end:.1f}s — Son Kare (Koherans rengi)", color="#111")
     ax2.set_xlabel("x (m)"); ax2.set_ylabel("y (m)")
     plt.tight_layout()
     fig2.savefig(png_path, dpi=150, bbox_inches="tight", facecolor="white")
@@ -844,32 +884,57 @@ def animasyon_psi_sonsuz_etkilesim(
         row=1, col=1,
     )
 
-    # Panel 2 temeli — Schumann harmonikleri
+    # Panel 2 temeli — Schumann harmonikleri (tam zaman serisi arka plan + animasyonlu)
     colors_sch = ["#ff4444", "#ff8800", "#ffdd00", "#44ff44", "#4488ff"]
-    for si, (freq, amp, col) in enumerate(zip(sch_freqs, sch_amps, colors_sch)):
+    # Schumann frekans isimleri: f1=7.83, f2=14.3, f3=20.8, f4=27.3, f5=33.8
+    sch_isimler = ["f_S1=7.83Hz", "f_S2=14.3Hz", "f_S3=20.8Hz", "f_S4=27.3Hz", "f_S5=33.8Hz"]
+    for si, (freq, amp, col, isim) in enumerate(zip(sch_freqs, sch_amps, colors_sch, sch_isimler)):
+        # Tam arka plan eğrisi (gri şeffaf)
+        amp_tam = amp * (1 + eta_arr * 2.0) * (1 + 0.2 * np.sin(2 * np.pi * freq * t_arr))
+        fig.add_trace(
+            go.Scatter(x=t_arr, y=amp_tam,
+                       mode="lines",
+                       line=dict(color=f"rgba({int(col[1:3],16)},{int(col[3:5],16)},{int(col[5:7],16)},0.15)", width=1),
+                       showlegend=False, name=f"{isim}_tam"),
+            row=1, col=2,
+        )
+        # Animasyonlu eğri (ilk frame)
         fig.add_trace(
             go.Scatter(x=[t_arr[0]], y=[amp * (1 + eta_arr[0] * 2.0)],
                        mode="lines",
                        line=dict(color=col, width=2),
-                       name=f"f_S{si+1}={freq}Hz"),
+                       name=isim),
             row=1, col=2,
         )
 
     # Panel 3 temeli — Domino kaskad bar
+    # Gerçek trace isimleri her bar için (bar trace x ekseni label'ları zaten kısa isimler)
+    domino_bar_isimleri = ["Kalp", "Vagal", "Talamus", "Korteks",
+                           "Beyin EM", "Sch Faz", "Sch Mod", "η Geri"]
     fig.add_trace(
         go.Bar(
-            x=domino_labels,
+            x=domino_bar_isimleri,
             y=domino_energies_log,
             marker_color=[
                 f"rgba(255,{int(100+155*min(1,eta_arr[0]*10))},0,0.8)"
-                for _ in domino_labels
+                for _ in domino_bar_isimleri
             ],
-            name="log10(E) [J]",
+            name="Domino Kaskad log₁₀(E)",
+            text=[f"10^{e}" for e in domino_energies_log],
+            textposition="outside",
         ),
         row=1, col=3,
     )
 
     # Animasyon frame'leri
+    # Trace sırası (base trace'lerle eşleşmeli):
+    # 0: η_tam (gri arka plan)
+    # 1: η animasyonlu
+    # 2..6: Schumann_tam (5 harmonik arka plan) — sadece arka plan, değişmez
+    # 7..11: Schumann animasyonlu (5 harmonik kümülatif)
+    # 12: Domino bar
+    tau_cumsum = np.cumsum(DOMINO_TIMESCALES_S)
+
     frames = []
     for fi in range(n_frames):
         eta_now = eta_arr[fi]
@@ -877,8 +942,7 @@ def animasyon_psi_sonsuz_etkilesim(
         phase_fill = min(1.0, eta_now * 10)
 
         # Domino: hangi aşamalar aktif (t bazlı)
-        tau_cumsum = np.cumsum(DOMINO_TIMESCALES_S)
-        active_domino = np.searchsorted(tau_cumsum, t_now)
+        active_domino = int(np.searchsorted(tau_cumsum, t_now))
 
         bar_colors = []
         for di in range(8):
@@ -888,29 +952,49 @@ def animasyon_psi_sonsuz_etkilesim(
                 bar_colors.append("rgba(60,60,80,0.5)")
 
         frame_data = [
-            # Trace 0: η_tam (değişmez)
+            # Trace 0: η_tam (değişmez arka plan)
             go.Scatter(x=t_arr, y=eta_arr,
-                       line=dict(color="rgba(100,100,100,0.3)", width=1)),
-            # Trace 1: η kümülatif
+                       line=dict(color="rgba(100,100,100,0.3)", width=1),
+                       showlegend=False),
+            # Trace 1: η kümülatif animasyonlu
             go.Scatter(x=t_arr[:fi + 1], y=eta_arr[:fi + 1],
                        line=dict(color="#00d4ff", width=2),
-                       marker=dict(color="#ff6b35", size=10)),
+                       marker=dict(color="#ff6b35", size=10),
+                       name="η(t) — overlap"),
         ]
-        # Schumann genlikler
-        for si, (freq, amp, col) in enumerate(zip(sch_freqs, sch_amps, colors_sch)):
-            t_prev = t_arr[:fi + 1]
-            eta_prev = eta_arr[:fi + 1]
+        # Trace 2..6: Schumann tam (arka plan — değişmez, güncelle yine de)
+        for si, (freq, amp, col, isim) in enumerate(zip(sch_freqs, sch_amps, colors_sch, sch_isimler)):
+            amp_tam = amp * (1 + eta_arr * 2.0) * (1 + 0.2 * np.sin(2 * np.pi * freq * t_arr))
+            r_int = int(col[1:3], 16)
+            g_int = int(col[3:5], 16)
+            b_int = int(col[5:7], 16)
+            frame_data.append(
+                go.Scatter(x=t_arr, y=amp_tam,
+                           line=dict(color=f"rgba({r_int},{g_int},{b_int},0.15)", width=1),
+                           showlegend=False)
+            )
+        # Trace 7..11: Schumann animasyonlu
+        t_prev = t_arr[:fi + 1]
+        eta_prev = eta_arr[:fi + 1]
+        for si, (freq, amp, col, isim) in enumerate(zip(sch_freqs, sch_amps, colors_sch, sch_isimler)):
             amp_series = amp * (1 + eta_prev * 2.0) * (
                 1 + 0.2 * np.sin(2 * np.pi * freq * t_prev)
             )
             frame_data.append(
                 go.Scatter(x=t_prev, y=amp_series,
-                           line=dict(color=col, width=2))
+                           line=dict(color=col, width=2),
+                           name=isim)
             )
-        # Domino bar
+        # Trace 12: Domino bar — gerçek isimler ile
         frame_data.append(
-            go.Bar(x=domino_labels, y=domino_energies_log,
-                   marker_color=bar_colors)
+            go.Bar(
+                x=domino_bar_isimleri,
+                y=domino_energies_log,
+                marker_color=bar_colors,
+                name="Domino Kaskad log₁₀(E)",
+                text=[f"10^{e}" for e in domino_energies_log],
+                textposition="outside",
+            )
         )
 
         frames.append(go.Frame(data=frame_data, name=str(fi),
@@ -951,7 +1035,17 @@ def animasyon_psi_sonsuz_etkilesim(
     fig.update_yaxes(gridcolor="#222", zeroline=False)
     fig.update_yaxes(title_text="η (overlap)", row=1, col=1, range=[0, 1.05])
     fig.update_yaxes(title_text="Genlik (pT)", row=1, col=2)
-    fig.update_yaxes(title_text="log₁₀(E) [J]", row=1, col=3)
+    fig.update_yaxes(title_text="log₁₀(E) [J]", row=1, col=3,
+                     range=[-18, 0])  # tüm domino aşamaları görünür
+    fig.update_xaxes(title_text="Kaskad Aşaması", row=1, col=3)
+    # Legend — trace isimlerini göster
+    fig.update_layout(
+        showlegend=True,
+        legend=dict(
+            x=1.01, y=1.0, bgcolor="rgba(0,0,0,0.5)",
+            font=dict(size=10),
+        )
+    )
 
     fig.write_html(output_path, include_plotlyjs="cdn")
     print(f"  Psi_Sonsuz animasyon: {output_path}")
@@ -1031,36 +1125,52 @@ def animasyon_rezonans_ani(
     C_arr = C_THRESHOLD + 0.65 * (1 - np.exp(-t_arr / 6.0))
     eta_arr = 0.85 * (1 - np.exp(-t_arr / 8.0)) * (np.abs(delta_phi) < np.pi / 2 + 0.1).astype(float)
 
-    # Frekans spektrumu (Gaussian pikleri)
-    f_axis = np.linspace(5.0, 15.0, 200)
-    sigma_brain = 0.8
-    sigma_sch = 0.15
+    # Frekans spektrumu (Gaussian pikleri) — 5..30 Hz aralığı
+    f_axis = np.linspace(5.0, 30.0, 500)
+    sigma_brain = 1.5   # Hz — beyin alfa piki genişliği
+    sigma_sch = 0.3     # Hz — Schumann piki genişliği
+
+    # Başlangıç spektrumu: Schumann 7.83 Hz + beyin alfa 10 Hz Gaussian
+    schumann_pik_0 = np.exp(-0.5 * ((f_axis - f_sch) / sigma_sch) ** 2)
+    alfa_pik_0 = 0.6 * np.exp(-0.5 * ((f_axis - 10.0) / sigma_brain) ** 2)
+    spektrum_0 = schumann_pik_0 + alfa_pik_0
+
+    # Rabi tüm zaman serisi: P_rabi = 0.356 * sin(π × 1.351 × t)²
+    P_rabi_tam = 0.356 * np.sin(np.pi * RABI_FREQ_HZ * t_arr) ** 2
 
     fig = make_subplots(
         rows=2, cols=2,
         subplot_titles=[
             "Frekans Spektrumu (Yakınsama)",
             "Faz Portresi Δφ(t)",
-            "Rabi Salınımı (Beyin↔Schumann)",
+            "Rabi Salınımı P_rabi(t)",
             "Koherans C(t) & Overlap η(t)",
         ],
     )
 
     # Arka plan izler
+    # Panel 1 — Sol üst: Schumann sabit + beyin alfa başlangıç spektrumu
     fig.add_trace(
-        go.Scatter(x=f_axis,
-                   y=np.exp(-0.5 * ((f_axis - f_sch) / sigma_sch) ** 2),
+        go.Scatter(x=f_axis, y=schumann_pik_0,
                    mode="lines", line=dict(color="#ff4444", width=2, dash="dash"),
-                   name=f"Schumann {f_sch}Hz"),
+                   name=f"Schumann {f_sch:.2f}Hz"),
         row=1, col=1,
     )
     fig.add_trace(
-        go.Scatter(x=[f_brain_arr[0]],
-                   y=[1.0],
+        go.Scatter(x=f_axis, y=alfa_pik_0,
                    mode="lines", line=dict(color="#00d4ff", width=2),
-                   name="Beyin alfa piki"),
+                   name="Beyin alfa 10Hz piki"),
         row=1, col=1,
     )
+    # Toplam spektrum (gri arka plan)
+    fig.add_trace(
+        go.Scatter(x=f_axis, y=spektrum_0,
+                   mode="lines", line=dict(color="rgba(200,200,200,0.2)", width=1),
+                   showlegend=False, name="spektrum_toplam"),
+        row=1, col=1,
+    )
+
+    # Panel 2 — Sağ üst: Faz farkı
     fig.add_trace(
         go.Scatter(x=t_arr, y=np.zeros(n_frames),
                    mode="lines", line=dict(color="rgba(100,100,100,0.3)", width=1),
@@ -1073,18 +1183,22 @@ def animasyon_rezonans_ani(
                    name="Δφ(t) [rad]"),
         row=1, col=2,
     )
+
+    # Panel 3 — Sol alt: Rabi salınımı tam eğri + animasyonlu
     fig.add_trace(
-        go.Scatter(x=t_arr, y=np.zeros(n_frames),
-                   mode="lines", line=dict(color="rgba(100,100,100,0.3)", width=1),
-                   showlegend=False),
+        go.Scatter(x=t_arr, y=P_rabi_tam,
+                   mode="lines", line=dict(color="rgba(68,255,136,0.2)", width=1),
+                   showlegend=False, name="P_rabi_tam"),
         row=2, col=1,
     )
     fig.add_trace(
-        go.Scatter(x=[t_arr[0]], y=[rabi_signal[0]],
+        go.Scatter(x=[t_arr[0]], y=[P_rabi_tam[0]],
                    mode="lines", line=dict(color="#44ff88", width=2),
-                   name="Rabi salınımı"),
+                   name="P_rabi(t) = 0.356·sin²(π·Ω_R·t)"),
         row=2, col=1,
     )
+
+    # Panel 4 — Sağ alt: C(t) & η(t)
     fig.add_trace(
         go.Scatter(x=t_arr, y=C_arr,
                    mode="lines", line=dict(color="rgba(100,100,100,0.3)", width=1),
@@ -1111,43 +1225,59 @@ def animasyon_rezonans_ani(
         f_brain_now = f_brain_arr[fi]
         locked = abs(f_brain_now - f_sch) < 0.1
 
-        brain_spectrum = np.exp(-0.5 * ((f_axis - f_brain_now) / sigma_brain) ** 2)
+        # Beyin alfa piki: 10 Hz'den f_S1'e kayıyor
+        alfa_pik_fi = 0.6 * np.exp(-0.5 * ((f_axis - f_brain_now) / sigma_brain) ** 2)
+        schumann_pik_fi = np.exp(-0.5 * ((f_axis - f_sch) / sigma_sch) ** 2)
+        spektrum_fi = schumann_pik_fi + alfa_pik_fi
+
         lock_color = "#ff6b35" if locked else "#00d4ff"
-        lock_label = "REZONANS KİLİT!" if locked else "Beyin alfa piki"
+        lock_label = "Beyin alfa — REZONANS KİLİT!" if locked else "Beyin alfa piki"
 
         frame_traces = [
-            # Schumann spektrum (sabit)
+            # Trace 0: Schumann piki (sabit)
             go.Scatter(x=f_axis,
-                       y=np.exp(-0.5 * ((f_axis - f_sch) / sigma_sch) ** 2),
-                       line=dict(color="#ff4444", width=2, dash="dash")),
-            # Beyin spektrum (kayıyor)
-            go.Scatter(x=f_axis, y=brain_spectrum,
+                       y=schumann_pik_fi,
+                       line=dict(color="#ff4444", width=2, dash="dash"),
+                       name=f"Schumann {f_sch:.2f}Hz"),
+            # Trace 1: Beyin alfa piki (kayıyor, renk değişiyor)
+            go.Scatter(x=f_axis, y=alfa_pik_fi,
                        line=dict(color=lock_color, width=3),
                        name=lock_label),
-            # Δφ referans
+            # Trace 2: Toplam spektrum (gri)
+            go.Scatter(x=f_axis, y=spektrum_fi,
+                       line=dict(color="rgba(200,200,200,0.35)", width=1),
+                       showlegend=False),
+            # Trace 3: Δφ referans çizgisi
             go.Scatter(x=t_arr, y=np.zeros(n_frames),
-                       line=dict(color="rgba(100,100,100,0.3)", width=1)),
-            # Δφ kümülatif
+                       line=dict(color="rgba(100,100,100,0.3)", width=1),
+                       showlegend=False),
+            # Trace 4: Δφ kümülatif
             go.Scatter(x=t_arr[:fi + 1], y=delta_phi[:fi + 1],
-                       line=dict(color="#ffdd00", width=2)),
-            # Rabi referans
-            go.Scatter(x=t_arr, y=np.zeros(n_frames),
-                       line=dict(color="rgba(100,100,100,0.3)", width=1)),
-            # Rabi kümülatif
-            go.Scatter(x=t_arr[:fi + 1], y=rabi_signal[:fi + 1],
-                       line=dict(color="#44ff88", width=2)),
-            # C tam
+                       line=dict(color="#ffdd00", width=2),
+                       name="Δφ(t) [rad]"),
+            # Trace 5: Rabi tam eğri (arka plan)
+            go.Scatter(x=t_arr, y=P_rabi_tam,
+                       line=dict(color="rgba(68,255,136,0.2)", width=1),
+                       showlegend=False),
+            # Trace 6: Rabi kümülatif — P_rabi = 0.356·sin²(π·Ω_R·t)
+            go.Scatter(x=t_arr[:fi + 1], y=P_rabi_tam[:fi + 1],
+                       line=dict(color="#44ff88", width=2),
+                       name="P_rabi(t) = 0.356·sin²(π·Ω_R·t)"),
+            # Trace 7: C tam (arka plan)
             go.Scatter(x=t_arr, y=C_arr,
-                       line=dict(color="rgba(100,100,100,0.3)", width=1)),
-            # C kümülatif
+                       line=dict(color="rgba(100,100,100,0.3)", width=1),
+                       showlegend=False),
+            # Trace 8: C kümülatif
             go.Scatter(x=t_arr[:fi + 1], y=C_arr[:fi + 1],
-                       line=dict(color="#ff8c00", width=2)),
-            # η kümülatif
+                       line=dict(color="#ff8c00", width=2),
+                       name="C(t) koherans"),
+            # Trace 9: η kümülatif
             go.Scatter(x=t_arr[:fi + 1], y=eta_arr[:fi + 1],
-                       line=dict(color="#00d4ff", width=2, dash="dot")),
+                       line=dict(color="#00d4ff", width=2, dash="dot"),
+                       name="η(t) overlap"),
         ]
 
-        status = "🔒 KİLİT" if locked else f"Δf={f_brain_now - f_sch:+.3f}Hz"
+        status = "KİLİT" if locked else f"Δf={f_brain_now - f_sch:+.3f}Hz"
         frames.append(go.Frame(data=frame_traces, name=str(fi),
                                 layout=go.Layout(title_text=(
                                     f"Rezonans Anı | t={t_now:.1f}s | "
@@ -1196,9 +1326,9 @@ def animasyon_rezonans_ani(
     fig.update_xaxes(title_text="t (s)", row=1, col=2)
     fig.update_xaxes(title_text="t (s)", row=2, col=1)
     fig.update_xaxes(title_text="t (s)", row=2, col=2)
-    fig.update_yaxes(title_text="Genlik (norm.)", row=1, col=1)
+    fig.update_yaxes(title_text="Genlik (norm.)", row=1, col=1, range=[0, 1.8])
     fig.update_yaxes(title_text="Δφ (rad)", row=1, col=2)
-    fig.update_yaxes(title_text="Salınım (norm.)", row=2, col=1)
+    fig.update_yaxes(title_text="P_rabi [0,1]", row=2, col=1, range=[0, 0.42])
     fig.update_yaxes(title_text="C / η", row=2, col=2, range=[0, 1.05])
 
     fig.write_html(output_path, include_plotlyjs="cdn")
@@ -1343,102 +1473,159 @@ def animasyon_kalp_em_zaman_multi(
     output_path: str = "output/animations/kalp_em_zaman_multi.html",
 ) -> Optional[str]:
     """
-    7 senaryo: farklı C düzeyleri + kalp+beyin + kalp+Ψ + iki kalp.
+    7 senaryo karşılaştırma — 2×4 ızgara (son hücre boş).
 
-    Her senaryo için ayrı Heatmap paneli; 2×4 ızgara (son panel boş).
+    Satır 1: C=0.15, C=0.35, C=0.60, C=0.85 (tek kalp farklı koherans)
+    Satır 2: Kalp+Beyin, Kalp+Ψ∞, İki Kalp 0.9m, (boş)
+
+    Tüm senaryolarda EXTENT=3.0m menzil kullanılır.
     Çıktı: HTML animasyon + PNG orta-kare snapshot.
+
+    Referans: BVT TODO v8 GÖREV B.1.
     """
     if not PLOTLY_AVAILABLE:
         return None
 
     os.makedirs(os.path.dirname(output_path) or "output/animations", exist_ok=True)
 
-    mu0_4pi = 1e-7
-    mu_heart = MU_HEART
-    omega_K  = 2 * np.pi * F_HEART
-    omega_B  = 2 * np.pi * 10.0
-    omega_Psi = 2 * np.pi * 7.83
+    mu0_4pi  = 1e-7
+    mu_heart = MU_HEART                   # 1e-4 A·m²
+    mu_brain = MU_HEART * 1e-3            # 1e-7 A·m² (MU_BRAIN)
+    omega_K   = 2 * np.pi * F_HEART       # kalp açısal frekansı
+    omega_B   = 2 * np.pi * 10.0          # beyin alfa (10 Hz)
+    omega_Psi = 2 * np.pi * 7.83          # Schumann f_S1
 
-    ax = np.linspace(-1.2, 1.2, grid_n)
+    # 3m menzil: [-1.5, +1.5] → toplam 3m
+    EXTENT = 3.0
+    ax = np.linspace(-EXTENT / 2, EXTENT / 2, grid_n)
     Xg, Yg = np.meshgrid(ax, ax, indexing="ij")
 
     def _dipol_mag(mu: float, omega: float, t: float,
                    cx: float = 0.0, cy: float = 0.0, z_src: float = 0.0) -> np.ndarray:
+        """Tek dipol B alan büyüklüğü (z=0 kesiti, y=0 düzlemi)."""
         amp = np.cos(omega * t)
-        Rx = Xg - cx; Ry = Yg - cy; Rz = -z_src
-        R = np.sqrt(Rx**2 + Ry**2 + Rz**2) + 1e-4
-        m_r = Rz / R
-        Bz_ = mu0_4pi * mu * amp / R**3 * (3*m_r*Rz/R - 1)
-        Bx_ = mu0_4pi * mu * amp / R**3 * (3*m_r*Rx/R)
-        By_ = mu0_4pi * mu * amp / R**3 * (3*m_r*Ry/R)
-        return np.sqrt(Bx_**2 + By_**2 + Bz_**2) / 1e-12
+        Rx = Xg - cx
+        Ry = Yg - cy
+        Rz = -z_src  # skalar (z_src kaynak yüksekliği, z=0 kesiti)
+        R  = np.sqrt(Rx**2 + Ry**2 + Rz**2) + 1e-4
+        m_r = Rz / R   # dipol z-yönlü → m̂·r̂ = Rz/R
+        Bx_ = mu0_4pi * mu * amp / R**3 * (3 * m_r * Rx / R)
+        By_ = mu0_4pi * mu * amp / R**3 * (3 * m_r * Ry / R)
+        Bz_ = mu0_4pi * mu * amp / R**3 * (3 * m_r * Rz / R - 1)
+        return np.sqrt(Bx_**2 + By_**2 + Bz_**2) / 1e-12   # pT cinsine çevir
 
+    # 7 senaryo tanımı: (etiket, satır, sütun, lambda)
+    # Satır 1: 4 farklı koherans seviyesi
+    # Satır 2: 3 kompozit kaynak, 4. hücre boş
     SENARYOLAR = [
-        ("C=0.2 (düşük)",    lambda t: _dipol_mag(mu_heart*0.2,  omega_K, t)),
-        ("C=0.5 (orta)",     lambda t: _dipol_mag(mu_heart*0.5,  omega_K, t)),
-        ("C=0.85 (yüksek)",  lambda t: _dipol_mag(mu_heart*0.85, omega_K, t)),
-        ("C=1.0 (tam)",      lambda t: _dipol_mag(mu_heart*1.0,  omega_K, t)),
-        ("Kalp+Beyin",       lambda t: (_dipol_mag(mu_heart, omega_K, t)
-                                        + _dipol_mag(mu_heart*1e-3, omega_B, t, z_src=0.3))),
-        ("Kalp+Ψ∞(Sch.)",   lambda t: (_dipol_mag(mu_heart, omega_K, t)
-                                        + _dipol_mag(mu_heart*2e-3, omega_Psi, t))),
-        ("İki Kalp (0.6m)",  lambda t: (_dipol_mag(mu_heart, omega_K, t, cx=-0.3)
-                                        + _dipol_mag(mu_heart, omega_K, t, cx=+0.3))),
+        ("C=0.15 (Düşük)",   1, 1, lambda t: _dipol_mag(mu_heart * 0.15, omega_K, t)),
+        ("C=0.35 (Orta-Alt)", 1, 2, lambda t: _dipol_mag(mu_heart * 0.35, omega_K, t)),
+        ("C=0.60 (Orta-Üst)", 1, 3, lambda t: _dipol_mag(mu_heart * 0.60, omega_K, t)),
+        ("C=0.85 (Yüksek)",  1, 4, lambda t: _dipol_mag(mu_heart * 0.85, omega_K, t)),
+        ("Kalp+Beyin",        2, 1, lambda t: (
+            _dipol_mag(mu_heart, omega_K, t)
+            + _dipol_mag(mu_brain, omega_B, t, z_src=0.3)
+        )),
+        ("Kalp+Ψ∞",          2, 2, lambda t: (
+            _dipol_mag(mu_heart, omega_K, t)
+            + _dipol_mag(mu_heart * 1e-1, omega_Psi, t)  # Ψ_Sonsuz katkısı
+        )),
+        ("İki Kalp 0.9m",    2, 3, lambda t: (
+            _dipol_mag(mu_heart, omega_K, t, cx=-0.45)   # sol kalp (−0.45m)
+            + _dipol_mag(mu_heart, omega_K, t + 0.3, cx=+0.45)  # sağ kalp (faz kayması)
+        )),
     ]
 
-    n_s = len(SENARYOLAR)
     rows, cols = 2, 4
-
     t_arr = np.linspace(0, t_end, n_frames)
 
+    # Her frame için 7 Heatmap trace üret — her biri doğru row/col'a karşılık gelir
     def _make_traces(t: float) -> list:
         traces = []
-        for i, (lbl, fn) in enumerate(SENARYOLAR):
-            row = i // cols + 1
-            col = i % cols + 1
-            B = fn(t)
-            B_log = np.log10(B + 0.01)
+        for lbl, r, c, fn in SENARYOLAR:
+            B     = fn(t)
+            B_log = np.log10(np.abs(B) + 1e-3)  # 1e-3 pT eşiği (singülerlik önleme)
+            # Sadece ilk trace için colorbar göster
+            ilk = (r == 1 and c == 1)
             traces.append(go.Heatmap(
-                z=B_log.T, x=ax.tolist(), y=ax.tolist(),
-                colorscale="Hot", zmin=-2, zmax=2,
-                showscale=(i == 0),
-                colorbar=dict(title="log₁₀|B|", len=0.45, y=0.75) if i == 0 else {},
+                z=B_log.T,
+                x=ax.tolist(),
+                y=ax.tolist(),
+                colorscale="Plasma",
+                zmin=-3, zmax=3,
+                showscale=ilk,
+                colorbar=dict(title="log₁₀|B|(pT)", len=0.45, y=0.75) if ilk else {},
+                name=lbl,
             ))
         return traces
 
+    # make_subplots ile 2×4 ızgara
     from plotly.subplots import make_subplots as _msub
-    fig_base = _msub(rows=rows, cols=cols,
-                     subplot_titles=[s[0] for s in SENARYOLAR] + [""],
-                     shared_xaxes=False)
+    basliklar = [s[0] for s in SENARYOLAR] + [""]   # 8. hücre boş
+    fig_base = _msub(
+        rows=rows, cols=cols,
+        subplot_titles=basliklar,
+        shared_xaxes=False,
+        shared_yaxes=False,
+        horizontal_spacing=0.04,
+        vertical_spacing=0.12,
+    )
 
+    # İlk frame'i ekle — HER senaryo için doğru row/col belirtiliyor
     init_traces = _make_traces(t_arr[0])
-    for i, tr in enumerate(init_traces):
-        row = i // cols + 1
-        col = i % cols + 1
-        fig_base.add_trace(tr, row=row, col=col)
+    for tr, (lbl, r, c, _fn) in zip(init_traces, SENARYOLAR):
+        fig_base.add_trace(tr, row=r, col=c)
 
+    # Animasyon frame'leri
     frames = []
     for fi, t in enumerate(t_arr):
         traces = _make_traces(t)
-        frames.append(go.Frame(data=traces, name=str(fi),
-                               layout=go.Layout(title_text=f"Kalp EM Çok-Senaryo  t={t:.2f}s")))
+        frames.append(go.Frame(
+            data=traces,
+            name=str(fi),
+            layout=go.Layout(title_text=(
+                f"BVT Kalp EM — 7 Senaryo Karşılaştırma (3m menzil)  t={t:.2f}s"
+            )),
+        ))
 
     fig_base.frames = frames
+
+    # Slider
+    sliders = [dict(
+        steps=[dict(
+            method="animate",
+            args=[[str(fi)], {"frame": {"duration": 80, "redraw": True}, "mode": "immediate"}],
+            label=f"{t_arr[fi]:.1f}s",
+        ) for fi in range(n_frames)],
+        active=0, x=0.05, len=0.9, y=0, yanchor="top",
+    )]
+
     fig_base.update_layout(
-        title="BVT — Kalp EM Zaman Çok-Senaryo (7 Panel)",
+        title="BVT — Kalp EM 7 Senaryo (3m menzil) | Satır1: C değerleri | Satır2: Kompozit",
         height=700, width=1400,
         template="plotly_dark",
+        paper_bgcolor="#0a0e17",
+        plot_bgcolor="#0d1117",
+        font=dict(color="white"),
+        sliders=sliders,
         updatemenus=[dict(
             type="buttons",
+            showactive=False,
             buttons=[
                 dict(label="▶", method="animate",
-                     args=[None, {"frame": {"duration": 80, "redraw": True}, "fromcurrent": True}]),
+                     args=[None, {"frame": {"duration": 80, "redraw": True},
+                                  "fromcurrent": True}]),
                 dict(label="⏸", method="animate",
                      args=[[None], {"frame": {"duration": 0}, "mode": "immediate"}]),
             ],
-            x=0.05, y=1.05,
+            x=0.05, y=1.08,
         )],
     )
+    # Eksen etiketleri
+    for r in [1, 2]:
+        for c in range(1, 5):
+            fig_base.update_xaxes(title_text="x (m)", row=r, col=c)
+            fig_base.update_yaxes(title_text="y (m)", row=r, col=c)
 
     fig_base.write_html(output_path, include_plotlyjs="cdn")
     print(f"  HTML: {output_path}")
@@ -1448,9 +1635,10 @@ def animasyon_kalp_em_zaman_multi(
         mid = len(frames) // 2
         fig_snap = go.Figure(data=frames[mid].data, layout=fig_base.layout)
         fig_snap.update_layout(
-            paper_bgcolor="white", plot_bgcolor="#f0f4f8",
+            paper_bgcolor="white",
+            plot_bgcolor="#f0f4f8",
             font=dict(color="#111111"),
-            title=f"Kalp EM Çok-Senaryo (t={t_arr[mid]:.1f}s)",
+            title=f"BVT Kalp EM 7 Senaryo (t={t_arr[mid]:.1f}s)",
         )
         png_path = output_path.replace(".html", ".png")
         fig_snap.write_image(png_path, width=1400, height=700)

@@ -27,6 +27,22 @@ def __(mo):
 
 @app.cell
 def __(mo):
+    mo.callout(mo.md(r"""
+    ## 🎯 İlk 5 Dakika — Hızlı Başlangıç
+
+    1. **N slider'ını** sağa çek → kişi sayısı artar, senkronizasyon değişir
+    2. **Merkez birey checkbox'ını** tıkla → halkaya 1 koherant kişi eklenir, N_c eşiği düşer
+    3. **Topoloji dropdown** → `tam_halka` / `yari_halka` / `duz` / `halka_temas` seç
+    4. **κ_eff çarpanı** → kuplaj gücünü artır/azalt
+
+    **Önerilen deney:** N=11 · tam_halka · merkez aktif · C_merkez=0.85
+    → r(son) > 0.8 → Süperradyans eşiği aşılır ✅
+    """), kind="info")
+    return
+
+
+@app.cell
+def __(mo):
     N_slider = mo.ui.slider(
         start=5, stop=50, step=1, value=11,
         label="N — Kişi Sayısı",

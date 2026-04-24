@@ -1228,16 +1228,18 @@ def sekil_3d_em_alan(output_path: Optional[str] = None) -> Optional[Any]:
 
     try:
         from src.models.em_field_composite import ızgara_2d_orta_kesit
-        X, Z, B_mag = ızgara_2d_orta_kesit(extent=0.5, n=80)
+        # 3m menzil: [-1.5, +1.5] eksenler
+        X, Z, B_mag = ızgara_2d_orta_kesit(extent=1.5, n=60)
         B_log = np.log10(np.where((B_mag <= 0) | np.isnan(B_mag), np.nan, B_mag / 1e-12))
         x_axis = X[:, 0].tolist()
         y_axis = Z[0, :].tolist()
     except Exception:
-        x_axis = np.linspace(-0.5, 0.5, 80).tolist()
-        y_axis = np.linspace(-0.5, 0.8, 80).tolist()
+        # Fallback: 3m menzil ile yaklaşık dipol hesabı
+        x_axis = np.linspace(-1.5, 1.5, 60).tolist()
+        y_axis = np.linspace(-1.5, 1.8, 60).tolist()
         XX, ZZ = np.meshgrid(x_axis, y_axis, indexing='ij')
-        # Kalp dipol + Schumann arka plan (yaklaşık)
-        r_kalp  = np.sqrt(XX**2 + ZZ**2) + 0.02
+        # Kalp dipol + beyin dipol + Schumann arka plan (yaklaşık)
+        r_kalp  = np.sqrt(XX**2 + ZZ**2) + 0.05
         r_beyin = np.sqrt(XX**2 + (ZZ - 0.3)**2) + 0.02
         B_raw = 1e-11 / r_kalp**2 + 1e-14 / r_beyin**2 + 1e-12
         B_log = np.log10(B_raw / 1e-12)
@@ -1256,20 +1258,34 @@ def sekil_3d_em_alan(output_path: Optional[str] = None) -> Optional[Any]:
         hovertemplate="x=%{x:.2f}m  z=%{y:.2f}m<br>|B|=10^%{z:.2f} pT<extra></extra>"
     ), row=1, col=1)
 
-    # Kaynak işaretleri
+    # Kaynak işaretleri — sadece marker; etiketler annotation ile saydam bgcolor
     fig.add_trace(go.Scatter(
-        x=[0], y=[0], mode="markers+text",
+        x=[0], y=[0], mode="markers",
         marker=dict(size=18, color="red", symbol="star"),
-        text=["Kalp"], textposition="top center",
-        name="Kalp dipol", textfont=dict(size=14, color="white")
+        name="Kalp dipol",
     ), row=1, col=1)
 
     fig.add_trace(go.Scatter(
-        x=[0], y=[0.30], mode="markers+text",
+        x=[0], y=[0.30], mode="markers",
         marker=dict(size=14, color="dodgerblue", symbol="diamond"),
-        text=["Beyin"], textposition="top center",
-        name="Beyin dipol", textfont=dict(size=14, color="white")
+        name="Beyin dipol",
     ), row=1, col=1)
+
+    # Etiket annotation'ları — bgcolor saydam (GÖREV B.3)
+    fig.add_annotation(
+        x=0, y=0, xref="x", yref="y",
+        text="Kalp", showarrow=True, arrowhead=2, ax=25, ay=-30,
+        font=dict(size=13, color="red"),
+        bgcolor="rgba(0,0,0,0)",  # saydam arkaplan
+        bordercolor="rgba(0,0,0,0)",
+    )
+    fig.add_annotation(
+        x=0, y=0.30, xref="x", yref="y",
+        text="Beyin", showarrow=True, arrowhead=2, ax=25, ay=-30,
+        font=dict(size=13, color="dodgerblue"),
+        bgcolor="rgba(0,0,0,0)",  # saydam arkaplan
+        bordercolor="rgba(0,0,0,0)",
+    )
 
     # Radyal profil (z ekseni, x=0)
     z_arr = np.array(y_axis)
