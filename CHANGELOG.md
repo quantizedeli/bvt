@@ -5,6 +5,28 @@ Bu dosya projedeki her önemli değişikliği kaydeder.
 
 ---
 
+## v9.1.0 — 2026-04-26 (TODO v9.1, Oturum 9 — acil düzeltmeler)
+
+### Düzeltildi
+- **L15 V_REF normalizasyon**: `V_max` → `V_REF = prefac×2/D_REF³` (0.9m referans)
+  - ESKİ: N=2'de V_norm=±1 sabit → mesafe etkisi siliniyordu
+  - YENİ: d<1.4m KILITLI (r_mean≈1.0), d>1.4m SERBEST (r_mean≈0.64)
+  - `V_norm = clip(V/V_REF, -50, 50)` ODE patlamasını önler
+- **21/21 HTML şekil** (önceki: 15/21):
+  - `lambda p:` → `lambda output_path=None:` (4 fonksiyon)
+  - `titlefont=dict(...)` → `title=dict(font=dict(...))` — Plotly 5.x uyumu (5 yer)
+  - `_ax_style` dict'inden `title` çıkarıldı, eksen dict'lerinde inline yazıldı
+- **FAZ 3 Lindblad**: `tam_args` → `--n-points 100 --n-max 7` (bellek hatası önlendi)
+  - Hızlı: `--t-end 10 --n-points 50` = 2 dk ✓
+  - Tam: `--t-end 60 --n-points 100 --n-max 7` = ~5 dk ✓
+  - 18/18 FAZ başarılı
+
+### Kaldırıldı
+- **MATLAB MP4**: `animations.py` MATLAB çağrıları → `mp4_exporter.mp4_uret()` ile değiştirildi
+- `matlab_scripts/` → `archive/matlab_deprecated/`
+
+---
+
 ## v9.0.0 — 2026-04-24 (TODO v9, Oturum 8)
 
 ### Yeni

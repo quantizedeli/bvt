@@ -583,38 +583,24 @@ def kalp_em_gif(
     plt.close(fig2)
     print(f"  PNG thumbnail: {png_path}")
 
-    # MP4 via MATLAB — frame'leri temp PNG olarak kaydet
-    import tempfile, shutil
-    temp_dir = tempfile.mkdtemp(prefix="bvt_kalp_frames_")
+    # MP4 via imageio-ffmpeg (Python, sistem PATH gerekmez)
+    mp4_path = output_path.replace(".gif", ".mp4")
     try:
-        fig_mp, ax_mp = plt.subplots(figsize=(8, 6), facecolor="white")
-        ax_mp.set_facecolor("#f0f4f8")
-        im_mp = ax_mp.imshow(frames_B[0].T, origin="lower", cmap="hot", norm=norm,
-                              extent=[-extent_cm, extent_cm, -extent_cm, extent_cm])
-        cbar_mp = fig_mp.colorbar(im_mp, ax=ax_mp, label="|B| (pT)")
-        ax_mp.set_xlabel("x (cm)"); ax_mp.set_ylabel("y (cm)")
-        title_mp = ax_mp.set_title("", color="#111", fontsize=12)
-        plt.tight_layout()
-        for fi, B in enumerate(frames_B):
-            im_mp.set_data(B.T)
-            title_mp.set_text(f"BVT Kalp EM Alani  t = {t_arr[fi]:.1f}s  C=0.85")
-            fig_mp.canvas.draw()
-            fig_mp.savefig(
-                os.path.join(temp_dir, f"frame_{fi:04d}.png"),
-                dpi=120, bbox_inches="tight", facecolor="white",
-            )
-        plt.close(fig_mp)
-
-        mp4_path = output_path.replace(".gif", ".mp4")
-        ok = _mp4_matlab_kaydet(temp_dir, mp4_path, fps=fps)
-        if ok:
-            print(f"  MP4: {mp4_path}")
-        else:
-            print("  [BILGI] MATLAB MP4 atlandı")
+        from src.viz.mp4_exporter import mp4_uret
+        def _kalp_guncelle(fi: int):
+            fig_m, ax_m = plt.subplots(figsize=(8, 6), facecolor="white")
+            ax_m.set_facecolor("#f0f4f8")
+            ax_m.imshow(frames_B[fi].T, origin="lower", cmap="hot", norm=norm,
+                        extent=[-extent_cm, extent_cm, -extent_cm, extent_cm])
+            ax_m.set_xlabel("x (cm)"); ax_m.set_ylabel("y (cm)")
+            ax_m.set_title(f"BVT Kalp EM Alani  t = {t_arr[fi]:.1f}s  C=0.85",
+                           color="#111", fontsize=12)
+            plt.tight_layout()
+            return fig_m
+        mp4_uret(len(frames_B), _kalp_guncelle, mp4_path, fps=fps, dpi=100)
+        print(f"  MP4: {mp4_path}")
     except Exception as exc:
-        print(f"  [UYARI] MP4 frame üretim hatası: {exc}")
-    finally:
-        shutil.rmtree(temp_dir, ignore_errors=True)
+        print(f"  [BILGI] MP4 uretim hatasi (devam ediyor): {exc}")
 
     return output_path
 
@@ -753,44 +739,28 @@ def n_kisi_em_gif(
     plt.close(fig2)
     print(f"  PNG thumbnail: {png_path}")
 
-    # MP4 via MATLAB
-    import tempfile, shutil
-    temp_dir = tempfile.mkdtemp(prefix="bvt_nkisi_frames_")
+    # MP4 via imageio-ffmpeg (Python, sistem PATH gerekmez)
+    mp4_path = output_path.replace(".gif", ".mp4")
     try:
-        fig_mp, ax_mp = plt.subplots(figsize=(8, 8), facecolor="white")
-        ax_mp.set_facecolor("#f0f4f8")
-        im_mp = ax_mp.imshow(frames_B[0].T, origin="lower", cmap="hot", norm=norm,
-                              extent=[-grid_extent, grid_extent, -grid_extent, grid_extent])
-        sc_mp = ax_mp.scatter(konumlar[:, 0], konumlar[:, 1], c="blue", s=80, zorder=5)
-        fig_mp.colorbar(im_mp, ax=ax_mp, label="|B| (pT)")
-        ax_mp.set_xlabel("x (m)"); ax_mp.set_ylabel("y (m)")
-        title_mp = ax_mp.set_title("", color="#111", fontsize=12)
-        plt.tight_layout()
-        for fi, B in enumerate(frames_B):
-            im_mp.set_data(B.T)
+        from src.viz.mp4_exporter import mp4_uret
+        def _nkisi_guncelle(fi: int):
+            fig_m, ax_m = plt.subplots(figsize=(8, 8), facecolor="white")
+            ax_m.set_facecolor("#f0f4f8")
+            ax_m.imshow(frames_B[fi].T, origin="lower", cmap="hot", norm=norm,
+                        extent=[-grid_extent, grid_extent, -grid_extent, grid_extent])
+            ax_m.scatter(konumlar[:, 0], konumlar[:, 1], c="blue", s=80, zorder=5)
+            ax_m.set_xlabel("x (m)"); ax_m.set_ylabel("y (m)")
             t_idx = int(t_indices[fi])
             r_val = float(r_arr[min(t_idx, len(r_arr) - 1)])
             label = "SERI" if r_val > 0.8 else ("HIBRIT" if r_val > 0.3 else "PARALEL")
-            title_mp.set_text(
-                f"BVT N={N} Halka  t={t_eval[fi]:.1f}s  r={r_val:.3f} [{label}]"
-            )
-            fig_mp.canvas.draw()
-            fig_mp.savefig(
-                os.path.join(temp_dir, f"frame_{fi:04d}.png"),
-                dpi=120, bbox_inches="tight", facecolor="white",
-            )
-        plt.close(fig_mp)
-
-        mp4_path = output_path.replace(".gif", ".mp4")
-        ok = _mp4_matlab_kaydet(temp_dir, mp4_path, fps=fps)
-        if ok:
-            print(f"  MP4: {mp4_path}")
-        else:
-            print("  [BILGI] MATLAB MP4 atlandı")
+            ax_m.set_title(f"BVT N={N} Halka  t={t_eval[fi]:.1f}s  r={r_val:.3f} [{label}]",
+                           color="#111", fontsize=12)
+            plt.tight_layout()
+            return fig_m
+        mp4_uret(len(frames_B), _nkisi_guncelle, mp4_path, fps=fps, dpi=100)
+        print(f"  MP4: {mp4_path}")
     except Exception as exc:
-        print(f"  [UYARI] MP4 frame üretim hatası: {exc}")
-    finally:
-        shutil.rmtree(temp_dir, ignore_errors=True)
+        print(f"  [BILGI] MP4 uretim hatasi (devam ediyor): {exc}")
 
     return output_path
 

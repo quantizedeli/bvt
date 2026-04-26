@@ -80,7 +80,8 @@ bvt_claude_code_4/
 │   ├── animations/            ← 8 MP4 animasyon
 │   └── figures/               ← Makale figürleri
 ├── archive/
-│   └── marimo_deprecated/     ← Eski Marimo notebook'lar (kullanım dışı)
+│   ├── marimo_deprecated/     ← Eski Marimo notebook'lar (kullanım dışı)
+│   └── matlab_deprecated/     ← Eski MATLAB scriptleri (v9.1'den itibaren kaldırıldı)
 ├── tests/                     ← 155 test
 └── data/literature_values.json
 ```

@@ -88,9 +88,9 @@ FAZ_BİLGİ = {
         "isim": "Tam Kuantum Lindblad (QuTiP)",
         "açıklama": "NESS koherans, entropi, Rabi frekansı",
         "betik": "simulations/level3_qutip.py",
-        "tahmini_süre": "~1 saat",
+        "tahmini_süre": "~5 dk (hizli), ~30 dk (tam)",
         "hizli_args": ["--t-end", "10", "--n-points", "50"],
-        "tam_args": ["--t-end", "60", "--n-points", "200"],
+        "tam_args": ["--t-end", "60", "--n-points", "100", "--n-max", "7"],
         "html": True,
     },
     4: {
@@ -373,10 +373,14 @@ def faz_çalıştır(
         )
         süre = time.time() - t0
         başarı = proc.returncode == 0
+        if not başarı:
+            print(f"  [HATA] returncode={proc.returncode}")
         return {"başarı": başarı, "süre_s": süre, "hata": None}
     except subprocess.TimeoutExpired:
+        print(f"  [HATA] FAZ {faz_no} TIMEOUT (>4 saat)")
         return {"başarı": False, "süre_s": time.time() - t0, "hata": "Timeout!"}
     except Exception as e:
+        print(f"  [HATA] FAZ {faz_no} exception: {e}")
         return {"başarı": False, "süre_s": time.time() - t0, "hata": str(e)}
 
 

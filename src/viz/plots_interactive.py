@@ -1807,17 +1807,17 @@ def sekil_3d_kalp_isosurface(output_path: Optional[str] = None) -> Optional[Any]
         gridcolor="#2a3050",
         showbackground=True,
         tickfont=dict(color="white", size=11),
-        titlefont=dict(color="white", size=13),
     )
+    _title_font = dict(color="white", size=13)
     fig.update_layout(
         title=dict(
             text="BVT — Kalp + Beyin 3D Manyetik Dipol Alani |B| (pT) — 3m kube",
             font=dict(size=18, color="white"),
         ),
         scene=dict(
-            xaxis=dict(title="x (m)", **_ax_style),
-            yaxis=dict(title="y (m)", **_ax_style),
-            zaxis=dict(title="z (m)", **_ax_style),
+            xaxis=dict(title=dict(text="x (m)", font=_title_font), **_ax_style),
+            yaxis=dict(title=dict(text="y (m)", font=_title_font), **_ax_style),
+            zaxis=dict(title=dict(text="z (m)", font=_title_font), **_ax_style),
             bgcolor="#0a0e17",
             camera=dict(eye=dict(x=1.5, y=1.5, z=1.0)),
         ),
@@ -1882,8 +1882,8 @@ def sekil_3d_iki_kisi_isosurface(
         colorscale="Plasma",
         caps=dict(x_show=False, y_show=False, z_show=False),
         opacity=0.30,
-        colorbar=dict(title="|B| (pT)", tickfont=dict(color="white"),
-                      titlefont=dict(color="white")),
+        colorbar=dict(title=dict(text="|B| (pT)", font=dict(color="white")),
+                      tickfont=dict(color="white")),
         name="|B| toplam",
     ))
     for cx, lbl in [(-half_d, "Kişi 1"), (+half_d, "Kişi 2")]:
@@ -1900,15 +1900,15 @@ def sekil_3d_iki_kisi_isosurface(
         backgroundcolor="#0a0e17", gridcolor="#2a3050",
         showbackground=True,
         tickfont=dict(color="white", size=11),
-        titlefont=dict(color="white", size=13),
     )
+    _title_font = dict(color="white", size=13)
     fig.update_layout(
         title=dict(text=f"BVT — İki Kişi Kalp EM Isosurface (d={mesafe_m}m)",
                    font=dict(size=17, color="white")),
         scene=dict(
-            xaxis=dict(title="x (m)", **_ax_style),
-            yaxis=dict(title="y (m)", **_ax_style),
-            zaxis=dict(title="z (m)", **_ax_style),
+            xaxis=dict(title=dict(text="x (m)", font=_title_font), **_ax_style),
+            yaxis=dict(title=dict(text="y (m)", font=_title_font), **_ax_style),
+            zaxis=dict(title=dict(text="z (m)", font=_title_font), **_ax_style),
             bgcolor="#0a0e17",
             camera=dict(eye=dict(x=1.8, y=1.2, z=0.8)),
         ),
@@ -1960,9 +1960,8 @@ def sekil_3d_em_alan_volumetrik(output_path: Optional[str] = None) -> Optional[A
         surface_count=18,
         colorscale="Hot",
         colorbar=dict(
-            title="log₁₀|B| (pT)",
+            title=dict(text="log₁₀|B| (pT)", font=dict(color="white")),
             tickfont=dict(color="white"),
-            titlefont=dict(color="white"),
         ),
         name="Hacimsel |B|",
     ))
@@ -1977,17 +1976,17 @@ def sekil_3d_em_alan_volumetrik(output_path: Optional[str] = None) -> Optional[A
         backgroundcolor="#0a0e17", gridcolor="#2a3050",
         showbackground=True,
         tickfont=dict(color="white", size=11),
-        titlefont=dict(color="white", size=13),
     )
+    _title_font = dict(color="white", size=13)
     fig.update_layout(
         title=dict(
             text="BVT — Kalp EM Alanı Hacimsel (go.Volume, 3m kube)",
             font=dict(size=17, color="white"),
         ),
         scene=dict(
-            xaxis=dict(title="x (m)", **_ax_style),
-            yaxis=dict(title="y (m)", **_ax_style),
-            zaxis=dict(title="z (m)", **_ax_style),
+            xaxis=dict(title=dict(text="x (m)", font=_title_font), **_ax_style),
+            yaxis=dict(title=dict(text="y (m)", font=_title_font), **_ax_style),
+            zaxis=dict(title=dict(text="z (m)", font=_title_font), **_ax_style),
             bgcolor="#0a0e17",
             camera=dict(eye=dict(x=1.5, y=1.5, z=1.0)),
         ),
@@ -2032,7 +2031,7 @@ def tum_sekilleri_kaydet(output_dir: str = "output/html", full_dim: bool = False
         ("3d_cevre_koherans",       sekil_3d_cevre_koherans_eta),
         ("sigma_f_heartmath",       sekil_sigma_f_heartmath),
         ("em_koherans_pil",         sekil_em_koherans_karsilastirma),
-        ("lindblad_animasyon",      lambda p: sekil_lindblad_animasyon(p, full_dim=full_dim)),
+        ("lindblad_animasyon",      lambda output_path=None: sekil_lindblad_animasyon(output_path=output_path, full_dim=full_dim)),
         ("rabi_animasyon",          sekil_rabi_animasyon),
         ("domino_3d",               sekil_domino_3d),
         ("overlap_evrimi",          sekil_overlap_evrimi),
@@ -2044,9 +2043,9 @@ def tum_sekilleri_kaydet(output_dir: str = "output/html", full_dim: bool = False
         ("topoloji_karsilastirma",  sekil_topoloji_karsilastirma),
         ("seri_paralel_em",         sekil_seri_paralel_em),
         ("3d_kalp_isosurface",      sekil_3d_kalp_isosurface),
-        ("3d_iki_kisi_03m",         lambda p: sekil_3d_iki_kisi_isosurface(0.3, p)),
-        ("3d_iki_kisi_09m",         lambda p: sekil_3d_iki_kisi_isosurface(0.9, p)),
-        ("3d_iki_kisi_3m",          lambda p: sekil_3d_iki_kisi_isosurface(3.0, p)),
+        ("3d_iki_kisi_03m",         lambda output_path=None: sekil_3d_iki_kisi_isosurface(0.3, output_path=output_path)),
+        ("3d_iki_kisi_09m",         lambda output_path=None: sekil_3d_iki_kisi_isosurface(0.9, output_path=output_path)),
+        ("3d_iki_kisi_3m",          lambda output_path=None: sekil_3d_iki_kisi_isosurface(3.0, output_path=output_path)),
         ("em_alan_volumetrik",      sekil_3d_em_alan_volumetrik),
     ]
 

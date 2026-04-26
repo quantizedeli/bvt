@@ -284,12 +284,17 @@ def N_kisi_tam_dinamik(
 
     V = dipol_dipol_etkilesim_matrisi(konumlar)
 
-    # V matrisini normalize et: max|V|=1 yaparak r⁻³ ağırlığını koru.
-    # Bu sayede yakın mesafe → güçlü bağlaşım, uzak mesafe → zayıf bağlaşım
-    # farkı koherans transferine ve faz dinamiğine yansır.
-    # K_bonus kullanmak yerine kappa_eff × (1+f_geometri) katsayısı ölçekler.
-    V_max = np.max(np.abs(V)) + 1e-30  # sıfır bölme koruması
-    V_norm = V / V_max
+    # V_REF normalizasyonu: HeartMath 0.9m referans mesafesinde beklenen dipol
+    # kuplaj değerine göre normalize et.
+    # V_max = max(abs(V)) YANLIŞ: N=2'de tek off-diagonal değer her zaman V_max
+    # oluyor → V_norm = ±1 sabit → mesafe etkisi silinir.
+    # V_REF = (μ₀ m²/4π) × 2 / D_REF³ kullanılmalı (maksimum açı faktörü=2).
+    D_REF_NORM = 0.9   # m — HeartMath referans mesafesi
+    _prefac = MU_0 * MU_HEART**2 / (4 * np.pi)
+    V_REF = _prefac * 2.0 / (D_REF_NORM ** 3)  # ~7.3e-24 J
+    V_norm = V / V_REF
+    # ODE patlamasını önlemek için clamp: d<<D_REF → V_norm çok büyük olabilir
+    V_norm = np.clip(V_norm, -50.0, 50.0)
 
     # Geometri bonusu: kuplaj katsayısına uygulanır (V_norm zaten r⁻³ şekli taşıyor)
     kappa_etkin = kappa_eff * (1.0 + f_geometri)

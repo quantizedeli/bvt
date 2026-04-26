@@ -199,13 +199,17 @@ def main():
     plt.close()
     print(f"  9-panel PNG: {out_9p}")
 
-    # Uzaklık tarama
+    # Uzaklık tarama — r_mean (ikinci yarı) kullan: anlık snapshot güvenilmez
+    # N=2 deterministik Kuramoto'da r(t)=|cos(Δφ/2)| — bağlantısız limitinde
+    # zaman ortalaması 2/π≈0.64 (min), kilitli limitinde → 1.0.
     print("  Uzaklık tarama (0.1-5m)...")
     uzakliklar = np.logspace(-1, 0.7, 12)
     r_sonlar, dC_sonlar = [], []
     for d in uzakliklar:
-        s, _, _ = iki_kisi_senaryosu(d_mesafe=d, t_end=min(args.t_end, 30))
-        r_sonlar.append(float(s["r_t"][-1]))
+        s, _, _ = iki_kisi_senaryosu(d_mesafe=d, t_end=min(args.t_end, 60))
+        half = len(s["r_t"]) // 2
+        r_mean_late = float(np.mean(s["r_t"][half:]))   # zaman ortalaması
+        r_sonlar.append(r_mean_late)
         dC_sonlar.append(float(s["C_t"][1, -1] - s["C_t"][1, 0]))
 
     fig2, axs2 = plt.subplots(1, 2, figsize=(14, 5))
@@ -213,19 +217,24 @@ def main():
     for ax in axs2:
         apply_theme(ax, "light")
 
-    # r⁻³ teorik eğrisi
+    # Locking transition teorik eğrisi (N=2 saturasyon)
     d_theory = np.logspace(-1, 0.7, 100)
-    r_theory = np.clip((0.9 / d_theory) ** 3, 0, 1)
-    axs2[0].semilogx(d_theory, r_theory, "--", color="gray", alpha=0.5, lw=1.5,
-                     label="κ∝r⁻³ (teorik)")
+    # Kilitli → r_mean=1.0; bağlantısız → r_mean≈0.64 (2/π)
+    _kappa_th = 21.9 * (0.9 / np.maximum(d_theory, 0.9)) ** 3
+    _Domega = 2 * np.pi * 0.1 * 0.4
+    _V_norm_th = (0.9 / d_theory) ** 3 / 2
+    _coupling_th = _kappa_th * _V_norm_th
+    r_theory_lock = np.where(_coupling_th > _Domega, 1.0, 2 / np.pi)
+    axs2[0].semilogx(d_theory, r_theory_lock, "--", color="gray", alpha=0.5, lw=1.5,
+                     label="Kilit/kilit-yok (teorik)")
     axs2[0].semilogx(uzakliklar, r_sonlar, "o-", color=colors["koherant"],
-                     lw=2.5, markersize=8, label="BVT simülasyon")
-    axs2[0].axhline(0.8, color=colors["tam_halka"], linestyle="--",
-                    label="Seri eşiği")
+                     lw=2.5, markersize=8, label="BVT r_mean (ikinci yarı)")
+    axs2[0].axhline(2 / np.pi, color="orange", linestyle=":", alpha=0.7,
+                    label=f"N=2 bağlantısız min (2/π≈{2/np.pi:.2f})")
     axs2[0].axvline(0.9, color=colors["heartmath"], linestyle=":",
                     label="HeartMath 0.9m")
-    axs2[0].set_xlabel("Mesafe (m)"); axs2[0].set_ylabel("r_son")
-    axs2[0].set_title("Mesafe → Senkronizasyon (κ∝r⁻³)")
+    axs2[0].set_xlabel("Mesafe (m)"); axs2[0].set_ylabel("r_mean (ikinci yarı)")
+    axs2[0].set_title("Mesafe → Senkronizasyon Kilidi (V_REF fix)")
     axs2[0].legend(fontsize=8)
 
     axs2[1].semilogx(uzakliklar, dC_sonlar, "o-", color=colors["bvt_nominal"],
@@ -240,12 +249,26 @@ def main():
     plt.close()
     print(f"  Uzaklık tarama PNG: {out_uzak}")
 
-    # Dipol r⁻³ doğrulama: mesafe küçük → r_son büyük, mesafe büyük → r_son küçük
-    print("\n  Mesafe tarama testi (r⁻³ doğrulama):")
-    for d_test in [0.1, 0.3, 0.9, 1.5, 3.0, 5.0]:
-        s_test, _, _ = iki_kisi_senaryosu(d_mesafe=d_test, t_end=30.0)
-        r_son_test = float(s_test["r_t"][-1])
-        print(f"    d={d_test:.1f}m: r_son={r_son_test:.3f}")
+    # Dipol r⁻³ locking profili — r_mean kullan (N=2 için anlık snapshot güvenilmez)
+    # Kilit: kappa × V_norm > |Δω| → r_mean → 1.0
+    # Kilit-yok: kappa × V_norm < |Δω| → r_mean → 2/π ≈ 0.64 (N=2 min)
+    print("\n[L15 SANITY locking profili]")
+    from src.core.constants import F_HEART as _FH
+    _Domega = 2 * np.pi * _FH * 0.40
+    for d_test in [0.1, 0.3, 0.5, 0.9, 1.5, 3.0, 5.0]:
+        s_test, _, _ = iki_kisi_senaryosu(d_mesafe=d_test, t_end=60.0)
+        half = len(s_test["r_t"]) // 2
+        r_mean = float(np.mean(s_test["r_t"][half:]))
+        r_var  = float(np.var(s_test["r_t"][half:]))
+        locked = r_mean > 0.90 and r_var < 0.02
+        status = "KILITLI" if locked else "SERBEST"
+        print(f"  d={d_test:.1f}m: r_mean={r_mean:.3f}  var={r_var:.4f}  [{status}]")
+    # Kritik kontrol: HeartMath 0.9m kilitli olmalı
+    s_ref, _, _ = iki_kisi_senaryosu(d_mesafe=0.9, t_end=60.0)
+    half = len(s_ref["r_t"]) // 2
+    r_ref = float(np.mean(s_ref["r_t"][half:]))
+    if r_ref < 0.90:
+        print(f"  [UYARI] d=0.9m r_mean={r_ref:.3f} < 0.90 — HeartMath mesafesi kilitli olmali!")
 
     # Veri kaydet
     np.savez(
