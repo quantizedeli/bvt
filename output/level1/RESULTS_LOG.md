@@ -1,13 +1,13 @@
 # BVT Simülasyon Sonuç Logu
 
 
-## [2026-04-23 23:56] Level 1 — 3D Kalp EM Alan Simülasyonu
+## [2026-04-26 17:11] Level 1 — 3D Kalp EM Alan Simülasyonu
 
 **Parametre seti:**
 - n_r=60, n_theta=60
 - r_max=3.0 m
 
-**Çalışma süresi:** 6.9 saniye
+**Çalışma süresi:** 7.3 saniye
 
 **Önemli bulgular:**
 - r=5cm |B| = 75.0 pT  (SQUID 50-100 pT → ✓)

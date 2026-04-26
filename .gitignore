@@ -23,5 +23,12 @@ Thumbs.db
 .vscode/
 .idea/
 
-# Large binary outputs (MP4)
+# Large binary outputs
 *.mp4
+*.rar
+*.zip
+
+# Logs and temp
+replay_pid*.log
+terminal/
+test_output/
