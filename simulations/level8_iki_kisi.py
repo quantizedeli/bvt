@@ -29,14 +29,12 @@ import numpy as np
 from scipy import integrate
 
 from src.core.constants import (
-    MU_HEART, KAPPA_EFF, N_C_SUPERRADIANCE, HBAR
+    MU_HEART, KAPPA_EFF, N_C_SUPERRADIANCE, HBAR,
+    MU_0, K_B, T_BODY,
 )
 
-MU_0     = 4 * np.pi * 1e-7   # T·m/A
-K_B      = 1.381e-23            # J/K
-T_BODY   = 310.0                # K
-KT       = K_B * T_BODY
-MU_KALP  = 1e-4                 # A·m²
+KT      = K_B * T_BODY
+MU_KALP = MU_HEART   # alias — kalp dipol momenti (A·m²)
 
 
 def dipol_potansiyel(r: np.ndarray) -> np.ndarray:
@@ -338,8 +336,20 @@ def main() -> None:
 
         html_path = os.path.join(args.output, "L8_iki_kisi.html")
         fig_h.write_html(html_path, include_plotlyjs="cdn")
+        try:
+            try:
+                fig_h.update_layout(paper_bgcolor="white", plot_bgcolor="#f0f4f8", font=dict(color="#111111"))
+            except Exception:
+                pass
+            fig_h.write_image(html_path.replace(".html", ".png"))
+        except Exception:
+            pass
         print(f"  HTML: {html_path}")
         try:
+            try:
+                fig_h.update_layout(paper_bgcolor="white", plot_bgcolor="#f0f4f8", font=dict(color="#111111"))
+            except Exception:
+                pass
             fig_h.write_image(
                 os.path.join(args.output, "L8_iki_kisi_plotly.png"),
                 width=1920, height=1080

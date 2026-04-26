@@ -34,7 +34,11 @@ from src.core.constants import (
     ES_MOSSBRIDGE, ES_DUGGAN, HKV_WINDOW_MIN, HKV_WINDOW_MAX,
     C_THRESHOLD, TAU_VAGAL
 )
-from src.models.pre_stimulus import monte_carlo_prestimulus, ef_büyüklüğü_eğrisi
+from src.models.pre_stimulus import (
+    monte_carlo_prestimulus, ef_büyüklüğü_eğrisi,
+    monte_carlo_prestimulus_advanced,
+    monte_carlo_iki_populasyon,
+)
 
 
 def _batch_monte_carlo(args: tuple) -> Dict:
@@ -191,13 +195,16 @@ def main() -> None:
                         help="Çıktı dizini")
     parser.add_argument("--html", action="store_true",
                         help="HTML çıktısı da üret (her zaman üretilir)")
+    parser.add_argument("--advanced-wave", action="store_true",
+                        help="Wheeler-Feynman advanced wave modeli kullan (Katman 1 gerçek dinamik)")
     args = parser.parse_args()
 
     print("=" * 65)
     print("BVT Level 6 — Pre-Stimulus (Hiss-i Kablel Vuku) Monte Carlo")
     print("=" * 65)
+    adv_label = " [advanced-wave MOD]" if args.advanced_wave else ""
     print(f"Parametreler: trials={args.trials}, parallel={args.parallel}, "
-          f"C_mean={args.C_mean}")
+          f"C_mean={args.C_mean}{adv_label}")
     print()
 
     os.makedirs(args.output, exist_ok=True)
@@ -206,13 +213,24 @@ def main() -> None:
     t_start = time.time()
 
     # Monte Carlo
-    print(f"Monte Carlo simülasyonu başlıyor ({args.trials} deneme)...")
-    results = paralel_monte_carlo(
-        total_trials=args.trials,
-        n_workers=args.parallel,
-        C_mean=args.C_mean,
-        C_std=args.C_std
-    )
+    if args.advanced_wave:
+        print(f"Monte Carlo simülasyonu başlıyor (ADVANCED WAVE modu, {args.trials} deneme)...")
+        results = monte_carlo_prestimulus_advanced(
+            n_trials=args.trials,
+            C_mean=args.C_mean,
+            C_std=args.C_std,
+            rng_seed=42,
+        )
+        det_frac = results.get("detection_fraction", 0)
+        print(f"  Advanced wave tespit oranı: {det_frac:.1%}")
+    else:
+        print(f"Monte Carlo simülasyonu başlıyor ({args.trials} deneme)...")
+        results = paralel_monte_carlo(
+            total_trials=args.trials,
+            n_workers=args.parallel,
+            C_mean=args.C_mean,
+            C_std=args.C_std
+        )
 
     elapsed = time.time() - t_start
 
@@ -237,33 +255,51 @@ def main() -> None:
         import matplotlib
         matplotlib.use("Agg")
         import matplotlib.pyplot as plt
+        from scipy.stats import gaussian_kde
 
         fig, axes = plt.subplots(1, 2, figsize=(14, 5))
 
-        # Pre-stimulus dağılımı
-        axes[0].hist(results["prestimulus_times"], bins=40, color="#8E44AD",
-                     alpha=0.7, edgecolor="black", linewidth=0.5)
+        # Pre-stimulus dağılımı + KDE
+        pre_arr = results["prestimulus_times"]
+        axes[0].hist(pre_arr, bins=40, color="#8E44AD",
+                     alpha=0.7, edgecolor="black", linewidth=0.5, density=True)
+        kde_pre = gaussian_kde(pre_arr, bw_method=0.3)
+        x_pre = np.linspace(0, 12, 300)
+        axes[0].plot(x_pre, kde_pre(x_pre), color="#1A1A8C", lw=2.5, label="KDE")
         axes[0].axvline(x=4.8, color="#E67E22", lw=2, linestyle="--",
                         label="HeartMath 4.8s")
         axes[0].axvline(x=results['mean_prestimulus_s'], color="red", lw=2,
-                        label=f"BVT mean={results['mean_prestimulus_s']:.1f}s")
+                        label=f"BVT ort={results['mean_prestimulus_s']:.1f}s")
         axes[0].set_xlabel("Pre-Stimulus Zamani (s)")
-        axes[0].set_ylabel("Siklik")
-        axes[0].set_title("Pre-Stimulus Dagilimi")
-        axes[0].legend()
+        axes[0].set_ylabel("Yogunluk")
+        axes[0].set_title("Pre-Stimulus Dagilimi (KDE)")
+        axes[0].legend(fontsize=9)
 
-        # ES dağılımı — x ekseni 0'dan 0.5'e sabitlendi
-        axes[1].hist(results["effect_sizes"], bins=40, color="#27AE60",
+        # ES dağılımı — x ekseni 0'dan 0.5'e sabitlendi, etiket çakışması giderildi
+        es_arr = results["effect_sizes"]
+        axes[1].hist(es_arr, bins=40, color="#27AE60",
                      alpha=0.7, edgecolor="black", linewidth=0.5)
-        axes[1].axvline(x=ES_MOSSBRIDGE, color="#E67E22", lw=2, linestyle="--",
-                        label=f"Mossbridge ES={ES_MOSSBRIDGE}")
-        axes[1].axvline(x=ES_DUGGAN, color="#2980B9", lw=2, linestyle="--",
-                        label=f"Duggan ES={ES_DUGGAN}")
+        ymax = axes[1].get_ylim()[1] if axes[1].get_ylim()[1] > 0 else 1
+        # Mossbridge çizgisi — üst 1/3
+        axes[1].axvline(x=ES_MOSSBRIDGE, color="#E67E22", lw=2, linestyle="--")
+        axes[1].annotate(f"Mossbridge\nES={ES_MOSSBRIDGE}",
+                         xy=(ES_MOSSBRIDGE, 0), xytext=(ES_MOSSBRIDGE - 0.055, 0.72),
+                         xycoords=("data", "axes fraction"),
+                         textcoords=("data", "axes fraction"),
+                         fontsize=9, color="#E67E22",
+                         arrowprops=dict(arrowstyle="->", color="#E67E22", lw=1.2))
+        # Duggan çizgisi — üst 2/3
+        axes[1].axvline(x=ES_DUGGAN, color="#2980B9", lw=2, linestyle="--")
+        axes[1].annotate(f"Duggan\nES={ES_DUGGAN}",
+                         xy=(ES_DUGGAN, 0), xytext=(ES_DUGGAN + 0.015, 0.55),
+                         xycoords=("data", "axes fraction"),
+                         textcoords=("data", "axes fraction"),
+                         fontsize=9, color="#2980B9",
+                         arrowprops=dict(arrowstyle="->", color="#2980B9", lw=1.2))
         axes[1].set_xlabel("Efekt Buyuklugu ES")
         axes[1].set_ylabel("Siklik")
         axes[1].set_title("ES Dagilimi")
         axes[1].set_xlim(0, 0.50)   # 0-0.5 arasi sabit eksen
-        axes[1].legend()
 
         fig.suptitle("BVT Level 6 -- Pre-Stimulus Monte Carlo", fontsize=13)
         fig.tight_layout()
@@ -326,6 +362,14 @@ def main() -> None:
 
             html_path = os.path.join(args.output, "D1_prestimulus_dist.html")
             fig_html.write_html(html_path, include_plotlyjs="cdn")
+            try:
+                try:
+                    fig_html.update_layout(paper_bgcolor="white", plot_bgcolor="#f0f4f8", font=dict(color="#111111"))
+                except Exception:
+                    pass
+                fig_html.write_image(html_path.replace(".html", ".png"))
+            except Exception:
+                pass
             print(f"  HTML: {html_path}")
         except ImportError:
             print("  [UYARI] Plotly yok -- HTML atlanıyor.")
@@ -359,6 +403,133 @@ def main() -> None:
 
 ---
 """)
+
+    # === YENİ: İKİ POPÜLASYON MODELİ ===
+    try:
+        import matplotlib
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+        from scipy.stats import gaussian_kde
+
+        print("\n=== BVT v4.0 IKI POPULASYON MODELI ===")
+        iki_pop = monte_carlo_iki_populasyon(
+            n_trials=args.trials,
+            frac_koherant=0.3,
+            rng_seed=42,
+        )
+        print(f"Populasyon A (koherant, n={iki_pop['n_A']}):")
+        print(f"  Ortalama pre-stim : {iki_pop['mean_prestim_A']:.2f} s")
+        print(f"  Ortalama ES       : {iki_pop['mean_ES_A']:.3f}")
+        print(f"Populasyon B (normal, n={iki_pop['n_B']}):")
+        print(f"  Ortalama pre-stim : {iki_pop['mean_prestim_B']:.2f} s")
+        print(f"  Ortalama ES       : {iki_pop['mean_ES_B']:.3f}")
+        print(f"KS testi p-degeri   : {iki_pop['kolmogorov_smirnov_p']:.2e}")
+
+        # D2 — 4 panel
+        fig2, axs = plt.subplots(2, 2, figsize=(14, 10))
+        colors_A, colors_B = "#2ecc71", "#3498db"
+
+        ax = axs[0, 0]
+        ax.hist(iki_pop["prestimulus_times_A"], bins=40, color=colors_A, alpha=0.75, edgecolor="#145a32")
+        ax.axvline(iki_pop["mean_prestim_A"], color="red", linestyle="--",
+                   label=f"BVT A ort = {iki_pop['mean_prestim_A']:.2f}s")
+        ax.axvline(4.8, color="orange", linestyle=":", label="HeartMath 4.8s")
+        ax.set_xlabel("Pre-Stimulus Zamani (s)")
+        ax.set_ylabel("Siklik")
+        ax.set_title(f"Populasyon A — Koherant (n={iki_pop['n_A']}, C~0.65)", fontweight="bold")
+        ax.legend(); ax.set_xlim(0, 10)
+        ax.set_facecolor("white")
+
+        ax = axs[0, 1]
+        ax.hist(iki_pop["prestimulus_times_B"], bins=40, color=colors_B, alpha=0.75, edgecolor="#1b4f72")
+        ax.axvline(iki_pop["mean_prestim_B"], color="red", linestyle="--",
+                   label=f"BVT B ort = {iki_pop['mean_prestim_B']:.2f}s")
+        ax.axvline(4.8, color="orange", linestyle=":", label="HeartMath 4.8s")
+        ax.set_xlabel("Pre-Stimulus Zamani (s)")
+        ax.set_ylabel("Siklik")
+        ax.set_title(f"Populasyon B — Normal (n={iki_pop['n_B']}, C~0.25)", fontweight="bold")
+        ax.legend(); ax.set_xlim(0, 10)
+        ax.set_facecolor("white")
+
+        ax = axs[1, 0]
+        ax.hist(iki_pop["effect_sizes_A"], bins=30, color=colors_A, alpha=0.6,
+                label=f"Pop A (ort={iki_pop['mean_ES_A']:.3f})")
+        ax.hist(iki_pop["effect_sizes_B"], bins=30, color=colors_B, alpha=0.6,
+                label=f"Pop B (ort={iki_pop['mean_ES_B']:.3f})")
+        ax.axvline(0.21, color="orange", linestyle=":", label="Mossbridge 0.21")
+        ax.axvline(0.28, color="red", linestyle=":", label="Duggan 0.28")
+        ax.set_xlabel("Efekt Buyuklugu (ES)")
+        ax.set_title("ES Dagilimi — Iki Populasyon", fontweight="bold")
+        ax.legend()
+        ax.set_facecolor("white")
+
+        ax = axs[1, 1]
+        karma = np.concatenate([iki_pop["prestimulus_times_A"], iki_pop["prestimulus_times_B"]])
+        ax.hist(karma, bins=50, color="purple", alpha=0.55, edgecolor="black", density=True,
+                label="Karma histogram")
+        # KDE — iki mod ortaya çıkar
+        kde_karma = gaussian_kde(karma, bw_method=0.25)
+        x_k = np.linspace(0, 10, 400)
+        ax.plot(x_k, kde_karma(x_k), color="#1A1A8C", lw=2.5, label="KDE (iki mod)")
+        # A/B ayrı KDE'leri
+        kde_A = gaussian_kde(iki_pop["prestimulus_times_A"], bw_method=0.3)
+        kde_B = gaussian_kde(iki_pop["prestimulus_times_B"], bw_method=0.3)
+        ax.plot(x_k, kde_A(x_k) * 0.3, color=colors_A, lw=1.5, linestyle="--",
+                alpha=0.7, label=f"Pop A KDE (×0.3)")
+        ax.plot(x_k, kde_B(x_k) * 0.7, color=colors_B, lw=1.5, linestyle="--",
+                alpha=0.7, label=f"Pop B KDE (×0.7)")
+        ax.axvline(np.mean(karma), color="red", linestyle="--",
+                   label=f"Karma ort = {np.mean(karma):.2f}s")
+        ax.axvline(4.8, color="orange", linestyle=":", label="HeartMath 4.8s")
+        ax.set_xlabel("Pre-Stimulus Zamani (s)")
+        ax.set_title("Karma Populasyon — KDE iki mod gosteriyor", fontweight="bold")
+        ax.legend(fontsize=8); ax.set_xlim(0, 10)
+        ax.set_facecolor("white")
+
+        fig2.patch.set_facecolor("white")
+        fig2.suptitle(
+            f"BVT v4.0 — HKV Iki Populasyon Modeli\n"
+            f"KS test p = {iki_pop['kolmogorov_smirnov_p']:.2e} "
+            f"(iki dagilim istatistiksel olarak ayrik)",
+            fontsize=13, fontweight="bold",
+        )
+        plt.tight_layout()
+        d2_path = os.path.join(args.output, "D2_iki_populasyon_prestim.png")
+        fig2.savefig(d2_path, dpi=150, bbox_inches="tight")
+        plt.close(fig2)
+        print(f"  D2 PNG: {d2_path}")
+
+        # D3 — scatter
+        fig3, ax3 = plt.subplots(figsize=(10, 7))
+        ax3.set_facecolor("white")
+        fig3.patch.set_facecolor("white")
+        ax3.scatter(iki_pop["C_A"], iki_pop["prestimulus_times_A"],
+                    s=25, c=colors_A, alpha=0.6, label=f"Populasyon A (n={iki_pop['n_A']})")
+        ax3.scatter(iki_pop["C_B"], iki_pop["prestimulus_times_B"],
+                    s=25, c=colors_B, alpha=0.6, label=f"Populasyon B (n={iki_pop['n_B']})")
+        ax3.axvline(0.3, color="red", linestyle="--", label="C0 = 0.3 (kapi esigi)")
+        ax3.axhline(4.8, color="orange", linestyle=":", label="HeartMath 4.8s")
+        ax3.set_xlabel("Koherans C", fontsize=12)
+        ax3.set_ylabel("Pre-Stimulus Zamani (s)", fontsize=12)
+        ax3.set_title("BVT Ongorusu: Koherans-Bagiml Pre-Stimulus Penceresi",
+                      fontsize=13, fontweight="bold")
+        ax3.legend(); ax3.grid(alpha=0.3); ax3.set_ylim(0, 10)
+        d3_path = os.path.join(args.output, "D3_C_vs_prestim_scatter.png")
+        fig3.savefig(d3_path, dpi=150, bbox_inches="tight")
+        plt.close(fig3)
+        print(f"  D3 PNG: {d3_path}")
+
+        # Veri kaydet
+        npz_path = os.path.join(args.output, "iki_populasyon_data.npz")
+        np.savez(npz_path,
+                 C_A=iki_pop["C_A"], C_B=iki_pop["C_B"],
+                 prestim_A=iki_pop["prestimulus_times_A"],
+                 prestim_B=iki_pop["prestimulus_times_B"],
+                 ES_A=iki_pop["effect_sizes_A"], ES_B=iki_pop["effect_sizes_B"])
+        print(f"  NPZ: {npz_path}")
+
+    except Exception as e:
+        print(f"  [UYARI] Iki populasyon figuru uretilirken hata: {e}")
 
     print(f"\n{'=' * 65}")
     print(f"Level 6 tamamlandı: {elapsed/60:.1f} dakika")

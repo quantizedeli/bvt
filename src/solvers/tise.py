@@ -10,7 +10,7 @@ Kritik sayısal bulgu:
 Kullanım:
     from src.solvers.tise import tise_coz, kritik_geçiş_bul
 """
-from typing import Tuple, Dict
+from typing import Tuple, Dict, Optional
 import numpy as np
 from scipy.linalg import eigh
 
