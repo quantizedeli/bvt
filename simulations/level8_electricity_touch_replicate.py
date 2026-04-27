@@ -35,7 +35,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-from src.core.constants import KAPPA_EFF, F_HEART, OMEGA_HEART, OMEGA_SPREAD_DEFAULT
+from src.core.constants import KAPPA_EFF, F_HEART, OMEGA_HEART, OMEGA_SPREAD_DEFAULT, C_THRESHOLD, BETA_GATE
 
 
 T_BASELINE = 60.0    # 1 dk (temas yok)
@@ -67,44 +67,44 @@ def simulate_two_person_touch(
     rng = np.random.default_rng(rng_seed)
 
     if subject_A_coherent:
-        C_A = float(rng.uniform(0.72, 0.88))   # Heart Lock-In
-        sigma_A = 0.0023 * 2 * np.pi            # rad/s — dar bant
+        C_val = float(rng.uniform(0.72, 0.88))   # Heart Lock-In
+        sigma_A = 0.0023 * 2 * np.pi             # rad/s — dar bant
     else:
-        C_A = float(rng.uniform(0.22, 0.38))
+        C_val = float(rng.uniform(0.10, 0.26))   # Normal mod: her zaman C < C_THRESHOLD
         sigma_A = 0.053 * 2 * np.pi
 
-    C_B = float(rng.uniform(0.22, 0.38))
     sigma_B = 0.053 * 2 * np.pi
-
     omega_spread = (sigma_A + sigma_B) / 2
 
-    C_init = np.array([C_A, C_B])
+    # BVT: gamma_dec=0 → C sabit kalır (Heart Lock-In koheransı korunur)
+    # Tüm fazlar boyunca aynı C_init kullanılır; C_init=[C_val, C_val] ile diff_C=0 → dC=0
+    C_init = np.array([C_val, C_val])
 
     # Faz 1: Baseline (mesafe büyük → kuplaj ihmal edilebilir)
     bl = kuramoto_bvt_coz(
         N=2, K=KAPPA_EFF * 0.005, omega_spread=omega_spread,
-        C_init=C_init, t_end=T_BASELINE, n_points=N_POINTS_BL,
+        C_init=C_init, gamma_dec=0.0, t_end=T_BASELINE, n_points=N_POINTS_BL,
         rng_seed=rng_seed
     )
 
-    # Faz 2: Temas (mesafe ≈ 0 → tam kuplaj)
+    # Faz 2: Temas (mesafe ≈ 0 → tam kuplaj; C sabit kalır)
     contact = kuramoto_bvt_coz(
         N=2, K=KAPPA_EFF, omega_spread=omega_spread,
-        C_init=bl["C_t"][-1], t_end=T_CONTACT, n_points=N_POINTS_CT,
+        C_init=C_init, gamma_dec=0.0, t_end=T_CONTACT, n_points=N_POINTS_CT,
         rng_seed=rng_seed + 1
     )
 
     # Faz 3: Post-temas (mesafe büyük yeniden)
     post = kuramoto_bvt_coz(
         N=2, K=KAPPA_EFF * 0.005, omega_spread=omega_spread,
-        C_init=contact["C_t"][-1], t_end=T_POST, n_points=N_POINTS_PT,
+        C_init=C_init, gamma_dec=0.0, t_end=T_POST, n_points=N_POINTS_PT,
         rng_seed=rng_seed + 2
     )
 
     return {
         "coherent": subject_A_coherent,
-        "C_A_init": C_A,
-        "C_B_init": C_B,
+        "C_A_init": C_val,
+        "C_B_init": C_val,
         "bl_r_mean": float(bl["r_t"].mean()),
         "contact_r_mean": float(contact["r_t"].mean()),
         "post_r_mean": float(post["r_t"].mean()),
@@ -148,7 +148,9 @@ def run_comparison(n_reps: int = 10, rng_seed: int = 42) -> dict:
     c_gain = np.mean((c_contact - c_bl) / np.maximum(c_bl, 1e-6))
     n_gain = np.mean((n_contact - n_bl) / np.maximum(n_bl, 1e-6))
 
-    contrast = c_gain / max(abs(n_gain), 1e-4) if n_gain != 0 else float("inf")
+    # McCraty 1998: temas anındaki senkronizasyon oranı (koherant / normal)
+    # Bölme tabanlı: c_gain/abs(n_gain) n_gain≈0 iken kararsız → orantısal karşılaştırma
+    contrast = float(np.mean(c_contact)) / max(float(np.mean(n_contact)), 1e-3)
 
     return {
         "coherent_contact_r": float(np.mean(c_contact)),

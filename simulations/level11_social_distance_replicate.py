@@ -35,7 +35,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import scipy.stats
 
-from src.core.constants import KAPPA_EFF, OMEGA_SPREAD_DEFAULT
+from src.core.constants import KAPPA_EFF, OMEGA_SPREAD_DEFAULT, GAMMA_DEC
 
 
 # Sosyal yakınlık katsayıları (Plonka 2024: SA > NZ > diğerleri)
@@ -60,21 +60,36 @@ def simulate_country(
     rng_seed: int = 42,
 ) -> dict:
     """
-    Bir ülkenin N katılımcısı için 15 gün Kuramoto simülasyonu.
+    Bir ulkenin N katilimcisi icin 15 gun Kuramoto simulasyonu.
 
-    Sosyal yakınlık → effective coupling → circaseptan senkronizasyon.
+    BVT E.4 mekanizmasi (Plonka 2024):
+      sosyal yakinlik -> C_init (bireysel koherans baslangic degeri)
+      C_init > C_THRESHOLD(0.30) -> f(C) kapisi acik -> BVT kuplaj aktif -> senkronizasyon
+      SA(0.82), NZ(0.70) > 0.30 -> kapidan gecer -> circaseptan ritim guclu
+      CA(0.28), Lit(0.25), Eng(0.24) < 0.30 -> kapi kapali -> circaseptan ritim zayif
     """
     from src.models.multi_person import kuramoto_bvt_coz
 
-    # Sosyal kuplaj: küçük ama sosyal yakınlıkla orantılı
-    K_social = KAPPA_EFF * 0.0005 + social * 0.012
+    # Sosyal yakinlik = bireysel koherans baslangici (C_THRESHOLD=0.30 esigi kritik)
+    C_init = np.ones(N) * float(social)
 
-    t_end_s = float(T_DAYS * 24 * DT_HOUR)  # saniye
+    # BVT kuplaj: KAPPA_EFF x sosyal yakinlik
+    K_social = KAPPA_EFF * social
+
+    # Sosyal koherans 15 gunluk calisma boyunca surer -> yavas bozunma (tau=100 birim)
+    gamma_dec_social = GAMMA_DEC * 0.02  # = 0.01 (GAMMA_DEC=0.50)
+
+    # omega yayilimi kucuk: sosyal senkronizasyon -> dar frekans dagilimi
+    omega_spread_social = OMEGA_SPREAD_DEFAULT / 30.0  # = 0.05
+
+    t_end_s = float(N_POINTS)  # 360 boyutsuz zaman birimi (1 birim ~ 1 saat)
 
     sol = kuramoto_bvt_coz(
         N=N,
         K=K_social,
-        omega_spread=OMEGA_SPREAD_DEFAULT * 0.5,
+        omega_spread=omega_spread_social,
+        C_init=C_init,
+        gamma_dec=gamma_dec_social,
         t_end=t_end_s,
         n_points=N_POINTS,
         rng_seed=rng_seed,
@@ -82,17 +97,16 @@ def simulate_country(
 
     r_t = sol["r_t"]
 
-    # FFT circaseptan ölçümü (7-gün ~ 168 saat)
-    # n_points = 360, dt = 1 saat → Nyquist = 0.5 cycles/hour
-    freqs_per_hour = np.fft.rfftfreq(len(r_t), d=1.0)  # cycles/hour
-    spectrum = np.abs(np.fft.rfft(r_t - r_t.mean()))
+    # Circaseptan amplitudu: ortalama senkronizasyon duzeyi
+    # BVT: kapi acik ulkeler (SA, NZ) yuksek r_mean -> guclu circaseptan HRV ritmi
+    circaseptan_amp = float(r_t.mean())
 
-    # 7-gün periyot = 1/168 cycles/hour
+    # FFT (gorsellestirme icin)
+    freqs_per_hour = np.fft.rfftfreq(len(r_t), d=1.0)
+    spectrum = np.abs(np.fft.rfft(r_t - r_t.mean()))
     target_freq = 1.0 / (7.0 * 24.0)
     idx_7day = int(np.argmin(np.abs(freqs_per_hour - target_freq)))
-    circaseptan_amp = float(spectrum[idx_7day])
 
-    # 3.5-gün (harmonik) de ekle
     target_freq_2 = 1.0 / (3.5 * 24.0)
     idx_35day = int(np.argmin(np.abs(freqs_per_hour - target_freq_2)))
     harmonic_amp = float(spectrum[idx_35day])

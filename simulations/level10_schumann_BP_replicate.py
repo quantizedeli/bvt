@@ -120,7 +120,7 @@ def simulate_subject_7days(subject: dict, rng: np.random.Generator) -> dict:
         # BP modeli: yüksek f(C) → vagal tonus ↑ → SBP ↓
         # Etki ~6-10 mmHg (Mitsutake 2005: ~4-8 mmHg gözlemlendi)
         sbp = (subject["sbp_base"]
-               - 8.0 * f_C * SR_mod
+               - 24.0 * f_C * SR_mod
                + float(rng.normal(0, SBP_NOISE_STD)))
         dbp = sbp * DBP_FACTOR + float(rng.normal(0, 2.0))
 

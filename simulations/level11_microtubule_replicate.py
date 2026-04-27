@@ -231,7 +231,7 @@ def plot_results(
     return out_path
 
 
-def run(output_dir: str = None) -> dict:
+def run(output_dir: str = None, rng_seed: int = 42) -> dict:
     """Ana çalıştırma — dış çağrı için."""
     if output_dir is None:
         output_dir = os.path.join(
