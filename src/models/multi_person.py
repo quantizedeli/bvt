@@ -19,7 +19,171 @@ from typing import Tuple, Dict
 import numpy as np
 from scipy.integrate import solve_ivp
 
-from src.core.constants import N_C_SUPERRADIANCE, KAPPA_EFF, GAMMA_DEC
+from src.core.constants import (
+    N_C_SUPERRADIANCE, KAPPA_EFF, GAMMA_DEC,
+    C_THRESHOLD, BETA_GATE, OMEGA_HEART, OMEGA_SPREAD_DEFAULT,
+)
+
+
+def coherence_gate(C, C_0=None, beta=None):
+    """
+    BVT Koherans Kapısı f(Ĉ) — Denklem 16.3.
+
+    f(C) = 0                          C <= C_0
+    f(C) = ((C-C_0)/(1-C_0))^beta    C > C_0
+
+    Referans: BVT_Makale, Denklem 16.3.
+    """
+    if C_0 is None:
+        C_0 = C_THRESHOLD
+    if beta is None:
+        beta = BETA_GATE
+    C = np.asarray(C, dtype=float)
+    above = C > C_0
+    f = np.zeros_like(C)
+    f[above] = ((C[above] - C_0) / (1.0 - C_0)) ** beta
+    return np.clip(f, 0.0, 1.0)
+
+
+def _kuramoto_bvt_ode(t, y, omega_arr, K, gamma_dec, N, C_0, beta):
+    """BVT-Kuramoto iç ODE — faz + koherans çift dinamiği (2N boyutlu)."""
+    theta = y[:N]
+    C = y[N:]
+    f_C = coherence_gate(C, C_0, beta)
+
+    diff_theta = theta[np.newaxis, :] - theta[:, np.newaxis]
+    coupling_phase = (K / N) * f_C * np.sum(np.sin(diff_theta), axis=1)
+    dtheta = omega_arr + coupling_phase
+
+    diff_C = C[np.newaxis, :] - C[:, np.newaxis]
+    coupling_C = (K / N) * f_C * np.sum(diff_C, axis=1)
+    dC = -gamma_dec * C + coupling_C
+
+    return np.concatenate([dtheta, dC])
+
+
+def kuramoto_bvt_coz(
+    N: int = 20,
+    K: float = None,
+    omega_spread: float = None,
+    C_init: np.ndarray = None,
+    C_0: float = None,
+    beta: float = None,
+    gamma_dec: float = None,
+    t_end: float = 60.0,
+    n_points: int = 600,
+    rng_seed: int = 42,
+) -> dict:
+    """
+    BVT-uyumlu Kuramoto çözücü (f(Ĉ) koherans kapısı dahil).
+
+    State: y = [θ_1,...,θ_N, C_1,...,C_N]  (2N boyut)
+
+    Referans: BVT_Makale, Bölüm 4.4; v9.2.1 FAZ B.1.
+    """
+    if K is None:
+        K = KAPPA_EFF
+    if omega_spread is None:
+        omega_spread = OMEGA_SPREAD_DEFAULT
+    if C_0 is None:
+        C_0 = C_THRESHOLD
+    if beta is None:
+        beta = BETA_GATE
+    if gamma_dec is None:
+        gamma_dec = GAMMA_DEC
+
+    rng = np.random.default_rng(rng_seed)
+    omega_arr = rng.normal(OMEGA_HEART, omega_spread, N)
+    theta0 = rng.uniform(0, 2 * np.pi, N)
+    if C_init is None:
+        C_init = rng.uniform(0.15, 0.40, N)
+    y0 = np.concatenate([theta0, np.asarray(C_init, dtype=float)])
+
+    t_eval = np.linspace(0, t_end, n_points)
+    sol = solve_ivp(
+        _kuramoto_bvt_ode, (0, t_end), y0, t_eval=t_eval,
+        args=(omega_arr, K, gamma_dec, N, C_0, beta),
+        method="RK45", rtol=1e-6,
+    )
+
+    theta_t = sol.y[:N].T
+    C_t = sol.y[N:].T
+    r_t = np.abs(np.mean(np.exp(1j * theta_t), axis=1))
+
+    return {
+        "t": sol.t,
+        "theta_t": theta_t,
+        "C_t": C_t,
+        "r_t": r_t,
+        "C_mean_t": C_t.mean(axis=1),
+        "f_C_mean": coherence_gate(C_t.mean(axis=1)),
+    }
+
+
+def _kuramoto_bvt_super_ode(t, y, omega_arr, K, gamma_dec, N, C_0, beta, n_critical):
+    """BVT-Kuramoto + Süperradyans kooperatif dayanıklılığı (Celardo 2014)."""
+    theta = y[:N]
+    C = y[N:]
+    f_C = coherence_gate(C, C_0, beta)
+
+    N_active = int(np.sum(f_C > 0.5))
+    if N_active < n_critical:
+        gamma_eff = gamma_dec / max(np.sqrt(max(N_active, 1)), 1)
+    else:
+        gamma_eff = gamma_dec / N_active
+
+    diff_theta = theta[np.newaxis, :] - theta[:, np.newaxis]
+    coupling_phase = (K / N) * f_C * np.sum(np.sin(diff_theta), axis=1)
+    dtheta = omega_arr + coupling_phase
+
+    diff_C = C[np.newaxis, :] - C[:, np.newaxis]
+    dC = -gamma_eff * C + (K / N) * f_C * np.sum(diff_C, axis=1)
+
+    return np.concatenate([dtheta, dC])
+
+
+def kuramoto_bvt_super_coz(
+    N: int = 20,
+    K: float = None,
+    gamma_dec: float = None,
+    t_end: float = 60.0,
+    n_points: int = 600,
+    rng_seed: int = 42,
+) -> dict:
+    """
+    BVT-Kuramoto + Süperradyans gain dinamiği (Celardo 2014 kooperatif dayanıklılık).
+
+    Referans: BVT_Makale, Bölüm 11; Celardo et al. 2014; v9.2.1 FAZ B.2.
+    """
+    if K is None:
+        K = KAPPA_EFF
+    if gamma_dec is None:
+        gamma_dec = GAMMA_DEC
+
+    rng = np.random.default_rng(rng_seed)
+    omega_arr = rng.normal(OMEGA_HEART, OMEGA_SPREAD_DEFAULT, N)
+    theta0 = rng.uniform(0, 2 * np.pi, N)
+    C_init = rng.uniform(0.15, 0.40, N)
+    y0 = np.concatenate([theta0, C_init])
+
+    t_eval = np.linspace(0, t_end, n_points)
+    sol = solve_ivp(
+        _kuramoto_bvt_super_ode, (0, t_end), y0, t_eval=t_eval,
+        args=(omega_arr, K, gamma_dec, N, C_THRESHOLD, BETA_GATE, N_C_SUPERRADIANCE),
+        method="RK45", rtol=1e-6,
+    )
+
+    theta_t = sol.y[:N].T
+    C_t = sol.y[N:].T
+    r_t = np.abs(np.mean(np.exp(1j * theta_t), axis=1))
+
+    return {
+        "t": sol.t,
+        "theta_t": theta_t,
+        "C_t": C_t,
+        "r_t": r_t,
+        "C_mean_t": C_t.mean(axis=1),
+    }
 
 
 def kuramoto_ode(

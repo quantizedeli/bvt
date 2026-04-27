@@ -171,6 +171,28 @@ def muzik_bonus_hesapla(frekans_hz: float) -> float:
     return temel + ikincil
 
 
+def muzik_bonus_hesapla_v2(
+    frekans_hz: float,
+    SPL_dB: float = 70.0,
+    mesafe_m: float = 2.0,
+    oda_hacmi_m3: float = 30.0,
+    sure_dakika: float = 15.0,
+    grup_kaynak: bool = False,
+) -> float:
+    """
+    BVT v9.2 genişletilmiş ses fiziği bonus (SPL + mesafe + hacim + süre + grup).
+
+    Referans: v9.2.1 FAZ C.3.
+    """
+    rezonans = _frekans_koherans_bonusu(frekans_hz)
+    spl_etki = 10 ** ((SPL_dB - 50) / 20)
+    mesafe_etki = (1.0 / max(mesafe_m, 0.1)) ** 2
+    hacim_etki = 1.0 + 5.0 / max(oda_hacmi_m3, 1)
+    sure_etki = np.log1p(sure_dakika / 5.0)
+    grup_etki = 1.5 if grup_kaynak else 1.0
+    return rezonans * spl_etki * mesafe_etki * hacim_etki * sure_etki * grup_etki
+
+
 def frekans_grup_koherans_etkisi(
     frekans_hz: float,
     N: int = 11,

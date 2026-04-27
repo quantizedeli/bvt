@@ -46,10 +46,10 @@ TUTARLILIK_KONTROL = {
             ("F_HEART",          F_HEART,         0.1,      1e-6,  "HeartMath HRV"),
             ("F_S1",             F_S1,             7.83,     0.01,  "Schumann 1. mod"),
             ("F_ALPHA",          F_ALPHA,          10.0,     0.1,   "Beyin alfa bandı"),
-            ("KAPPA_EFF",        KAPPA_EFF,        21.9,     0.5,   "HeartMath kalibrasyon"),
+            ("KAPPA_EFF",        KAPPA_EFF,        5.0,      0.5,   "HeartMath kalibrasyon v9.2"),
             ("G_EFF",            G_EFF,            5.06,     0.1,   "TISE türetimi"),
-            ("N_C_SUPERRADIANCE",N_C_SUPERRADIANCE,11,       0.5,   "Literatür N_c"),
-            ("MU_HEART",         MU_HEART,         1e-4,     1e-6,  "MCG ölçümleri"),
+            ("N_C_SUPERRADIANCE",N_C_SUPERRADIANCE,10,       0.5,   "γ/κ formülü v9.2"),
+            ("MU_HEART",         MU_HEART,         1e-5,     1e-7,  "MCG ölçümleri v9.2"),
             ("Q_HEART",          Q_HEART,          21.7,     0.5,   "HeartMath Q faktörü"),
             ("Q_S1",             Q_S1,             4.0,      0.1,   "GCI Schumann Q"),
             ("ES_MOSSBRIDGE",    ES_MOSSBRIDGE,    0.21,     0.01,  "Mossbridge 2012"),
@@ -60,7 +60,7 @@ TUTARLILIK_KONTROL = {
     "Level 1 — EM 3D": {
         "aciklama": "Kalp dipol 3D alan hesabı",
         "kontroller": [
-            ("mu_heart_order",   np.log10(MU_HEART), -4.0, 0.01, "Dipol momenti 10^-4"),
+            ("mu_heart_order",   np.log10(MU_HEART), -5.0, 0.01, "Dipol momenti 10^-5 v9.2"),
             ("alan_eksik_kural", 3.0, 3.0, 0.0, "B ∝ r^-3 üs"),
         ],
     },

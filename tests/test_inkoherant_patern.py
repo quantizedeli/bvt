@@ -12,6 +12,7 @@ import os
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from src.core.constants import MU_HEART
 from src.models.multi_person_em_dynamics import (
     kisiler_yerlestir,
     dipol_moment_zaman,
@@ -46,7 +47,7 @@ def _inkoherant_alan_rastgele(t: float, n_sub: int = 50, grid_n: int = 20,
     cy_arr = rng.uniform(-0.05, 0.05, n_sub)
 
     B_total = np.zeros((grid_n, grid_n))
-    mu_sub  = 1e-4 * 0.15
+    mu_sub  = MU_HEART * 0.15
     for phi, a, cx, cy in zip(phases, amps, cx_arr, cy_arr):
         R = np.sqrt((Xg - cx)**2 + (Yg - cy)**2) + 0.03
         B = MU_0_4PI * mu_sub * np.cos(2 * np.pi * 0.1 * t + phi) / R**3

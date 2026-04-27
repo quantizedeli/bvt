@@ -28,10 +28,44 @@ import numpy as np
 
 from src.core.constants import (
     TAU_SCH_HEART, TAU_VAGAL, TAU_AMIG, TAU_PFC,
+    TAU_HRV_SIGNAL,
     HKV_WINDOW_MIN, HKV_WINDOW_MAX,
     ES_MOSSBRIDGE, ES_DUGGAN,
     C_THRESHOLD, BETA_GATE
 )
+
+
+def pre_stimulus_5_layer_ode(t, y, B_s_modulation_func, C_value):
+    """
+    BVT Hiss-i Kablel Vuku 5-Katman ODE — Tablo 9.4.1.
+
+    State: y = [B_eff, hrv, vagal, amyg, pfc]
+
+    Aşamalar:
+      0→1: Ψ_Sonsuz → kalp EM (f(C) kapısı)
+      1→2: Kalp EM → HRV (τ ≈ 0.75s)
+      2→3: HRV → vagal (τ ≈ 1.0s)
+      3→4: Vagal → amigdala (τ ≈ 1.5s)
+      4→5: Amigdala → PFC (τ ≈ 3.0s)
+
+    Referans: BVT_Makale, Tablo 9.4.1; v9.2.1 FAZ B.3.
+    """
+    from src.models.multi_person import coherence_gate
+    B_eff, hrv, vagal, amyg, pfc = y
+    f_C = float(coherence_gate(np.array([C_value]))[0])
+
+    delta_B = B_s_modulation_func(t) * f_C
+    dB_eff = -B_eff + delta_B
+
+    dhrv = (-hrv + B_eff) / TAU_HRV_SIGNAL
+
+    dvagal = (-vagal + hrv) / 1.0
+
+    damyg = (-amyg + vagal) / TAU_AMIG
+
+    dpfc = (-pfc + amyg) / TAU_PFC
+
+    return [dB_eff, dhrv, dvagal, damyg, dpfc]
 
 
 def hkv_gecikme_bütçesi() -> Dict[str, float]:

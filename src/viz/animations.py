@@ -153,7 +153,7 @@ def animasyon_kalp_koherant_vs_inkoherant(
         cy_arr = rng_f.uniform(-0.05, 0.05, n_sub)
 
         B_total = np.zeros((grid_n, grid_n))
-        mu_sub  = 1e-4 * 0.15  # C=0.15 ile ölçekli
+        mu_sub  = MU_HEART * 0.15  # C=0.15 ile ölçekli
         for phi, a, cx, cy in zip(phases, amps, cx_arr, cy_arr):
             R = np.sqrt((Xg - cx)**2 + (Yg - cy)**2) + 0.03
             B = MU_0_4PI * mu_sub * np.cos(2 * np.pi * 0.1 * t_val + phi) / R**3

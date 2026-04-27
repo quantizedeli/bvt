@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Proje:** Birliğin Varlığı Teoremi (BVT) / Theorem of the Unity of Existence  
 **Yazar:** Ahmet Kemal Acar | **Güncelleme:** Nisan 2026  
-**Durum:** Aktif geliştirme — TODO v9 aktif (MP4 pipeline + Plotly Dash + fizik hataları)
+**Durum:** v9.2.1 TAMAMLANDI — Kalibrasyon + ODE entegrasyon + Validation + 5 referans reprodüksiyon
 
 ---
 
@@ -18,7 +18,13 @@ kavramlarının kuantum mekaniksel karşılığını kurar.
 
 **Ana tez: COHERENCE ⟹ UNITY**
 
-**Aktif görev takibi:** `BVT_ClaudeCode_TODO_v9.md` — MP4 pipeline (FAZ A), Plotly Dash (FAZ B), fizik düzeltmeleri (FAZ C), kritik grafikler (FAZ D), makale şekilleri (FAZ E), temizlik (FAZ F).
+**v9.2.1 tamamlandı (Nisan 2026):**
+- FAZ A: Sayısal kalibrasyon (KAPPA_EFF=5.0, MU_HEART=1e-5, GAMMA_DEC=0.50)
+- FAZ B: BVT denklemleri ODE'ye entegre (coherence_gate, kuramoto_bvt_coz, pre_stimulus_5_layer_ode)
+- FAZ C: Validation matrisi (16 öngörü), TISE 729-boyut doğrulama, ses fiziği
+- FAZ D: 5 referans makale reprodüksiyonu (Sharika, McCraty, Celardo, Mossbridge, Timofejeva)
+
+**Aktif görev takibi:** `BVT_ClaudeCode_TODO_v9.2.1.md`
 
 ---
 
@@ -128,7 +134,12 @@ bvt_project/
 │       └── mp4_exporter.py    ← 3-yöntem MP4 üretici (matplotlib/imageio/CLI)
 ├── simulations/
 │   ├── level1_em_3d.py ... level18_rem_pencere.py
-│   └── uret_zaman_em_dalga.py
+│   ├── uret_zaman_em_dalga.py
+│   ├── level11_sharika_replicate.py   ← Sharika 2024 PNAS (FAZ D.1)
+│   ├── level6_mccraty_protocol.py     ← McCraty 2004 pre-stimulus ERP (FAZ D.2)
+│   ├── level11_celardo_replicate.py   ← Celardo 2014 halka süperradyans (FAZ D.3)
+│   ├── level6_mossbridge_replicate.py ← Mossbridge 2012 meta-analiz (FAZ D.4)
+│   └── level10_timofejeva_replicate.py← Timofejeva 2021 küresel HLI (FAZ D.5)
 ├── bvt_dashboard/             ← YENİ — Plotly Dash (Marimo yerine)
 │   ├── app.py                 ← Ana Dash app, `python bvt_dashboard/app.py`
 │   ├── README.md
@@ -137,12 +148,18 @@ bvt_project/
 ├── scripts/
 │   ├── mp4_olustur.py         ← 5 kritik MP4 (Rabi, Lindblad, EM, Halka, Domino)
 │   ├── fig_kuantum_sehpa.py   ← 4-ayak deneysel sehpa şekli
+│   ├── bvt_validation_matrix.py  ← 16 öngörü vs kod (v9.2.1 FAZ C.1)
+│   ├── tise_729_validate.py   ← TISE 729-boyut bağımsız doğrulama (FAZ C.2)
+│   ├── reproduction_report.py ← 5 referans reprodüksiyon raporu (FAZ D.6)
+│   ├── v92_constants_test.py  ← v9.2 kalibrasyon doğrulama (FAZ A.6)
 │   ├── bvt_literatur_karsilastirma.py
 │   └── bvt_bolum14_mt_sentez.py
 ├── output/
 │   ├── level{N}/              ← Her faz çıktıları
 │   ├── html/                  ← Plotly HTML şekilleri
 │   ├── animations/            ← HTML + GIF + MP4 (≥3 MP4 hedef)
+│   ├── validation/            ← BVT_validation_matrix.png, BVT_validation_report.md
+│   ├── replications/          ← 5 referans reprodüksiyon grafikler + rapor
 │   └── RESULTS_LOG.md
 ├── tests/                     ← 155 test (149 geçiyor, 6 eski hata)
 ├── data/literature_values.json
@@ -179,14 +196,17 @@ Korteks α → Beyin EM → Sch faz kilit → Sch mod amplif → η geri besleme
 
 | Sabit (constants.py) | Değer | Kaynak |
 |---|---|---|
-| F_HEART | 0.1 Hz | HeartMath |
+| F_HEART | 0.1 Hz | HeartMath (HRV koherans, kalp atışı DEĞİL) |
 | F_S1 | 7.83 Hz | GCI |
-| KAPPA_EFF | 21.9 rad/s | HeartMath kalibrasyon |
+| KAPPA_EFF | **5.0 rad/s** | v9.2 kalibrasyon (eski 21.9 DEĞİL) |
 | G_EFF | 5.06 rad/s | TISE türetimi |
+| GAMMA_DEC | **0.50 s⁻¹** | v9.2 (γ/κ = N_c=10 formülü ile tutarlı) |
+| OMEGA_SPREAD_DEFAULT | **1.5 rad/s** | v9.2 (HRV varyans, eski 0.5 DEĞİL) |
 | Q_HEART / Q_S1 | 21.7 / 4.0 | HeartMath / GCI |
-| N_C_SUPERRADIANCE | 11 kişi | Literatür |
+| N_C_SUPERRADIANCE | **10 kişi** | int(GAMMA_DEC/KAPPA_EFF×100) formülü |
 | GAMMA_K / GAMMA_B | 0.01 / 1.0 s⁻¹ | Lindblad |
-| MU_HEART / MU_BRAIN | 10⁻⁴ / 10⁻⁷ A·m² | MCG/MEG |
+| MU_HEART / MU_BRAIN | **10⁻⁵** / 10⁻⁷ A·m² | v9.2 (MCG gerçekçi, eski 1e-4 DEĞİL) |
+| MU_HEART_MCG | 4.69e-8 A·m² | B(5cm)=75 pT için kalibre |
 
 Tüm değerler `data/literature_values.json` ile çapraz doğrulanır.  
 **Kritik TISE buluşu:** |7⟩→|16⟩ geçişinde detuning = 0.003 Hz (kararlı rezonans).
@@ -275,7 +295,7 @@ python main.py --mp4
 
 ---
 
-## 12. ÖNEMLİ NOTLAR (v9 itibariyle)
+## 12. ÖNEMLİ NOTLAR (v9.2.1 itibariyle)
 
 1. **Çıktı dizini `output/`** — (`results/` DEĞİL)
 2. **main.py tek giriş noktası** — 18 faz; tüm levellar `--phases N` ile çalıştırılır
@@ -287,6 +307,10 @@ python main.py --mp4
 8. **Level 17 tuning** — Lorentzian rezonans; Tibet çanı (6.68 Hz) DO3'tan (130 Hz) 10× fazla ΔC
 9. **155 test, 149 geçiyor** — 6 eski hata dokunulmadı; yeni fonksiyon yazılırken test zorunlu
 10. **HTML→PNG snapshot** — `write_image()` ilk frame'i (t=0, boş) alır; `orta_idx = len(frames) // 2` kullan
+11. **v9.2.1 kalibrasyon DEĞİŞTİ** — KAPPA_EFF=5.0 (eski 21.9), MU_HEART=1e-5 (eski 1e-4), GAMMA_DEC=0.50. Hardcoded 1e-4 BUG — constants.py'dan import et
+12. **FAZ D reprodüksiyonlar** — `output/replications/` altında; `scripts/reproduction_report.py` çalıştırılınca tüm 5'i üretir
+13. **L1 EM alan eksen** — `alan_ızgarası_3d(r_max=0.15)` varsayılan 15cm (eski 50cm)
+14. **TISE detuning v9.2** — KAPPA=5.0 ile |7⟩→|16⟩ detuning ~1.85 rad/s (eski 0.003 KAPPA=21.9 için geçerliydi)
 
 ---
 

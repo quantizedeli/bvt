@@ -612,7 +612,8 @@ if __name__ == "__main__":
     # bvt_pde_3d_solve testi (Python fallback)
     print("\nbvt_pde_3d_solve (Python fallback) testi...")
     pos = np.array([[0.0, 0.0, 0.0]])
-    mom = np.array([[0.0, 0.0, 1e-4]])
+    from src.core.constants import MU_HEART as _mu
+    mom = np.array([[0.0, 0.0, _mu]])
     B, X, Y, Z = bvt_pde_3d_solve(pos, mom, f_kalp=0.1, grid_size=10, extent=1.0)
     assert B.shape == (10, 10, 10), f"B sekli yanlis: {B.shape}"
     assert np.any(B > 0), "B degerleri sifir!"

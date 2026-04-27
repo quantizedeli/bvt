@@ -189,6 +189,56 @@ def uclu_rezonans_dinamik(
     }
 
 
+def uclu_rezonans_simule(
+    t_end: float = 30.0,
+    dt: float = 0.05,
+    C_init: float = 0.10,
+) -> dict:
+    """
+    BVT Level 13 RWA tabanlı 3-mod TDSE (Dönen Dalga Yaklaşımı).
+
+    Kalp (K) → Beyin (B) → Schumann (S) zincir kuplajı, büyük detuning Δ_KB ile.
+    C_KB(t) monoton artış göstermelidir (t=30s'de C_KB > C_KB(0) + 0.2).
+
+    Referans: BVT_Makale, Bölüm 13; v9.2.1 A.5.
+    """
+    from scipy.integrate import solve_ivp
+
+    omega_k = 2 * np.pi * F_HEART       # 0.628 rad/s
+    omega_a = 2 * np.pi * F_ALPHA       # 62.8 rad/s
+    omega_s = 2 * np.pi * F_S1          # 49.2 rad/s
+
+    Delta_KB = omega_k - omega_a        # -62.2 rad/s (büyük detuning)
+    Delta_BS = omega_a - omega_s        # 13.6 rad/s (kısmi rezonans)
+
+    def rhs(t, y):
+        c_k = complex(y[0], y[1])
+        c_a = complex(y[2], y[3])
+        c_s = complex(y[4], y[5])
+
+        dc_k = -1j * KAPPA_EFF * c_a * np.exp(1j * Delta_KB * t)
+        dc_a = -1j * (KAPPA_EFF * c_k * np.exp(-1j * Delta_KB * t)
+                      + G_EFF * c_s * np.exp(1j * Delta_BS * t))
+        dc_s = -1j * G_EFF * c_a * np.exp(-1j * Delta_BS * t)
+
+        return [dc_k.real, dc_k.imag, dc_a.real, dc_a.imag, dc_s.real, dc_s.imag]
+
+    y0 = [C_init, 0.0, 1e-3, 0.0, 1e-3, 0.0]
+    t_eval = np.arange(0.0, t_end, dt)
+    sol = solve_ivp(rhs, (0, t_end), y0, t_eval=t_eval, method="RK45", rtol=1e-8)
+
+    c_k = sol.y[0] + 1j * sol.y[1]
+    c_a = sol.y[2] + 1j * sol.y[3]
+    mag_k = np.abs(c_k)
+    mag_a = np.abs(c_a)
+    C_KB = np.clip(
+        2.0 * mag_k * mag_a / (mag_k**2 + mag_a**2 + 1e-9),
+        0.0, 1.0
+    )
+
+    return {"t": sol.t, "C_KB": C_KB, "c_k": c_k, "c_a": c_a}
+
+
 def figur_uclu_rezonans_6panel(sonuc: dict, output_path: str, mode: str = "light"):
     """6 panel yapılandırma — BVT'nin merkez rezonans şekli."""
     colors = get_palette(mode=mode)

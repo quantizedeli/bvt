@@ -100,7 +100,7 @@ def alan_büyüklük_vektör(
 
 
 def alan_ızgarası_3d(
-    r_max: float = 0.5,
+    r_max: float = 0.15,
     n_r: int = 50,
     n_theta: int = 60,
     n_phi: int = 60,
@@ -111,7 +111,7 @@ def alan_ızgarası_3d(
 
     Parametreler
     ------------
-    r_max   : float — maksimum yarıçap (m)
+    r_max   : float — maksimum yarıçap (m), varsayılan 0.15 m (15 cm)
     n_r     : int   — r noktaları
     n_theta : int   — θ noktaları
     n_phi   : int   — φ noktaları (azimuth)

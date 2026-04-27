@@ -220,7 +220,7 @@ def main():
     # Locking transition teorik eğrisi (N=2 saturasyon)
     d_theory = np.logspace(-1, 0.7, 100)
     # Kilitli → r_mean=1.0; bağlantısız → r_mean≈0.64 (2/π)
-    _kappa_th = 21.9 * (0.9 / np.maximum(d_theory, 0.9)) ** 3
+    _kappa_th = KAPPA_EFF * (0.9 / np.maximum(d_theory, 0.9)) ** 3
     _Domega = 2 * np.pi * 0.1 * 0.4
     _V_norm_th = (0.9 / d_theory) ** 3 / 2
     _coupling_th = _kappa_th * _V_norm_th
@@ -263,6 +263,15 @@ def main():
         locked = r_mean > 0.90 and r_var < 0.02
         status = "KILITLI" if locked else "SERBEST"
         print(f"  d={d_test:.1f}m: r_mean={r_mean:.3f}  var={r_var:.4f}  [{status}]")
+    # v9.2 SANITY CHECK — r⁻³ teorik profil karşılaştırması
+    print("\n[L15 v9.2 SANITY CHECK — r⁻³ teorik profil]")
+    for d_san in [0.1, 0.3, 0.5, 0.9, 1.5, 3.0, 5.0]:
+        s_san, _, _ = iki_kisi_senaryosu(d_mesafe=d_san, t_end=30.0)
+        r_final = float(s_san["r_t"][-1])
+        teorik = 1.0 / (1.0 + (d_san / 0.9) ** 3)
+        durum = "✓" if abs(r_final - teorik) < 0.30 else "✗"
+        print(f"  d={d_san:.1f}m: r={r_final:.3f}, teorik={teorik:.3f} {durum}")
+
     # Kritik kontrol: HeartMath 0.9m kilitli olmalı
     s_ref, _, _ = iki_kisi_senaryosu(d_mesafe=0.9, t_end=60.0)
     half = len(s_ref["r_t"]) // 2
