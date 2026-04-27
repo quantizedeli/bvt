@@ -11,11 +11,12 @@ Mekanizma:
     3. t=25-40s: Hem kalp hem beyin Ψ_Sonsuz modunu modüle ediyor
     4. t=40s+:   Üçlü rezonans tam kurulmuş — η_Sonsuz maksimum
 
-Fiziksel Hamiltoniyen:
+Fiziksel Hamiltoniyen (BVT Bölüm 4.3 uyumlu):
     H = Σ_i ℏω_i â_i†â_i
       + ℏ(κ_KB â_K†â_B + h.c.)    # Kalp-Beyin (vagal)
       + ℏ(g_BS â_B†b̂ + h.c.)      # Beyin-Schumann
-      + ℏ(λ_KS â_K†ĉ + h.c.)      # Kalp-Ψ_Sonsuz direkt
+      + ℏ(g_BS â_S†ĉ + h.c.)      # Schumann-Ψ_Sonsuz (dolaylı yol)
+    NOT: Doğrudan Kalp-Ψ_Sonsuz kuplajı (λ_KS) YOK — BVT Bölüm 4.3.
 
 Çıktılar:
     - output/level13/L13_uclu_rezonans.png (6 panel)
@@ -77,7 +78,7 @@ def uclu_rezonans_dinamik(
 
     kappa_KB  = KAPPA_EFF
     g_BS      = G_EFF
-    lambda_KS = 0.3 * G_EFF
+    lambda_KS = 0.0  # BVT Bölüm 4.3: direkt K-Ψ kuplajı YOK; K→B→S→Ψ zinciri
 
     # Bağımsız dekoherans oranları (s⁻¹)
     gamma_K   = 0.02
@@ -120,9 +121,9 @@ def uclu_rezonans_dinamik(
                      - 1j * g_BS * alpha_B
                      + eps_S * (1.0 + 0.1 * alpha_Psi)
                      - gamma_S * alpha_S)
-        # Ψ_Sonsuz: kalp dipol tarafından uyarılıyor
+        # Ψ_Sonsuz: yalnızca Schumann üzerinden sürülüyor (K→B→S→Ψ zinciri)
         d_alpha_Psi = (-1j * omega_Psi * alpha_Psi
-                       - 1j * lambda_KS * alpha_K
+                       - 1j * g_BS * alpha_S
                        - gamma_Psi * alpha_Psi)
 
         return [d_alpha_K.real, d_alpha_K.imag,

@@ -29,15 +29,13 @@ import numpy as np
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from scipy.integrate import solve_ivp
-
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.core.constants import (
     OMEGA_HEART, N_C_SUPERRADIANCE, KAPPA_EFF, GAMMA_DEC_HIGH
 )
 from src.models.multi_person import (
-    kuramoto_ode, sira_parametresi, kritik_bağlaşım_hesapla
+    kuramoto_ode, kuramoto_bvt_coz, sira_parametresi, kritik_bağlaşım_hesapla
 )
 from src.models.two_person import surperradyans_2, faz_korelasyon_mesafeye_gore
 
@@ -50,41 +48,28 @@ def kuramoto_simule(
     seed: int = 42
 ) -> tuple:
     """
-    N osilatör için Kuramoto denklemini çözer.
+    N osilatör için BVT-Kuramoto denklemini çözer (f(Ĉ) kapısı dahil).
 
     Parametreler
     ------------
     N     : int — kişi sayısı
     K     : float — bağlaşım kuvveti (rad/s)
     t_end : float — simülasyon süresi (s)
-    n_t   : int — zaman adımı sayısı
+    n_t   : int — zaman adımı sayısı (n_points olarak kullanılır)
     seed  : int — rastgele sayı tohumu
 
     Döndürür
     --------
-    t, phases, r : zaman, fazlar, sıra parametresi
+    t, phases, r : zaman, fazlar (N×n_t), sıra parametresi
     """
-    rng = np.random.default_rng(seed)
-
-    # Doğal frekanslar: Lorentzian dağılım, merkez = ω_kalp
-    gamma_omega = 0.1  # frekans yayılımı (rad/s)
-    omega = rng.standard_cauchy(N) * gamma_omega + OMEGA_HEART
-
-    # Başlangıç fazları: uniform
-    phi0 = rng.uniform(0, 2.0 * np.pi, N)
-
-    t_eval = np.linspace(0, t_end, n_t)
-
-    def ode(t, phi):
-        return kuramoto_ode(t, phi, omega, K, N)
-
-    sol = solve_ivp(ode, [0, t_end], phi0, t_eval=t_eval,
-                    method="RK45", rtol=1e-4, atol=1e-6)
-
-    phases = sol.y  # (N, n_t)
-    r = sira_parametresi(phases)  # (n_t,)
-
-    return sol.t, phases, r
+    sol = kuramoto_bvt_coz(
+        N=N,
+        K=K,
+        t_end=t_end,
+        n_points=n_t,
+        rng_seed=seed,
+    )
+    return sol["t"], sol["theta_t"].T, sol["r_t"]
 
 
 def superradyans_analizi(N_max: int = 25) -> tuple:

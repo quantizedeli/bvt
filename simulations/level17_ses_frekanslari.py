@@ -197,18 +197,26 @@ def frekans_grup_koherans_etkisi(
     frekans_hz: float,
     N: int = 11,
     t_end: float = 180.0,
+    SPL_dB: float = 70.0,
+    mesafe_m: float = 2.0,
+    sure_dakika: float = 15.0,
 ) -> dict:
     """
     N=11 kişilik halka için müzik frekansı etkisini simüle eder.
 
-    Kuramoto formülü + muzik_bonus (Schumann uyumu, teta, ritim):
+    Kuramoto formülü + muzik_bonus_v2 (SPL, mesafe, süre, Schumann uyumu):
       dr/dt = (kappa_eff + muzik_bonus) * f_senkron(r) - gamma_dec * r
 
     Döndürür
     --------
-    dict: t, r_t, C_ort_t, delta_C, delta_r
+    dict: t, r_t, C_ort_t, delta_C, delta_r, bonus
     """
-    bonus = muzik_bonus_hesapla(frekans_hz)
+    bonus = muzik_bonus_hesapla_v2(
+        frekans_hz,
+        SPL_dB=SPL_dB,
+        mesafe_m=mesafe_m,
+        sure_dakika=sure_dakika,
+    )
     kappa_eff = KAPPA_EFF
     gamma_eff = GAMMA_DEC
 
