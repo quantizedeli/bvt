@@ -171,12 +171,14 @@ def run_study(n_subj: int = N_SUBJ, rng_seed: int = 42) -> dict:
     enhanced_arr = np.array(all_SBP_enhanced)
     normal_arr = np.array(all_SBP_normal)
 
-    t_stat, p_value = scipy.stats.ttest_ind(enhanced_arr, normal_arr)
+    # Within-subject paired test (Mitsutake 2005 protokolü: her subject kendi kontrolü)
+    delta_per_subj = np.array([r["delta_SBP"] for r in subject_results])
+    t_stat, p_value = scipy.stats.ttest_1samp(delta_per_subj, 0)
 
     return {
         "SBP_enhanced_mean": float(np.mean(enhanced_arr)),
         "SBP_normal_mean": float(np.mean(normal_arr)),
-        "delta_SBP": float(np.mean(enhanced_arr) - np.mean(normal_arr)),
+        "delta_SBP": float(delta_per_subj.mean()),
         "t_stat": float(t_stat),
         "p_value": float(p_value),
         "subject_results": subject_results,
