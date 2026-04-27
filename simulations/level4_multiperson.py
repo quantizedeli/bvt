@@ -48,28 +48,55 @@ def kuramoto_simule(
     seed: int = 42
 ) -> tuple:
     """
-    N osilatör için BVT-Kuramoto denklemini çözer (f(Ĉ) kapısı dahil).
+    N osilatör için Kuramoto denklemini çözer (N_c eşik demosunda kullanılır).
 
     Parametreler
     ------------
     N     : int — kişi sayısı
     K     : float — bağlaşım kuvveti (rad/s)
     t_end : float — simülasyon süresi (s)
-    n_t   : int — zaman adımı sayısı (n_points olarak kullanılır)
+    n_t   : int — zaman adımı sayısı
     seed  : int — rastgele sayı tohumu
 
     Döndürür
     --------
     t, phases, r : zaman, fazlar (N×n_t), sıra parametresi
     """
-    sol = kuramoto_bvt_coz(
-        N=N,
-        K=K,
-        t_end=t_end,
-        n_points=n_t,
-        rng_seed=seed,
+    rng = np.random.default_rng(seed)
+    gamma_omega = 0.1
+    omega = rng.standard_cauchy(N) * gamma_omega + OMEGA_HEART
+    phi0 = rng.uniform(0, 2.0 * np.pi, N)
+    t_eval = np.linspace(0, t_end, n_t)
+
+    from scipy.integrate import solve_ivp
+
+    def ode(t, phi):
+        return kuramoto_ode(t, phi, omega, K, N)
+
+    sol = solve_ivp(ode, [0, t_end], phi0, t_eval=t_eval,
+                    method="RK45", rtol=1e-4, atol=1e-6)
+    phases = sol.y
+    r = sira_parametresi(phases)
+    return sol.t, phases, r
+
+
+def kuramoto_bvt_simule(
+    N: int,
+    K: float,
+    t_end: float = 200.0,
+    n_t: int = 1000,
+    seed: int = 42
+) -> dict:
+    """
+    BVT-Kuramoto (f(Ĉ) kapısı dahil) — C_init eşik üstü tutulur.
+
+    kuramoto_bvt_coz() wrapper'ı: K büyük + C_init yüksek → kuplaj aktif.
+    """
+    C_init = np.random.default_rng(seed).uniform(0.45, 0.70, N)
+    return kuramoto_bvt_coz(
+        N=N, K=K, omega_spread=0.3, C_init=C_init,
+        t_end=t_end, n_points=n_t, rng_seed=seed,
     )
-    return sol["t"], sol["theta_t"].T, sol["r_t"]
 
 
 def superradyans_analizi(N_max: int = 25) -> tuple:
