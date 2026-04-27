@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Proje:** Birliğin Varlığı Teoremi (BVT) / Theorem of the Unity of Existence  
 **Yazar:** Ahmet Kemal Acar | **Güncelleme:** Nisan 2026  
-**Durum:** v9.2.1 TAMAMLANDI — Kalibrasyon + ODE entegrasyon + Validation + 5 referans reprodüksiyon
+**Durum:** v9.3 — E-serisi reprodüksiyon düzeltmeleri + L17 3-yol fizik yeniden yazımı
 
 ---
 
@@ -23,6 +23,13 @@ kavramlarının kuantum mekaniksel karşılığını kurar.
 - FAZ B: BVT denklemleri ODE'ye entegre (coherence_gate, kuramoto_bvt_coz, pre_stimulus_5_layer_ode)
 - FAZ C: Validation matrisi (16 öngörü), TISE 729-boyut doğrulama, ses fiziği
 - FAZ D: 5 referans makale reprodüksiyonu (Sharika, McCraty, Celardo, Mossbridge, Timofejeva)
+
+**v9.3 düzeltmeleri (Nisan 2026):**
+- E1 McCraty fix: `gamma_dec=0.0` + `C_init=[C_val,C_val]` → contrast=1.636 (hedef >1.5 ✓)
+- E3 Mitsutake fix: BP katsayı 8→24 → delta_SBP=-5.08 mmHg (sapma %15 ✓)
+- E4 Plonka fix: `C_init=social_closeness`, K∝social, circaseptan=r_t.mean() → SA>NZ>>CA ✓
+- rng_seed fix: Celardo/Mossbridge/Microtubule `run()` imzasına `rng_seed: int = 42` eklendi
+- L17 v9.3: 3-yol fizik (P1 direkt EEG + P2 akustik + P3 ritmik vagal), 3-durum ODE, 7 figür
 
 **Aktif görev takibi:** `BVT_ClaudeCode_TODO_v9.2.1.md`
 
@@ -304,7 +311,7 @@ python main.py --mp4
 5. **Plotly subplot frame hatası** — `go.Frame(data=traces, traces=list(range(N)))` ZORUNLU; `traces=` eksikse sadece ilk panel dolar
 6. **Level 15 dipol r⁻³** — `V_matrix` ODE'ye entegre edilmeli; sanity: `d=0.1m → r_son>0.9`, `d=5m → r_son<0.5`
 7. **Level 13 C_KB** — başlangıç `C_KB(0) = 0.1`, `t_end = 30s`; sonuç monoton artış
-8. **Level 17 tuning** — Lorentzian rezonans; Tibet çanı (6.68 Hz) DO3'tan (130 Hz) 10× fazla ΔC
+8. **Level 17 v9.3** — 3-yol fizik: P1 direkt EEG (`_pathway1_direct`), P2 akustik (`_pathway2_acoustic`), P3 ritmik vagal (`_pathway3_rhythm`). 3-durum ODE: dE/dt → dC/dt → dr/dt. tau_E: delta=12s, theta/alpha=20s, akustik=80s. 7 figür (2 yeni: frekans yanıt eğrisi + SPL/süre analizi). `muzik_bonus_hesapla_v2()` artık v3'e delege eder.
 9. **155 test, 149 geçiyor** — 6 eski hata dokunulmadı; yeni fonksiyon yazılırken test zorunlu
 10. **HTML→PNG snapshot** — `write_image()` ilk frame'i (t=0, boş) alır; `orta_idx = len(frames) // 2` kullan
 11. **v9.2.1 kalibrasyon DEĞİŞTİ** — KAPPA_EFF=5.0 (eski 21.9), MU_HEART=1e-5 (eski 1e-4), GAMMA_DEC=0.50. Hardcoded 1e-4 BUG — constants.py'dan import et
@@ -326,3 +333,8 @@ python main.py --mp4
 | V_matrix normalize etmemek | `V_norm = V / V_max`; K_bonus terimi kullanma |
 | Fiziksel sanity check eksikliği | Her simülasyon sonunda beklenen trendi yazdır |
 | Sabit import yanlış (`F_SCH_S1` yerine `F_S1`) | Import'tan sonra `python -c "from simulations.levelN import *"` çalıştır |
+| **E1 McCraty**: `gamma_dec=GAMMA_DEC` ile C→0 in 2s → temas fazında kuplaj yok | `gamma_dec=0.0` kullan; `C_init=[C_val,C_val]` (uniform → diff_C=0 → dC=0) |
+| **E4 Plonka**: `omega_spread=default`, `gamma_dec=0.50` → SA=CA (identical) | `C_init=social_closeness`, `K=KAPPA_EFF*social`, `gamma_dec=GAMMA_DEC*0.02` |
+| **E3 Mitsutake**: BP katsayı çok küçük → delta_SBP→0 | `sbp -= 24.0 * f_C * SR_mod` (eski 8.0) |
+| **run() rng_seed**: `reproduction_report.py` tüm `run()`'lara `rng_seed=42` geçirir | `run(output_dir=None, rng_seed: int = 42)` imzası zorunlu |
+| **circaseptan FFT**: tüm ülkeler aynı FFT bin → SA=CA | `circaseptan_amp = r_t.mean()` (ortalama senkronizasyon proxy) |
