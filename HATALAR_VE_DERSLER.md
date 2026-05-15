@@ -529,7 +529,45 @@ Compaction summary'sini okumadım. Yeni sohbette yine main branch'te iş yapmaya
 
 ---
 
-### Hata #03 — yer ayrıldı
+### Hata #03 — Compaction sonrası "yeniden başlama" KURAL 5 tekrar ihlali
+
+**Tarih:** 2026-05-15 (Hata #02'den birkaç saat sonra)
+**Kategori:** KURAL 5 ihlali (Hata #02'nin pattern tekrarı) + KURAL 25 ihlali
+**Kapsam:** İkinci compaction sonrası, render_cinematic.py üretimi sırasında
+
+**Ne yaptım yanlış:**
+Compaction summary'sinde **açıkça yazıyordu** ki: "render_cinematic.py yazıldı, palettes.py + scene_base.py + scenes_acoustic.py + __init__.py oluşturuldu, 9 sprint dökümanı sprint_docs/ altında, 8 yönetim dosyası repo kökünde". Yeni oturumda buna rağmen "render_cinematic.py'yi şimdi yazıyorum" diyerek baştan üretime başladım. Kemal yüklediği `bvt-v94-sprint-docs-and-cinematic.patch` ile durumu netleştirip beni durdurdu — "bunu yazmıştın zaten, en baştan başladın anlamadım".
+
+Üstelik render kodunda **KURAL 25 (Varsayım yasağı)** ihlali de vardı: `SceneData` dataclass'ının serbest setattr ile `sd.top_5 = ...` kabul ettiğini varsaymıştım. scenes_acoustic.py'yi okusam görecektim ki `sd._extra = {"top_5": ...}` dict pattern kullanıyor. Poster üretmek istediğimde AttributeError aldım.
+
+**Doğrusu ne olurdu:**
+1. Compaction summary'sini AYRINTILI oku (sadece tarama değil)
+2. `[TOOL USE]` ve `[DOCUMENT]` etiketlerini dikkate al — bu dosya **gerçekten** oluşturulmuş demek
+3. `git log` ve `git status` ile mevcut durumu **kanıtla** sonra konuş
+4. SceneData'nın hangi alanları kabul ettiğini scene_base.py docstring'inden oku, sonra kullan
+
+**Kanıt:**
+- Compaction summary'de: "scripts/render_cinematic.py yazıldı — CLI + 7 aşama render motoru ✓"
+- `git log --oneline` çıktısı: `b5872c7 feat(v9.4): Sprint dökümanları + cinematic iskelet + QA disiplini`
+- Kemal'in mesajı: "bunu yazmıştın zaten. bir şeyler oldu en baştan başladın anlamadım"
+- AttributeError: `'SceneData' object has no attribute 'top_5'`
+
+**Çıkardığım ders / kural:**
+> Compaction summary'sini "özet" olarak değil "**gerçeğin kaydı**" olarak oku. `git log` + summary metadata = mevcut durumun kanıtı. Yeniden üretmek YASAK.
+
+**Tekrarlamamak için:**
+1. Compaction sonrası **ilk komut**: `git log --oneline -10` + `git status --short` + `ls -la` (KURAL 4 + 5 birleşik)
+2. Summary'deki `[DOCUMENT]` / `[TOOL USE]` etiketlerini gör → o dosya/o eylem **var** demektir
+3. "Yeniden yazıyorum" yerine "kontrol ediyorum, eksik varsa tamamlıyorum"
+4. SceneData / RenderConfig gibi sözleşmesi olan tipler için: scene_base.py docstring'i **HER seferinde** oku, attribute ezberi yapma
+
+**Pattern uyarısı:** Bu Hata #02'nin **bire bir tekrarı**. İki kez aynı hata → pattern oluştu → CLAUDE.md §14.5'e proaktif kural eklenmeli: *"Compaction sonrası ilk üç komut: git log, git status, ls -la. Bu yapılmadan iş başlama."*
+
+**İlgili CLAUDE.md kuralı:** §14.5 (Varsayım yasağı) — KURAL 5 ile birleşik
+
+---
+
+### Hata #04 — yer ayrıldı
 
 Sprint 00 başlayınca buraya yeni girişler eklenecek.
 
@@ -541,9 +579,10 @@ Sprint 00 başlayınca buraya yeni girişler eklenecek.
 
 | Pattern | Hata sayısı | İlgili KURAL | Durum |
 |---|---|---|---|
-| Branch/state envanteri yapmadan iş başlama | 2 (#01, #02) | KURAL 4, 5 | KURAL'lar yazıldı, izlem altında |
+| Branch/state envanteri yapmadan iş başlama | 3 (#01, #02, #03) | KURAL 4, 5 | **PROAKTİF KURAL eklenmeli:** Compaction sonrası ilk üç komut zorunlu |
+| Varsayımla dataclass/yapı kullanma | 1 (#03 ikincil) | KURAL 25 | İzlem altında |
 
-(Henüz 5+ pattern oluşmadı.)
+(#01, #02, #03 aynı pattern — 3 oluşum → CLAUDE.md §14.5'e proaktif kural eklendi.)
 
 ---
 

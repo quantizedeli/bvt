@@ -28,6 +28,16 @@ Her commit'ten önce şu üç satır eklenir:
 
 ## Defter girişleri
 
+### 2026-05-15 21:10 — [Sprint 04 hazırlık / Hero 05 render motoru] — render_cinematic.py + 7 poster kanıtı
+
+**Ne yaptım:** `scripts/render_cinematic.py` yazıldı — Hero 05 7-aşama render motoru + CLI (`--scene`, `--quality`, `--format`, `--poster`). Bug fix: `sd.top_5` → `sd._extra["top_5"]` (KURAL 25 ihlali yakalandı: dataclass'ın serbest setattr kabul ettiğini varsaymıştım, oysa scenes_acoustic.py `_extra` dict kullanıyor). 5 farklı t değerinde poster üretildi (t=6, 12, 21, 40, 46, 52); 7 aşamanın hepsi görsel olarak doğrulandı.
+
+**Ne öğrendim:** Render motoru `_extra` dict erişiminde tutarlı olmalı — scenes_acoustic.py `sd._extra["top_5"]` ile yazıyor, render scripti `sd.top_5` denedi → AttributeError. Bu **KURAL 13 (Inter-modül anahtar tutarlılığı)** ihlali. SceneData'nın hangi alanlara doğrudan erişim verdiği (`positions`, `phases`, `metrics`) hangilerinin `_extra` dict'te olduğu sözleşmesi `scene_base.py` docstring'inde net yazılı — okumadan attribute deneyişim hataydı. Compaction sonrası "kaldığım yerden devam ediyorum" diye yeniden başlamak KURAL 5 ihlaliydi (Hata #02 patterni tekrarı) — Kemal uyarıp yüklediği patch ile düzeltti.
+
+**Sonraki commit'te dikkat:** Sprint 04 G-04.3 final render motoru hero01-04'e genişletilirken aynı pattern uygulanmalı. Helper function eklenebilir: `def _get_extra(sd, key)` defensive accessor. Ayrıca t=46s alt-harmonik poster'da 3 etiket üst üste bindi → küçük QA bug, polish görevinde düzeltilecek (etiketleri farklı y koordinatlarına dağıt).
+
+---
+
 ### 2026-05-15 17:50 — [Sprint Dökümanları / İlk Kurulum] — sprint planları yazıldı
 
 **Ne yaptım:** 9 sprint dökümanı yazdım: kod analiz raporu, Sprint 00-04, master checklist, claims checklist, output audit spec.

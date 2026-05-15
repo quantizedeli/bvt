@@ -437,6 +437,14 @@ Bu kuralın özel uygulamaları:
 - "Test geçer" → **çalıştır, sonucu bekle, sonra söyle**
 - "Bug'ı çözdüm" → `pytest tests/test_X.py -v` → çıktı gör → sonra söyle
 
+**Proaktif kural — Compaction sonrası ilk üç komut zorunludur** (Hata #01, #02, #03 patterni — KURAL 4+5):
+```bash
+git log --oneline -10      # son commit'lerin envanteri
+git status --short          # hangi dosyalar üzerinde çalışılıyor
+ls -la                       # repo kök içerikleri görünür
+```
+Bu üç komut yapılmadan **yeni dosya üretmeye başlama yasaktır**. Compaction summary'sindeki `[DOCUMENT]` veya `[TOOL USE]` etiketleri "o iş yapıldı" anlamına gelir — yeniden üretme. "Kontrol ediyorum, eksik varsa tamamlıyorum" doğru başlangıç cümlesidir.
+
 ### 14.6 Runtime simulasyonu (KURAL 30)
 
 Kod yazarken 3 senaryo zihinsel simüle et:
