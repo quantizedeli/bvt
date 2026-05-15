@@ -5,6 +5,45 @@ Bu dosya projedeki her önemli değişikliği kaydeder.
 
 ---
 
+## v9.4.0 — 2026-05-15 (Sprint 00 — Foundation Repair)
+
+### Düzeltildi
+- **G-00.1 (KRİTİK — BVT-BUG-001)**: N-kişi C ODE Form A yerel pompalama terimi
+  - `rhs()`: `G_pomp·C·(1-C) + difüzyon − γ·C` (metabolik pompalama, NESS)
+  - ESKİ: yalnız sönüm+difüzyon → ⟨C⟩ sıfıra çöküyordu
+  - YENİ: N=10 halka ⟨C⟩ platosu = 0.586 (stabil kararlı durum)
+  - 2 regresif test eklendi: `test_kolektif_koherans_artisi_halka`, `test_topoloji_avantaji`
+- **G-00.2 (BVT-BUG-002)**: `operators.py` kesik Fock komütatörü `eye[-1,-1] = -(N-1)`
+- **G-00.3 (BVT-BUG-003)**: `np.trapz` → `np.trapezoid` — NumPy 2.x uyumu (3 dosya)
+- **G-00.4 (BVT-BUG-004)**: `tise.py` — `rabi_carpinti_frekansi()` eklendi; Rabi testi düzeltildi
+- **G-00.5 (BVT-BUG-005)**: Null prediction eşikleri `g/Δω` oranıyla kalibre edildi
+- **G-00.6 (BVT-BUG-006)**: `ES_MAX_BVT=0.61` sabiti eklendi; Mossbridge ES kalibrasyonu
+  - C=0.586 × ES_max=0.61 → ES=0.209 ≈ 0.21 ✓
+- **G-00.8 (BVT-BUG-007)**: L8/L9 dublike `_plotly.png` giderildi (matplotlib fallback)
+  - `level8_iki_kisi.py`: `dipol_potansiyel()` TypeError fix
+
+### Eklendi
+- `scripts/output_audit.py` — sıfır-byte, dublike PNG, manifest kontrolü (CI uyumlu)
+- `output/audit_report.md` — audit raporu
+- `output/BVT_Tutarlilik_Raporu.md` — tutarlılık denetimi raporu
+
+### Belgeler
+- `output/replications/REFERENCES_REPLICATION_REPORT.md`: özet kutu + fail-mode notları
+- `PIPELINE_HATALARI.md`: BVT-BUG-001..006 ÇÖZÜLDÜ olarak işaretlendi
+- `DEVELOPER_NOTEBOOK.md`: Sprint 00 giriş eklendi
+
+### Test paketi
+- **Başlangıç:** 166 passed, 7 failed
+- **Sprint 00 sonu:** 175 passed, 0 failed ✅
+
+### Bilinen açık sorunlar (Sprint 01'e ertelendi)
+- `output/level1/` PNG'leri yok — level1 simülasyonu hiç koşulmamış
+- `bvt_studio/` Marimo notebook'ları eksik — Sprint 04 kapsamı
+- Tutarlılık denetimi: 4 FAIL kalan = bvt_studio MISSING (Marimo)
+
+---
+
+
 ## v9.1.0 — 2026-04-26 (TODO v9.1, Oturum 9 — acil düzeltmeler)
 
 ### Düzeltildi
