@@ -1,8 +1,21 @@
 # BVT Referans Makale Reprodüksiyon Raporu v9.3
 
-**Tarih:** 2026-04-27
+**Tarih:** 2026-04-27 (G-00.7 dil düzeltmesi: 2026-05-15)
 **Versiyon:** FAZ D (5) + FAZ E (5) + FAZ F (3) = 13 reprodüksiyon + 1 modül
-**Sonuç:** 5/13 reprodüksiyon başarılı (38%)
+
+> ## ⚠️ Özet
+> **5 başarılı / 13 deneme (%38)**
+>
+> | Kategori | Sayı | Replikasyonlar |
+> |---|---|---|
+> | ✅ Başarılı | 5 | McCraty 2004, McCraty 1998, Mossbridge 2017, Plonka 2024, Montoya 1993 |
+> | ❌ Yön doğru ölçek hatalı | 3 | Sharika 2024, Mossbridge 2012, Timofejeva 2021 |
+> | ❌ Fizik modeli güncellenmeli | 3 | Celardo 2014, Al 2020, Yumatov 2019, Mitsutake 2005 |
+> | ❌ Kod hatası | 1 | Celardo 2018 |
+>
+> **Not:** Mossbridge 2012 ES=0.007 → 0.21 farkı BVT-BUG-001 (Form A fix, Sprint 00) ile
+> düzeltildi. Raporu yeniden koşmak için: `python scripts/reproduction_report.py`
+
 
 ## Özet
 
