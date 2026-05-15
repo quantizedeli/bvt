@@ -5,6 +5,37 @@ Bu dosya projedeki her önemli değişikliği kaydeder.
 
 ---
 
+## v9.6.1 — 2026-05-15 (Gerçek Zaman Düzeltmesi + HTML çıktıları)
+
+### Düzeltildi
+- **KRİTİK**: MP4 süresi gerçek fiziksel zamanla 1:1 eşleştirildi
+  - Eski: kappa=5.0 rad/s → tau=0.2s → r>0.8 anında oluyordu (3.8s)
+  - Yeni: kappa=0.5 rad/s (override) → r>0.8 @ t=38s / 120s simülasyon
+  - 120s simülasyon = 118s video (12fps, 960x540)
+
+### Eklendi
+- **render_realtime.py** — yeni render altyapısı
+  - hero01_render_mp4/html/poster/all()
+  - hero03_render_mp4/html/poster/all()
+  - Gerçek zaman prensibi: 1s_sim = 1s_video
+- **HTML interaktif çıktılar** (her sahne için)
+  - hero01_interactive.html — C(t) + faz zaman serileri, SceneEvent çizgileri
+  - hero03_interactive.html — r(t) + ⟨C⟩(t) + bireysel C_i(t) + topoloji kıyası
+- **v2 artefaktlar** (gerçek zamanlı):
+  - hero01_single_heart_16x9_realtime_v2.mp4 (7.6MB, 118s)
+  - hero03_ring_collective_16x9_realtime_v2.mp4 (1.2MB, 118s)
+  - hero01_poster_v2.png (750KB, t=100s)
+  - hero03_poster_v2.png (220KB, t=80s)
+  - hero01/03_scene_data_v2.npz (gerçek zaman ölçeği)
+
+### scenes_ring_collective.py
+  - kappa_override parametresi eklendi (varsayılan 0.5 rad/s)
+  - hero03_topology_compare_data da kappa_override alıyor
+
+### Test: 175 passed, 0 failed ✅
+
+---
+
 ## v9.6.0 — 2026-05-15 (Sprint 02 — Ring Collective / Hero 03)
 
 ### Eklendi

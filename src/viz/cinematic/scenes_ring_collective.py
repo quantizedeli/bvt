@@ -60,32 +60,24 @@ def _em_field_grid(
 
 def hero03_scene_data(
     N: int = 10,
-    t_end: float = 36.0,
-    dt: float = 0.1,
-    n_grid: int = 50,
+    t_end: float = 120.0,
+    dt: float = 0.5,
+    n_grid: int = 40,
     rng_seed: int = 42,
+    kappa_override: float = 0.5,
 ) -> SceneData:
     """
     Hero 03 sayısal veri üretici.
 
     Parametreler
     -----------
-    N      : int   — halka kişi sayısı (varsayılan 10)
-    t_end  : float — süre (s)
-    dt     : float — zaman adımı
-    n_grid : int   — EM alan grid çözünürlüğü
-    rng_seed : int — tekrarlanabilirlik
-
-    Döndürür
-    --------
-    SceneData:
-        positions  : (N, 3, n_t) sabit halka konumları
-        phases     : (N, n_t)
-        coherence  : (N, n_t)
-        order_param: (n_t,) Kuramoto r(t)
-        field_grid : (n_grid, n_grid, n_t) log10|B|
-        events     : opening + locking_start + threshold_cross + center_emerge
-        metrics    : r_t, C_mean, B_center, N_c_etkin
+    N               : int   — halka kişi sayısı
+    t_end           : float — simülasyon süresi (s) — MP4 süresiyle 1:1 eşleşir
+    dt              : float — zaman adımı
+    n_grid          : int   — EM alan grid çözünürlüğü
+    rng_seed        : int
+    kappa_override  : float — gerçek zaman ölçeği kalibrasyon
+                      KAPPA_EFF=5.0 çok hızlı (tau~0.2s); 0.5 rad/s → r>0.8 ~38s @ t=120s
 
     Referans: Sprint 02 storyboard; BVT_Makale §11.
     """
@@ -95,12 +87,13 @@ def hero03_scene_data(
     C0 = rng.uniform(0.15, 0.40, N)
     phi0 = rng.uniform(0.0, 2 * np.pi, N)
 
-    print(f"  [hero03] N_kisi_tam_dinamik çalışıyor (N={N}, t_end={t_end}s, dt={dt})...")
+    print(f"  [hero03] N_kisi_tam_dinamik çalışıyor (N={N}, t_end={t_end}s, dt={dt}, kappa={kappa_override})...")
     sonuc = N_kisi_tam_dinamik(
         konumlar, C0, phi0,
         t_span=(0.0, t_end), dt=dt,
         f_geometri=0.35,
         cooperative_robustness=True,
+        kappa_eff=kappa_override,
     )
 
     t = sonuc["t"]
@@ -189,9 +182,10 @@ def hero03_scene_data(
 
 def hero03_topology_compare_data(
     N: int = 10,
-    t_end: float = 36.0,
-    dt: float = 0.1,
+    t_end: float = 120.0,
+    dt: float = 0.5,
     rng_seed: int = 42,
+    kappa_override: float = 0.5,
 ) -> Dict[str, dict]:
     """
     Aşama 4 için 4 topoloji karşılaştırma verisi.
@@ -218,6 +212,7 @@ def hero03_topology_compare_data(
             t_span=(0.0, t_end), dt=dt,
             f_geometri=f_geo,
             cooperative_robustness=(f_geo > 0),
+            kappa_eff=kappa_override,
         )
         veri[ad] = {
             "t":        sonuc["t"],

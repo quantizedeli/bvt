@@ -28,6 +28,17 @@ Her commit'ten önce şu üç satır eklenir:
 
 ## Defter girişleri
 
+### 2026-05-15 21:45 — [Gerçek Zaman Düzeltmesi] — MP4 gerçek fiziksel zamana eşitlendi + HTML çıktıları
+
+**Ne yaptım:** Kemal'in talebi: MP4 süresi fiziksel zamana 1:1, her sahne PNG+HTML+MP4. Sorun teşhis: KAPPA_EFF=5.0 rad/s → tau_sync=0.2s → r>0.8 sadece 3.8s'de gerçekleşiyordu. Kalibrasyon: kappa=0.5 rad/s → r>0.8@38s, 120s simülasyon=118s video. render_realtime.py yazıldı: hero01/03 için render_mp4/html/poster/all fonksiyonları. HTML: Plotly interaktif (C(t), r(t), bireysel kişiler, topoloji kıyası, SceneEvent çizgileri). hero01: 118s MP4, hero03: 118s MP4, r>0.8@38s, r_son=0.999. 175 test passed.
+
+**Ne öğrendim:** KAPPA_EFF constants.py'deki değer (5.0) kalp-beyin bağlaşımı için doğru ama N-kişi senkronizasyon sahnesi için çok hızlı. SceneData üreticisinde kappa_override parametresi ile gerçekçi zaman ölçeği ayarlanabilir — constants.py değişmeden, bağlamsal override mantıklı. dt=2s ile data noktası azaltıldı: 60 nokta → 1416 frame (12fps) interpolasyonla. HTML çıktısı Plotly ile kolay — SceneEvent dikey çizgileri interaktif araştırmayı kolaylaştırıyor.
+
+**Sonraki commit'te dikkat:** Sprint 03 (Hero 02 Two Person + Hero 04 Phase Transition) başlamadan kappa_override değerinin fiziksel gerekçesi dokümante edilmeli. two_person.py modülü var mı kontrol et önce.
+
+---
+
+
 ### 2026-05-15 21:30 — [Sprint 02 / G-02.1..G-02.6] — Hero 03 Ring Collective tamamlandı
 
 **Ne yaptım:** G-02.1 storyboard yazıldı. G-02.2: scenes_ring_collective.py — hero03_scene_data() (Form A ODE, N=10, t=36s, field_grid 35x35x240) + hero03_topology_compare_data() (4 topoloji). G-02.3: export.py'ye render_hero03_to_mp4() + _render_hero03_frame() eklendi (scatter, faz okları, EM alan arka plan, merkez glow r>0.6, r(t) gauge). G-02.4: render_topology_compare() 4 topoloji PNG. G-02.5: poster+thumbnail+QA notları. G-02.6: dashboard Hero 03 card aktif. CLI: hero03 dispatch eklendi. 175 test passed.
