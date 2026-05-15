@@ -419,17 +419,25 @@ def main() -> None:
         except Exception:
             pass
         print(f"  HTML: {html_path}")
+        plotly_png = os.path.join(args.output, "L9_v2_kalibrasyon_plotly.png")
         try:
             try:
                 fig_h.update_layout(paper_bgcolor="white", plot_bgcolor="#f0f4f8", font=dict(color="#111111"))
             except Exception:
                 pass
-            fig_h.write_image(
-                os.path.join(args.output, "L9_v2_kalibrasyon_plotly.png"),
-                width=1920, height=1080
-            )
+            fig_h.write_image(plotly_png, width=1920, height=1080)
+            if os.path.getsize(plotly_png) < 5000:
+                raise RuntimeError("kaleido çıktısı çok küçük")
         except Exception:
-            pass
+            import matplotlib.pyplot as plt
+            fig_fb, ax_fb = plt.subplots(figsize=(19.2, 10.8), dpi=100)
+            ax_fb.text(0.5, 0.5,
+                       "L9 Kalibrasyon — Plotly HTML için level9/L9_v2_kalibrasyon.html açın\n"
+                       "(Kaleido/Chrome bu ortamda yok)",
+                       ha="center", va="center", fontsize=16, color="#333")
+            ax_fb.set_axis_off()
+            fig_fb.savefig(plotly_png, dpi=100, bbox_inches="tight")
+            plt.close(fig_fb)
 
     except Exception as e:
         print(f"  [UYARI] Plotly: {e}")

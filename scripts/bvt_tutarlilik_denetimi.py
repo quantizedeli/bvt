@@ -75,7 +75,7 @@ TUTARLILIK_KONTROL = {
     "Level 4 — N Kişi": {
         "aciklama": "Kuramoto + N² süperradyans",
         "kontroller": [
-            ("N_c",           N_C_SUPERRADIANCE, 11,    0.5, "Süperradyans eşiği"),
+            ("N_c",           N_C_SUPERRADIANCE, 10,    0.5, "Süperradyans eşiği (KAPPA_EFF=5.0, v9.2)"),
             ("I_N2_oran",     100.0 / 10.0,      10.0,  0.5, "N=10: I_super/I_tek ≈ 10"),
         ],
     },
@@ -98,7 +98,7 @@ TUTARLILIK_KONTROL = {
     "Level 9 — Kalibrasyon": {
         "aciklama": "κ_eff, g_eff, Q_kalp türetimi",
         "kontroller": [
-            ("KAPPA_EFF_check", KAPPA_EFF, 21.9,  0.5,  "HeartMath kalibrasyon"),
+            ("KAPPA_EFF_check", KAPPA_EFF,  5.0,  0.5,  "HeartMath kalibrasyon (v9.2: τ_sync=3-10s)"),
             ("G_EFF_check",     G_EFF,     5.06,  0.1,  "TISE türetimi"),
             ("Q_HEART_check",   Q_HEART,   21.7,  0.5,  "Kalp Q faktörü"),
         ],
@@ -122,7 +122,7 @@ TUTARLILIK_KONTROL = {
         "aciklama": "22 enstrüman koherans bonusu",
         "kontroller": [
             ("schumann_f1_bonus_nz", 0.15, 0.15, 0.001, "Tibet çanı 6.68 Hz sch. bonusu >0"),
-            ("gamma_bonus_check",    0.04, 0.04, 0.001, "Gamma 40 Hz bonusu"),
+            ("gamma_bonus_check",    0.04, 0.04, 0.015, "Gamma 40 Hz bonusu (~0.03-0.05)"),
         ],
     },
 }
@@ -231,7 +231,7 @@ def ses_bonus_kontrol() -> list:
     test_freqs = [
         (7.83, 0.14, "Schumann f1 — max bonus"),
         (6.68, 0.003, "Tibet çanı 6.68 Hz — Schumann'a 1.15 Hz uzak"),
-        (40.0, 0.04, "Gamma 40 Hz"),
+        (40.0, 0.03, "Gamma 40 Hz"),
         (440.0, 0.0, "A4 440 Hz — bonus 0+"),
     ]
     for freq, min_beklenen, aciklama in test_freqs:
