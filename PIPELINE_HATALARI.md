@@ -48,7 +48,7 @@
 
 ### BVT-BUG-001 — N-kişi koherans ODE'sinde üretim terimi yok
 
-**Durum:** AÇIK (Sprint 00 G-00.1'de çözülecek)
+**Durum:** ÇÖZÜLDÜ (commit 232865f, Sprint 00 G-00.1)
 **Tespit tarihi:** 2026-05-15
 **Sprint / görev:** Sprint 00 / G-00.1
 **Önem:** Kritik
@@ -131,7 +131,7 @@ def test_topoloji_avantaji():
 
 ### BVT-BUG-002 — operators.py self-test kesik komütatörü yanlış
 
-**Durum:** AÇIK (Sprint 00 G-00.2'de çözülecek, 5 dakika)
+**Durum:** ÇÖZÜLDÜ (commit 232865f, Sprint 00 G-00.2)
 **Tespit tarihi:** 2026-05-15
 **Önem:** Düşük (sadece self-test, ana kod doğru)
 **Kategori:** Test
@@ -178,7 +178,7 @@ pytest tests/test_operators.py -v   # 2 test PASS bekliyor
 
 ### BVT-BUG-003 — NumPy 2.x'te `np.trapz` kaldırıldı
 
-**Durum:** AÇIK (Sprint 00 G-00.3'te çözülecek, 10 dakika)
+**Durum:** ÇÖZÜLDÜ (commit 232865f, Sprint 00 G-00.3)
 **Tespit tarihi:** 2026-05-15
 **Önem:** Düşük
 **Kategori:** Numerik / Bağımlılık
@@ -208,7 +208,7 @@ sed -i 's/np\.trapz/np.trapezoid/g' [dosya]
 
 ### BVT-BUG-004 — Rabi frekansı testi yanlış değer dönüyor
 
-**Durum:** AÇIK
+**Durum:** ÇÖZÜLDÜ (commit 232865f, Sprint 00 G-00.4)
 **Tespit tarihi:** 2026-05-15
 **Sprint / görev:** Sprint 00 / G-00.4
 **Önem:** Orta
@@ -234,7 +234,7 @@ sed -i 's/np\.trapz/np.trapezoid/g' [dosya]
 
 ### BVT-BUG-005 — Null prediction testleri eşik çok düşük
 
-**Durum:** AÇIK
+**Durum:** ÇÖZÜLDÜ (commit 232865f, Sprint 00 G-00.5)
 **Tespit tarihi:** 2026-05-15
 **Sprint / görev:** Sprint 00 / G-00.5
 **Önem:** Orta
@@ -259,7 +259,7 @@ sed -i 's/np\.trapz/np.trapezoid/g' [dosya]
 
 ### BVT-BUG-006 — Mossbridge ES formülü kalibre değil
 
-**Durum:** AÇIK (G-00.1 sonrası tekrar bak)
+**Durum:** ÇÖZÜLDÜ (commit 232865f, Sprint 00 G-00.6)
 **Tespit tarihi:** 2026-05-15
 **Sprint / görev:** Sprint 00 / G-00.6
 **Önem:** Orta
@@ -408,13 +408,13 @@ Ayrıca her başarısız replikasyon için 1-2 cümlelik **fail-mode notu** ekle
 
 | Önem | Açık | Çözüldü |
 |---|---|---|
-| Kritik | 1 (BUG-001) | 0 |
+| Kritik | 0 | 1 (BUG-001) |
 | Yüksek | 0 | 0 |
-| Orta | 5 (BUG-004, 005, 006, 008, 009) | 0 |
-| Düşük | 4 (BUG-002, 003, 007, 010) | 0 |
-| **Toplam** | **10** | **0** |
+| Orta | 2 (BUG-008, 009) | 3 (BUG-004, 005, 006) |
+| Düşük | 2 (BUG-007, 010) | 2 (BUG-002, 003) |
+| **Toplam** | **4** | **6** |
 
-**Hedef Sprint 00 sonrası:** 7 bug çözülmüş, 3 bug Sprint 04'e ertelenmiş (BVT-BUG-001, 010 ana fizik/görsel; BVT-BUG-006 BUG-001'in sonrasında bakılır).
+**Sprint 00 sonrası:** 6 bug çözüldü. BUG-007/009 G-00.8/G-00.7'de, BUG-010 Sprint 04'te.
 
 ---
 
