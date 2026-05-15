@@ -5,8 +5,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 # BVT Projesi — Claude Code Ana Rehberi
 
 **Proje:** Birliğin Varlığı Teoremi (BVT) / Theorem of the Unity of Existence  
-**Yazar:** Ahmet Kemal Acar | **Güncelleme:** Nisan 2026  
-**Durum:** v9.3 — E-serisi reprodüksiyon düzeltmeleri + L17 3-yol fizik yeniden yazımı
+**Yazar:** Ahmet Kemal Acar | **Güncelleme:** Mayıs 2026  
+**Durum:** v9.4 — Sprint dökümanları + sinematik görsel katmanı planlandı + QA disiplini eklendi
+
+**Bu CLAUDE.md ile birlikte oku:**
+1. **`sprint_docs/`** — 9 sprint dökümanı (analiz raporu + Sprint 00-04 + 4 checklist)
+2. **`DEVELOPER_NOTEBOOK.md`** — Yazılımcı not defteri (her commit öncesi güncelle)
+3. **`QA_PLAYBOOK.md`** — Bug yakalama oyun kitabı (HPC pipeline deneyiminden uyarlandı)
+4. **`HATALAR_VE_DERSLER.md`** — Claude'un yaptığı hataların kaydı (her hata bir kuralı tetikler)
+5. **`PIPELINE_HATALARI.md`** — Pipeline bug katalogu (BVT'ye özel)
+6. **`SKILL_COMBOS.md`** — Hangi skill'leri sırayla kullanmalı
+7. **`AGENT_GUIDE.md`** — Claude Code'da agent (subagent) kullanım rehberi
 
 ---
 
@@ -30,6 +39,14 @@ kavramlarının kuantum mekaniksel karşılığını kurar.
 - E4 Plonka fix: `C_init=social_closeness`, K∝social, circaseptan=r_t.mean() → SA>NZ>>CA ✓
 - rng_seed fix: Celardo/Mossbridge/Microtubule `run()` imzasına `rng_seed: int = 42` eklendi
 - L17 v9.3: 3-yol fizik (P1 direkt EEG + P2 akustik + P3 ritmik vagal), 3-durum ODE, 7 figür
+
+**v9.4 plan (Mayıs 2026 — sprint dökümanları aktif):**
+- QA raporu (`output/QA_REPORT_2026-05-15.md`): 7 fail test, 5/13 replikasyon, görsel anomali
+- Sinematik roadmap (`output/CINEMATIC_VISUALIZATION_ROADMAP_2026-05-15.md`): 4 hero animation
+- Kod-teori analiz raporu (`sprint_docs/BVT_KOD_ANALIZ_RAPORU_2026-05-15.md`): kritik bug tespit
+- **Sprint 00 — Foundation Repair:** N-kişi C ODE üretim terimi bug fix, 7 test düzeltme, replikasyon dili
+- **Sprint 01-04 — Hero animations:** Single Heart, Two Person, Ring Collective, Phase Transition, Frequency Atlas
+- **QA disiplini:** Commit öncesi checklist, yazılımcı not defteri, hatalar günlüğü
 
 **Aktif görev takibi:** `BVT_ClaudeCode_TODO_v9.2.1.md`
 
@@ -338,3 +355,138 @@ python main.py --mp4
 | **E3 Mitsutake**: BP katsayı çok küçük → delta_SBP→0 | `sbp -= 24.0 * f_C * SR_mod` (eski 8.0) |
 | **run() rng_seed**: `reproduction_report.py` tüm `run()`'lara `rng_seed=42` geçirir | `run(output_dir=None, rng_seed: int = 42)` imzası zorunlu |
 | **circaseptan FFT**: tüm ülkeler aynı FFT bin → SA=CA | `circaseptan_amp = r_t.mean()` (ortalama senkronizasyon proxy) |
+
+---
+
+## 14. ÇALIŞMA DİSİPLİNİ — COMMIT ÖNCESİ PROTOKOL
+
+Bu bölüm tüm sprint'lerde, tüm dosya değişikliklerinde **zorunlu** uyulacak protokoldür. Bir adımı atlamak teknik borç yaratır.
+
+### 14.1 Commit öncesi 5-dakikalık kontrol (HER COMMIT)
+
+```bash
+# 1. Sözdizimi
+python -m py_compile main.py src/**/*.py simulations/**/*.py 2>&1 | grep -v "^$" || echo "[OK] Syntax"
+
+# 2. Bash sözdizimi
+bash -n truba/slurm_jobs/*.sh 2>/dev/null && echo "[OK] Bash" || echo "[INFO] No bash"
+
+# 3. Yeni `except` blokları — exception yutuyor mu?
+git diff --staged -- "*.py" | grep "^+" | grep "except" | grep -v "raise\|sys.exit\|RuntimeError" && echo "[WARN] Silent exception?" || echo "[OK] No silent except"
+
+# 4. Yeni Inter-modül veri akışı — sütun adı tutarlı mı?
+git diff --staged -- "*.py" | grep -E "to_excel|to_csv|read_excel|read_csv|np.savez" | head -10
+
+# 5. Sabit hardcode — constants.py dışında değer var mı?
+git diff --staged -- "src/" "simulations/" | grep "^+" | grep -E "0\.[0-9]+|[0-9]+\.[0-9]+" | grep -v "constants\|test\|#" | head -10
+
+# 6. Test paketi yeşil
+pytest tests/ -q --tb=no 2>&1 | tail -3
+```
+
+Bir tek `[WARN]` çıktısı varsa **dur, düzelt, sonra commit**.
+
+### 14.2 Sprint sonu 30-dakikalık denetim
+
+```bash
+# Tutarlılık denetimi
+python scripts/bvt_tutarlilik_denetimi.py
+# 0 FAIL bekleniyor
+
+# Output hijyeni (Sprint 00 G-00.9 sonrası)
+python scripts/output_audit.py
+# 0 sıfır-byte, 0 dublike
+
+# Bilim çekirdeği
+pytest tests/ -v --tb=short
+# 173 passed bekleniyor
+
+# Görsel sanity
+ls -lh output/level{11,12,15}/*.png | head
+# Boyutlar ≥ 100 KB
+```
+
+### 14.3 Yazılımcı not defteri (her commit'ten önce güncelle)
+
+Aktif sprint'te her commit öncesi `DEVELOPER_NOTEBOOK.md`'ye **3 satır** eklenir:
+
+```markdown
+## YYYY-MM-DD HH:MM — [Sprint XX / Görev G-XX.Y]
+
+**Ne yaptım:** [bir cümle]
+**Ne öğrendim:** [bir gözlem — Claude'un kendi yansıması]
+**Sonraki commit'te dikkat:** [bir uyarı]
+```
+
+Bu üç satır küçük görünür ama sprint sonunda **patternlar görünür** olur — "Ne öğrendim" sütunundan tekrar eden hatalar `HATALAR_VE_DERSLER.md`'ye taşınır.
+
+### 14.4 Hata yapınca ne olur?
+
+1. **Hatayı kabul et** — örtbas etme, atlama, "muhtemelen" deme
+2. **`HATALAR_VE_DERSLER.md`'ye ekle** — kategori + ne yanlış yaptım + doğrusu ne + tekrarlamamak için kural
+3. **Kuralı `CLAUDE.md` §13'e** veya §15'e taşı (kategoriye göre)
+4. **Sprint sonunda gözden geçir** — kaç ders biriktirdik?
+
+### 14.5 Varsayım yasağı
+
+QA Playbook KURAL 32: *"Muhtemelen X'tir" diyorsam → dur, grep/view ile kanıtla.*
+
+Bu kuralın özel uygulamaları:
+- "Muhtemelen bu fonksiyon X yapıyor" → `grep -rn "def fn" src/` → tanım oku → karar ver
+- "Sanırım dosya orada" → `ls` veya `find` → kanıtla
+- "Test geçer" → **çalıştır, sonucu bekle, sonra söyle**
+- "Bug'ı çözdüm" → `pytest tests/test_X.py -v` → çıktı gör → sonra söyle
+
+### 14.6 Runtime simulasyonu (KURAL 30)
+
+Kod yazarken 3 senaryo zihinsel simüle et:
+1. **Happy path** — her şey OK, fonksiyon ne döndürür?
+2. **Tek nokta fail** — ortada bir şey bozulursa? `try` yok mu, exception kim yakalar?
+3. **Pipe/zincir fail** — Bash pipe `$?` doğru mu? `${PIPESTATUS[0]}` mı?
+
+---
+
+## 15. KAÇINILACAK HATALAR — GENİŞLEMİŞ (Sprint 00+ deneyimleri)
+
+| Hata | Doğru yaklaşım | Kaynak |
+|---|---|---|
+| **N-kişi C ODE'sinde sadece difüzyon + söndürme** (Sprint 00 G-00.1 keşfi) | Lojistik üretim terimi eklenir: `pomp = G·C·(1-C)` | `multi_person_em_dynamics.py:314-325` |
+| **`np.trapz` kullanmak** (NumPy 2.x'te kaldırıldı) | `np.trapezoid` kullan — API birebir aynı | `tests/test_population_hkv.py` |
+| **`operators.py:228` `eye[-1,-1]=0`** (yanlış kesik komütatör) | `eye[-1,-1] = -(N-1)` — `aa† - a†a = I - N·\|N-1⟩⟨N-1\|` | Sprint 00 G-00.2 |
+| **Plotly write_image kaleido olmadan** | `pip install kaleido` + matplotlib yedek | L8, L9 dublike PNG bug |
+| **Aynı PNG iki isimle kopyalanmak** (`_plotly.png` üretilmemiş) | `fig.write_image()` Plotly'da gerçekten çağrılıyor mu? Boyut farkı kontrol | Sprint 00 G-00.8 |
+| **Replikasyon raporu dili "13 reprodüksiyon tamamlandı"** | "5/13 (%38)" başlıkta net yazılır + her başarısız için fail-mode notu | Sprint 00 G-00.7 |
+| **L17 statik bar chart "zengin matematik"i taşımıyor** | Sinematik tarayıcı + Schumann halo + alt-harmonik animasyon | Sprint 04 |
+| **`output/QA_REPORT.md` listesindeki 0-byte dosyalar son commit'te düzelmiş ama yeni dublikeler doğmuş** | `output_audit.py` her commit öncesi koş | Sprint 00 G-00.9 |
+
+---
+
+## 16. SPRINT DÖKÜMANLARININ YAŞAM DÖNGÜSÜ
+
+`sprint_docs/` altındaki 9 dosya **yaşayan belgelerdir**. Hiçbiri "yazıldı, bitti" değil:
+
+| Dosya | Ne zaman güncellenir |
+|---|---|
+| `BVT_KOD_ANALIZ_RAPORU_2026-05-15.md` | Yeni bug keşfedildiğinde §3'e ekle |
+| `MASTER_CHECKLIST.md` | Her görev tamamlandığında `[ ]` → `[x]` |
+| `SPRINT_XX_*.md` | Sprint başında plan + bitince retrospektif paragraf |
+| `SCIENTIFIC_CLAIMS_CHECKLIST.md` | Sprint sonrası iddia durumları (🟢🟡🔴) yenilenir |
+| `OUTPUT_AUDIT_SPEC.md` | `output_audit.py` çalıştıkça spec ile karşılaştır, sapmaları kaydet |
+
+### Sprint başlangıcı (kontrol listesi)
+- [ ] Önceki sprint kapanış kabul testi yeşil mi? (önceki dosya sonu)
+- [ ] `pytest tests/ -q` çalıştır → 0 fail bekleniyor
+- [ ] `python scripts/output_audit.py` → 0 FAIL
+- [ ] Sprint dökümanını oku, ön-koşulları doğrula
+- [ ] `DEVELOPER_NOTEBOOK.md`'ye sprint başlangıç notu yaz
+
+### Sprint kapanışı (kontrol listesi)
+- [ ] Tüm `[ ]` görev kutuları `[x]` veya gerekçeli `[~]` (ertelendi)
+- [ ] Kabul testi geçti — çıktıyı `DEVELOPER_NOTEBOOK.md`'ye yapıştır
+- [ ] `SCIENTIFIC_CLAIMS_CHECKLIST.md` durumları güncelle
+- [ ] Git tag at: `v9.X-sprint_NN`
+- [ ] Sonraki sprint'in `DEVELOPER_NOTEBOOK.md` ön-girişi yazıldı
+
+---
+
+*Bu CLAUDE.md, BVT projesinin **canlı rehberidir**. v9.4 ile birlikte sprint disiplini, QA çekirdeği ve sinematik katman bu rehberin merkezine yerleşti.*
