@@ -206,7 +206,7 @@ def hero_strip() -> dbc.Row:
         _hero_card("Hero 02", "Two Persons", "Coherence Transfer",
                    coming_soon=True),
         _hero_card("Hero 03", "Ring Collective", "N² Superradiance",
-                   coming_soon=True),
+                   thumb_path="hero03_thumbnail.png", coming_soon=False),
         _hero_card("Hero 04", "Phase Transition", "From Many to One",
                    coming_soon=True),
     ], className="mb-4 g-0")

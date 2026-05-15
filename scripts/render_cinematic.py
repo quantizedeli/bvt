@@ -457,7 +457,7 @@ def main():
         description="BVT Cinematic Render CLI — Hero animation üretimi"
     )
     parser.add_argument("--scene", required=True,
-                        choices=["hero01", "hero05"],   # hero01: Sprint 01, hero05: Sprint 04
+                        choices=["hero01", "hero03", "hero05"],   # hero01: Sprint 01, hero03: Sprint 02, hero05: Sprint 04
                         help="Hangi hero sahnesi")
     parser.add_argument("--quality",
                         choices=["preview", "final"],
@@ -492,6 +492,19 @@ def main():
         for asp in formats:
             name = f"hero01_single_heart_order_from_noise_{asp}_{args.quality}_v01.mp4"
             _r01(sd01, str(OUTPUT_HERO_DIR / name), aspect=asp, quality=args.quality)
+        return
+
+    # Hero03: export.py'nin render motoru
+    if args.scene == "hero03":
+        from src.viz.cinematic.scenes_ring_collective import hero03_scene_data
+        from src.viz.cinematic.export import render_hero03_to_mp4 as _r03
+        _dt = 0.15 if args.quality == "preview" else 0.1
+        _grid = 35 if args.quality == "preview" else 50
+        sd03 = hero03_scene_data(N=10, t_end=36.0, dt=_dt, n_grid=_grid)
+        formats = ["16x9"] if args.format == "16x9" else ["9x16"] if args.format == "9x16" else ["16x9", "9x16"]
+        for asp in formats:
+            name = f"hero03_ring_collective_emergence_{asp}_{args.quality}_v01.mp4"
+            _r03(sd03, str(OUTPUT_HERO_DIR / name), aspect=asp, quality=args.quality)
         return
 
     # Quality + format ile RenderConfig

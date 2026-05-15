@@ -5,6 +5,26 @@ Bu dosya projedeki her önemli değişikliği kaydeder.
 
 ---
 
+## v9.6.0 — 2026-05-15 (Sprint 02 — Ring Collective / Hero 03)
+
+### Eklendi
+- **G-02.2** src/viz/cinematic/scenes_ring_collective.py
+  - hero03_scene_data(): N=10 halka, Form A ODE, (N,3,n_t) pos, (N,n_t) faz/C, field_grid
+  - ⟨C⟩ 0.299→0.586 (Form A stabil plato), r→1.000
+  - 4 SceneEvent: opening, locking_start, threshold_cross, center_emerge
+  - hero03_topology_compare_data(): 4 topoloji (düz/yarım/tam/temas) karşılaştırma
+- **G-02.3** export.py: render_hero03_to_mp4() — scatter+faz okları+merkez glow+gauge
+- **G-02.4** render_topology_compare() — 2 metrik (r_t + C_mean) 4 topoloji PNG
+- **G-02.5** Artefaktlar: hero03_poster_v01.png (214KB), hero03_thumbnail.png (133KB)
+  hero03_topology_compare.png (86KB), hero03_scene_data.npz
+- **G-02.6** Dashboard: Hero 03 card aktif (assets/cinematic/hero03_thumbnail.png)
+- render_cinematic.py: hero03 CLI (--scene hero03)
+
+### Test
+- 175 passed, 0 failed ✅
+
+---
+
 ## v9.5.0 — 2026-05-15 (Sprint 01 — Order from Noise / Hero 01)
 
 ### Eklendi

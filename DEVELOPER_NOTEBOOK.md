@@ -28,6 +28,17 @@ Her commit'ten önce şu üç satır eklenir:
 
 ## Defter girişleri
 
+### 2026-05-15 21:30 — [Sprint 02 / G-02.1..G-02.6] — Hero 03 Ring Collective tamamlandı
+
+**Ne yaptım:** G-02.1 storyboard yazıldı. G-02.2: scenes_ring_collective.py — hero03_scene_data() (Form A ODE, N=10, t=36s, field_grid 35x35x240) + hero03_topology_compare_data() (4 topoloji). G-02.3: export.py'ye render_hero03_to_mp4() + _render_hero03_frame() eklendi (scatter, faz okları, EM alan arka plan, merkez glow r>0.6, r(t) gauge). G-02.4: render_topology_compare() 4 topoloji PNG. G-02.5: poster+thumbnail+QA notları. G-02.6: dashboard Hero 03 card aktif. CLI: hero03 dispatch eklendi. 175 test passed.
+
+**Ne öğrendim:** Form A ODE ile N=10 halka ⟨C⟩ 0.299→0.586 gerçekten artıyor ve r→1.000 — Sprint 00 fix'i burada görsel olarak kanıtlandı. Topoloji avantajı net: Halka+Temas (r_son=1.0, C=0.624) > Tam Halka > Yarım > Düz. export.py render fonksiyonları artık iki hero için çalışıyor, ortak _hex_rgb / palette altyapısı yeniden kullanılıyor.
+
+**Sonraki commit'te dikkat:** Sprint 03 (Hero 02 Two Person + Hero 04 Phase Transition) başlamadan önce MASTER_CHECKLIST Sprint 02 onay kutularını işaretle. Hero 02 için two_person.py modülü var mı kontrol et.
+
+---
+
+
 ### 2026-05-15 21:00 — [Sprint 01 / G-01.1..G-01.8] — Hero 01 Order from Noise tamamlandı
 
 **Ne yaptım:** G-01.1/1.2/1.3 zaten Sprint 04'te yazılmıştı (palettes, scene_base, cinematic iskelet). G-01.4: hero01_storyboard.md yazıldı. G-01.5: scenes_single_heart.py — hero01_scene_data() üretici (faz, C(t), field_grid 60×60×480, 4 SceneEvent). G-01.6: export.py — render_hero01_to_mp4() + render_poster() + render_thumbnail() (matplotlib FuncAnimation → imageio MP4). matplotlib 3.10 buffer_rgba API fix. G-01.7: poster (1920×1080) + thumbnail üretildi. G-01.8: kalp_koherant_vs_inkoherant PNG snapshot — kaleido yokken matplotlib fallback (mid_idx=len//2 orta frame). render_cinematic.py hero01 CLI dispatch eklendi. 175 test passed.
