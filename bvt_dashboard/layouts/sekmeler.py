@@ -152,13 +152,80 @@ def _sekme_em_3d() -> dbc.Tab:
     )
 
 
+def _hero_card(
+    hero_id: str,
+    title: str,
+    subtitle: str,
+    thumb_path: str = None,
+    coming_soon: bool = False,
+) -> dbc.Col:
+    """Tek hero card — thumbnail + başlık + alt başlık."""
+    card_style = {
+        "background": "#0f1530",
+        "border": "1px solid #1e2a50",
+        "borderRadius": "8px",
+        "overflow": "hidden",
+        "cursor": "pointer" if not coming_soon else "default",
+        "transition": "border-color 0.2s",
+    }
+    if coming_soon:
+        body = dbc.CardBody([
+            html.H6(hero_id, style={"color": "#4fc3f7", "fontSize": "11px", "marginBottom": "2px"}),
+            html.P(title, style={"color": "#e0e6ff", "fontWeight": "bold",
+                                  "fontSize": "13px", "marginBottom": "2px"}),
+            html.P(subtitle, style={"color": "#6b7a99", "fontSize": "11px", "marginBottom": "8px"}),
+            html.Div("Coming soon",
+                     style={"color": "#3d4f7a", "fontSize": "11px",
+                             "border": "1px solid #1e2a50", "borderRadius": "4px",
+                             "padding": "3px 8px", "display": "inline-block"}),
+        ], style={"padding": "12px"})
+    else:
+        img = html.Img(
+            src=f"/assets/cinematic/{thumb_path}" if thumb_path else "",
+            style={"width": "100%", "height": "120px", "objectFit": "cover",
+                   "display": "block" if thumb_path else "none"},
+        )
+        body = html.Div([
+            img,
+            dbc.CardBody([
+                html.H6(hero_id, style={"color": "#4fc3f7", "fontSize": "11px", "marginBottom": "2px"}),
+                html.P(title, style={"color": "#e0e6ff", "fontWeight": "bold",
+                                      "fontSize": "13px", "marginBottom": "2px"}),
+                html.P(subtitle, style={"color": "#a0aec0", "fontSize": "11px"}),
+            ], style={"padding": "10px"}),
+        ])
+
+    return dbc.Col(dbc.Card(body, style=card_style), width=3, className="px-2")
+
+
+def hero_strip() -> dbc.Row:
+    """4 hero card — Hero 01 aktif, Hero 02/03/04 Coming soon."""
+    return dbc.Row([
+        _hero_card("Hero 01", "Single Heart", "Order from Noise",
+                   thumb_path="hero01_thumbnail.png", coming_soon=False),
+        _hero_card("Hero 02", "Two Persons", "Coherence Transfer",
+                   coming_soon=True),
+        _hero_card("Hero 03", "Ring Collective", "N² Superradiance",
+                   coming_soon=True),
+        _hero_card("Hero 04", "Phase Transition", "From Many to One",
+                   coming_soon=True),
+    ], className="mb-4 g-0")
+
+
 def ana_layout():
     return dbc.Container([
         html.H2("BVT Studio — Birliğin Varlığı Teoremi",
                 className="text-center my-3",
                 style={"color": "#4fc3f7", "fontWeight": "bold"}),
         html.P("Plotly Dash interaktif simülasyon arayüzü | python bvt_dashboard/app.py",
-               className="text-center text-muted mb-4", style={"fontSize": "12px"}),
+               className="text-center text-muted mb-3", style={"fontSize": "12px"}),
+
+        # Hero animation strip
+        html.H6("🎬 Hero Animations",
+                style={"color": "#6b7a99", "fontSize": "12px",
+                       "textTransform": "uppercase", "letterSpacing": "1px",
+                       "marginBottom": "10px"}),
+        hero_strip(),
 
         dbc.Tabs([
             _sekme_halka(),

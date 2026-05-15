@@ -28,6 +28,17 @@ Her commit'ten önce şu üç satır eklenir:
 
 ## Defter girişleri
 
+### 2026-05-15 21:00 — [Sprint 01 / G-01.1..G-01.8] — Hero 01 Order from Noise tamamlandı
+
+**Ne yaptım:** G-01.1/1.2/1.3 zaten Sprint 04'te yazılmıştı (palettes, scene_base, cinematic iskelet). G-01.4: hero01_storyboard.md yazıldı. G-01.5: scenes_single_heart.py — hero01_scene_data() üretici (faz, C(t), field_grid 60×60×480, 4 SceneEvent). G-01.6: export.py — render_hero01_to_mp4() + render_poster() + render_thumbnail() (matplotlib FuncAnimation → imageio MP4). matplotlib 3.10 buffer_rgba API fix. G-01.7: poster (1920×1080) + thumbnail üretildi. G-01.8: kalp_koherant_vs_inkoherant PNG snapshot — kaleido yokken matplotlib fallback (mid_idx=len//2 orta frame). render_cinematic.py hero01 CLI dispatch eklendi. 175 test passed.
+
+**Ne öğrendim:** matplotlib 3.10'da tostring_rgb kaldırıldı; buffer_rgba().reshape(...,4)[:,:,:3] doğru yol. kaleido v1 Chrome gerektiriyor, bu ortamda yok — her write_image çağrısında matplotlib fallback zorunlu. export.py render motoru sprint dökümanındaki  tasarımını büyük ölçüde izledi; split_frac animasyonu 3-6s arasında doğal geçiş veriyor.
+
+**Sonraki commit'te dikkat:** G-01.9 dashboard hero strip — Dash kurulu mu kontrol et. hero01 CLI zaten çalışıyor (). Sprint 01 kapanışı için G-01.9 + QA notları kaldı.
+
+---
+
+
 ### 2026-05-15 20:30 — [Sprint 00 / G-00.1..G-00.6] — 7 fail → 0 fail, Form A pompalama fix
 
 **Ne yaptım:** 6 görev tamamlandı. G-00.2: operators.py kesik Fock komütatörü `-(N-1)` düzeltmesi (test + kaynak). G-00.3: `np.trapz` → `np.trapezoid` (3 dosya). G-00.4: `rabi_carpinti_frekansi()` fonksiyonu eklendi; `rabi_frekansı` geçiş frekansı döndürdüğü belgelendi. G-00.5: null prediction eşikleri fiziksel `g/Δω` oranıyla yeniden kalibre edildi. G-00.1 (KRİTİK): N-kişi C ODE'ye Form A yerel pompalama terimi eklendi (`G_pomp·C·(1-C)`), 2 regresif test — halka platosu ⟨C⟩=0.586. G-00.6: `ES_MAX_BVT=0.61` sabiti, Mossbridge kalibrasyon C=0.586→ES=0.209≈0.21 ✓. 175 passed, 0 failed.

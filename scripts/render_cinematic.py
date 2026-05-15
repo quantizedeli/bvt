@@ -457,7 +457,7 @@ def main():
         description="BVT Cinematic Render CLI — Hero animation üretimi"
     )
     parser.add_argument("--scene", required=True,
-                        choices=["hero05"],   # Sprint 04'te sadece hero05
+                        choices=["hero01", "hero05"],   # hero01: Sprint 01, hero05: Sprint 04
                         help="Hangi hero sahnesi")
     parser.add_argument("--quality",
                         choices=["preview", "final"],
@@ -482,15 +482,34 @@ def main():
     # MP4 modu
     OUTPUT_HERO_DIR.mkdir(parents=True, exist_ok=True)
 
+    # Hero01: export.py'nin kendi render motoru, RenderConfig gerektirmez
+    if args.scene == "hero01":
+        from src.viz.cinematic.scenes_single_heart import hero01_scene_data
+        from src.viz.cinematic.export import render_hero01_to_mp4 as _r01
+        sd01 = hero01_scene_data(t_end=24.0, dt=0.1 if args.quality=="preview" else 0.05,
+                                  n_field_grid=40 if args.quality=="preview" else 60)
+        formats = ["16x9"] if args.format == "16x9" else ["9x16"] if args.format == "9x16" else ["16x9", "9x16"]
+        for asp in formats:
+            name = f"hero01_single_heart_order_from_noise_{asp}_{args.quality}_v01.mp4"
+            _r01(sd01, str(OUTPUT_HERO_DIR / name), aspect=asp, quality=args.quality)
+        return
+
     # Quality + format ile RenderConfig
     if args.quality == "preview":
-        cfg_16x9 = RenderConfig.preview_16x9()
-        cfg_9x16 = RenderConfig.preview_9x16()
+        cfg_16x9 = RenderConfig.preview_16x9("tmp")
+        cfg_9x16 = RenderConfig.preview_9x16("tmp")
     else:
-        cfg_16x9 = RenderConfig.final_16x9()
-        cfg_9x16 = RenderConfig.final_9x16()
+        cfg_16x9 = RenderConfig.final_16x9("tmp")
+        cfg_9x16 = RenderConfig.final_9x16("tmp")
+
+    # Hero01 için export modülünden özel render
+    def _render_hero01(sd, output_path, aspect, cfg):
+        from src.viz.cinematic.export import render_hero01_to_mp4 as _r
+        quality = "preview" if cfg.fps <= 12 else "final"
+        _r(sd, str(output_path), aspect=aspect, quality=quality)
 
     sahneler = {
+        "hero01": _render_hero01,
         "hero05": render_hero05,
     }
     render_fn = sahneler[args.scene]

@@ -5,6 +5,39 @@ Bu dosya projedeki her önemli değişikliği kaydeder.
 
 ---
 
+## v9.5.0 — 2026-05-15 (Sprint 01 — Order from Noise / Hero 01)
+
+### Eklendi
+- **G-01.5** `src/viz/cinematic/scenes_single_heart.py` — hero01_scene_data() üretici
+  - (2,3) konum, (2,480) faz, (2,480) C(t), (60,60,480) field_grid float32
+  - 4 SceneEvent: split(3s), phase_lock(6.5s), phase_scatter(6.5s), freeze(21.5s)
+  - save/load round-trip .npz doğrulandı
+- **G-01.6** `src/viz/cinematic/export.py` — render_hero01_to_mp4() + render_poster() + render_thumbnail()
+  - matplotlib FuncAnimation → imageio-ffmpeg → MP4 (h264/yuv420p)
+  - buffer_rgba() fix (matplotlib 3.10+ uyumu)
+  - Preview: 12fps 960×540 | Final: 24fps 1920×1080
+- **G-01.7** Hero 01 artefaktlar üretildi
+  - hero01_single_heart_order_from_noise_16x9_preview_v01.mp4 (2.9 MB)
+  - hero01_poster_v01.png (789 KB, 1920×1080)
+  - hero01_thumbnail.png (438 KB)
+  - hero01_scene_data.npz (5.8 MB)
+- **G-01.8** kalp_koherant_vs_inkoherant.png snapshot bug fix
+  - mid_idx = len(frames)//2 (orta frame, t=0 değil)
+  - matplotlib fallback (kaleido/Chrome yok)
+- **G-01.9** Dashboard hero strip
+  - 4 hero card: Hero 01 aktif thumbnail, Hero 02/03/04 Coming soon
+  - hero_strip() + _hero_card() sekmeler.py'de
+  - assets/cinematic/hero01_thumbnail.png eklendi
+
+### Belgeler
+- output/cinematic/storyboards/hero01_storyboard.md
+- output/cinematic/hero/hero01_qa_notes.md
+
+### Test paketi
+- 175 passed, 0 failed ✅
+
+---
+
 ## v9.4.0 — 2026-05-15 (Sprint 00 — Foundation Repair)
 
 ### Düzeltildi

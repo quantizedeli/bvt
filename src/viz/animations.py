@@ -261,9 +261,39 @@ def animasyon_kalp_koherant_vs_inkoherant(
             font=dict(color="#111111"),
             title=f"BVT — Kalp EM: Koherant vs İnkoherant  (t = {t_arr[mid_idx]:.2f}s)",
         )
-        fig_snap.write_image(output_path.replace(".html", ".png"), width=1100, height=520)
-    except Exception:
-        pass
+        png_out = output_path.replace(".html", ".png")
+        try:
+            fig_snap.write_image(png_out, width=1100, height=520)
+            import os as _os
+            if _os.path.getsize(png_out) < 5000:
+                raise RuntimeError("kaleido çıktısı küçük")
+        except Exception:
+            # Kaleido/Chrome yok → matplotlib ile iki panel temsili görüntü
+            import matplotlib
+            matplotlib.use("Agg")
+            import matplotlib.pyplot as _plt
+            import os as _os
+            # mid frame verisi: sol=koherant, sağ=inkoherant
+            mid_data = frames_data
+            fig_fb, axes_fb = _plt.subplots(1, 2, figsize=(11, 5.2),
+                                             facecolor="#0a0e17")
+            for ax_fb, (name, fdata) in zip(axes_fb, mid_data.items()):
+                arr = fdata[mid_idx] if mid_idx < len(fdata) else fdata[-1]
+                ax_fb.imshow(arr, cmap="RdBu_r", origin="lower", aspect="auto")
+                ax_fb.set_title(name, color="white", fontsize=11)
+                ax_fb.set_facecolor("#111827")
+                ax_fb.tick_params(colors="gray")
+            fig_fb.suptitle(
+                f"BVT — Kalp EM: Koherant vs İnkoherant  (t = {t_arr[mid_idx]:.2f}s)",
+                color="white", fontsize=12
+            )
+            _plt.tight_layout()
+            fig_fb.savefig(png_out, dpi=100, bbox_inches="tight",
+                           facecolor="#0a0e17")
+            _plt.close(fig_fb)
+            print(f"  PNG snapshot (matplotlib fallback): {png_out}")
+    except Exception as _e:
+        print(f"  [UYARI] PNG snapshot atlandı: {_e}")
     print(f"  Animasyon: {output_path}")
     return output_path
 
