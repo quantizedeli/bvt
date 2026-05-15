@@ -23,7 +23,7 @@ from scipy.integrate import solve_ivp
 
 from src.core.constants import (
     F_HEART, MU_HEART, MU_0, HBAR, KAPPA_EFF, GAMMA_DEC,
-    N_C_SUPERRADIANCE,
+    N_C_SUPERRADIANCE, G_EFF,
 )
 
 
@@ -244,14 +244,16 @@ def N_kisi_tam_dinamik(
     """
     N kişi için zamana bağlı koherans ve faz dinamiği.
 
-    Kuramoto + dipol-dipol etkileşimi + koherans difüzyon dinamiği:
+    Kuramoto + dipol-dipol etkileşimi + koherans pompalama dinamiği (Form A):
         dφ_i/dt = ω + (κ_eff/N) Σ_j V_norm_ij sin(φ_j − φ_i)
-        dC_i/dt = -γ_etkin C_i + κ_eff/N Σ_j V_norm_ij (C_j − C_i)
+        dC_i/dt = G_i·C_i·(1−C_i) + (κ_eff/N)·Σ_j V_norm_ij·(C_j − C_i) − γ_etkin·C_i
 
-    NOT: V matrisi normalize edilir (max|V|=1) — böylece dipol r⁻³ mesafe
-    bağımlılığı koherans transferine yansır. K_bonus yerine kappa_eff
-    direkt kullanılır; geometri bonusu V_norm üzerinden değil kappa ölçeği
-    üzerinden uygulanır.
+    burada G_i = κ_eff² / (κ_eff² + γ_etkin²)  (yerel metabolik pompalama katsayısı)
+
+    Form A seçim gerekçesi: Makale §8'de her insanın ~1.3W metabolik pompası
+    koheransın tam sönmesini engeller → NESS (non-equilibrium steady state).
+    Bu yerel pompalama; mean-field (Form B) değil. Tek-kişi overlap ODE'sinin
+    (dη/dt = g²·η(1-η)/(g²+γ²) − γη) N-kişiye doğrudan genişlemesi.
 
     Parametreler
     -----------
@@ -314,10 +316,14 @@ def N_kisi_tam_dinamik(
     def rhs(t_val: float, y: np.ndarray) -> np.ndarray:
         C = y[:N_p]
         phi = y[N_p:]
-        # Koherans transferi — V_norm ile r⁻³ mesafe bağımlılığı korunuyor
-        dC = -gamma_etkin * C + kappa_etkin / N_p * np.sum(
+        # Form A: yerel metabolik pompalama + difüzyon + söndürme
+        # G_pomp = κ² / (κ² + γ²)  — tek-kişi overlap denkleminden N-kişiye genişletme
+        G_pomp = kappa_etkin**2 / (kappa_etkin**2 + gamma_etkin**2)
+        pompalama = G_pomp * C * (1.0 - C)
+        difuzyon = kappa_etkin / N_p * np.sum(
             V_norm * (C[np.newaxis, :] - C[:, np.newaxis]), axis=1
         )
+        dC = pompalama + difuzyon - gamma_etkin * C
         # Faz dinamiği — V_norm ağırlıklı Kuramoto + per-kişi frekans
         dphi = omega_vec + kappa_etkin / N_p * np.sum(
             V_norm * np.sin(phi[np.newaxis, :] - phi[:, np.newaxis]), axis=1

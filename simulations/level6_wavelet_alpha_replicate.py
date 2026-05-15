@@ -116,7 +116,7 @@ def alpha_power_scipy(eeg: np.ndarray, fs: float) -> float:
     mask = (f >= F_ALPHA_LOW) & (f <= F_ALPHA_HIGH)
     if mask.sum() == 0:
         return 0.0
-    return float(np.trapz(Pxx[mask], f[mask]))
+    return float(np.trapezoid(Pxx[mask], f[mask]))
 
 
 def compute_alpha_power(eeg: np.ndarray, fs: float) -> float:

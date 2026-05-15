@@ -28,6 +28,16 @@ Her commit'ten önce şu üç satır eklenir:
 
 ## Defter girişleri
 
+### 2026-05-15 20:30 — [Sprint 00 / G-00.1..G-00.6] — 7 fail → 0 fail, Form A pompalama fix
+
+**Ne yaptım:** 6 görev tamamlandı. G-00.2: operators.py kesik Fock komütatörü `-(N-1)` düzeltmesi (test + kaynak). G-00.3: `np.trapz` → `np.trapezoid` (3 dosya). G-00.4: `rabi_carpinti_frekansi()` fonksiyonu eklendi; `rabi_frekansı` geçiş frekansı döndürdüğü belgelendi. G-00.5: null prediction eşikleri fiziksel `g/Δω` oranıyla yeniden kalibre edildi. G-00.1 (KRİTİK): N-kişi C ODE'ye Form A yerel pompalama terimi eklendi (`G_pomp·C·(1-C)`), 2 regresif test — halka platosu ⟨C⟩=0.586. G-00.6: `ES_MAX_BVT=0.61` sabiti, Mossbridge kalibrasyon C=0.586→ES=0.209≈0.21 ✓. 175 passed, 0 failed.
+
+**Ne öğrendim:** Makale §11'de N-kişi dC/dt denklemi hiç yazılmamış — Sprint 00 başlamadan tespit edilemezdi. Form A seçimi makale §8 metabolik pompalama/NESS argümanından doğrudan çıkıyor. G-00.6 kalibrasyonu G-00.1'e bağımlıydı: Form A fix olmadan doğru ES_max hesaplanamıyordu. Görev sırası (G-00.1 sona bırakma) SPRINT_00'ın doğru tasarımıydı.
+
+**Sonraki commit'te dikkat:** G-00.7 replikasyon raporu dil temizliği (sadece .md edit). G-00.8 L8/L9 dublike PNG — kaleido kurulumu gerekiyor. G-00.9 output_audit.py manifest "olması gereken"i yazmalı, `ls output/` otomatik üretme değil (DEVELOPER_NOTEBOOK §sprint00 uyarısı).
+
+---
+
 ### 2026-05-15 21:10 — [Sprint 04 hazırlık / Hero 05 render motoru] — render_cinematic.py + 7 poster kanıtı
 
 **Ne yaptım:** `scripts/render_cinematic.py` yazıldı — Hero 05 7-aşama render motoru + CLI (`--scene`, `--quality`, `--format`, `--poster`). Bug fix: `sd.top_5` → `sd._extra["top_5"]` (KURAL 25 ihlali yakalandı: dataclass'ın serbest setattr kabul ettiğini varsaymıştım, oysa scenes_acoustic.py `_extra` dict kullanıyor). 5 farklı t değerinde poster üretildi (t=6, 12, 21, 40, 46, 52); 7 aşamanın hepsi görsel olarak doğrulandı.

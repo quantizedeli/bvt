@@ -98,7 +98,7 @@ def hrv_frequency_domain(
         mask = (f >= lo) & (f < hi)
         if mask.sum() < 1:
             return 0.0
-        return float(np.trapz(Pxx[mask], f[mask]))
+        return float(np.trapezoid(Pxx[mask], f[mask]))
 
     ulf = band_power(*BAND_ULF)
     vlf = band_power(*BAND_VLF)

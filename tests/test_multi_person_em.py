@@ -204,3 +204,64 @@ class TestNKisiTamDinamik:
             f_geometri=0.35, cooperative_robustness=False,
         )
         assert abs(sonuc["gamma_etkin"] - GAMMA_DEC) < 1e-10
+
+
+# ============================================================
+# BVT-BUG-001 REGRESİF TESTLERİ — G-00.1
+# ============================================================
+
+class TestKolektifKoheransArtisi:
+    """BVT-BUG-001: N-kişi C ODE üretim terimi (Form A pompalama) doğrulama."""
+
+    def test_kolektif_koherans_artisi_halka(self):
+        """N=10 tam halka, C(0)=0.4, t=60s → mean(C[-1]) > 0.5 (stabil non-zero plato).
+
+        ESKİ (yanlış): yalnız sönüm+difüzyon → C sıfıra iniyor.
+        YENİ (Form A): pompalama terimi stabil NESS platosunu garanti eder.
+        """
+        N = 10
+        pos = kisiler_yerlestir(N, "tam_halka", radius=1.5)
+        C0 = np.full(N, 0.4)
+        phi0 = np.linspace(0, 2 * np.pi, N, endpoint=False)
+        sonuc = N_kisi_tam_dinamik(
+            pos, C0, phi0,
+            t_span=(0, 60), dt=0.1,
+            f_geometri=0.35,
+        )
+        C_son = sonuc["C_t"][:, -1]
+        C_ort = float(np.mean(C_son))
+        assert C_ort > 0.5, (
+            f"Kolektif koherans platoya oturmadı: ⟨C⟩={C_ort:.3f} < 0.5. "
+            f"Form A pompalama terimi çalışmıyor."
+        )
+
+    def test_topoloji_avantaji(self):
+        """Tam halka topolojisi, düz topolojiden daha yüksek ⟨C⟩ platosuna ulaşmalı.
+
+        Celardo et al. 2014: halka geometrisi ~%35 cooperative robustness bonusu sağlar.
+        """
+        N = 10
+        C0 = np.full(N, 0.35)
+        phi0 = np.linspace(0, 2 * np.pi, N, endpoint=False)
+
+        pos_halka = kisiler_yerlestir(N, "tam_halka", radius=1.5)
+        sonuc_halka = N_kisi_tam_dinamik(
+            pos_halka, C0.copy(), phi0.copy(),
+            t_span=(0, 60), dt=0.1,
+            f_geometri=0.35,
+            cooperative_robustness=True,
+        )
+
+        pos_duz = kisiler_yerlestir(N, "duz", radius=1.5)
+        sonuc_duz = N_kisi_tam_dinamik(
+            pos_duz, C0.copy(), phi0.copy(),
+            t_span=(0, 60), dt=0.1,
+            f_geometri=0.0,
+            cooperative_robustness=False,
+        )
+
+        C_halka = float(np.mean(sonuc_halka["C_t"][:, -1]))
+        C_duz = float(np.mean(sonuc_duz["C_t"][:, -1]))
+        assert C_halka > C_duz, (
+            f"Halka topolojisi avantajı yok: C_halka={C_halka:.3f} <= C_duz={C_duz:.3f}"
+        )

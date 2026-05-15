@@ -217,6 +217,10 @@ HKV_WINDOW_MAX: Final[float] = 8.5      # s (EkBölümler Tablo: 4.0-8.5 s)
 ES_MOSSBRIDGE: Final[float] = 0.21      # ES (26 çalışma, z=6.9, p=2.7e-12)
 ES_DUGGAN: Final[float] = 0.28          # ES (27 çalışma, CI=[0.18,0.38])
 ES_DUGGAN_PREREG: Final[float] = 0.31   # ön-kayıtlı ES
+# ES_MAX_BVT: C→1 teorik limiti. Kalibrasyon: Form A ile N=10 halka ⟨C⟩≈0.586,
+# hedef ES=0.21 (Mossbridge) → ES_max = 0.21 / 0.586² ≈ 0.61.
+# Preregistered ES=0.31 (ES_DUGGAN_PREREG) × 2 ≈ 0.62 bağımsız teyit.
+ES_MAX_BVT: Final[float] = 0.61         # BVT asimptotik tavan (C→1 limiti)
 
 # ============================================================
 # TISE/TDSE SAYISAL BULGULAR

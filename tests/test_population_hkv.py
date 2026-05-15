@@ -18,7 +18,7 @@ def test_karma_dagilim_pdf_normalize():
     t = np.linspace(0, 15, 5000)
     pdf = karma_dagilim_pdf(t, p_A=0.3)
     # Trapezoid integral
-    integral = np.trapz(pdf, t)
+    integral = np.trapezoid(pdf, t)
     assert 0.7 < integral < 1.0, f"PDF integrali: {integral:.3f}"
 
 

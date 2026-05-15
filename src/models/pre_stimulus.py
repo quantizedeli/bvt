@@ -30,7 +30,7 @@ from src.core.constants import (
     TAU_SCH_HEART, TAU_VAGAL, TAU_AMIG, TAU_PFC,
     TAU_HRV_SIGNAL,
     HKV_WINDOW_MIN, HKV_WINDOW_MAX,
-    ES_MOSSBRIDGE, ES_DUGGAN,
+    ES_MOSSBRIDGE, ES_DUGGAN, ES_MAX_BVT,
     C_THRESHOLD, BETA_GATE
 )
 
@@ -109,24 +109,28 @@ def hkv_penceresi() -> Tuple[float, float, float]:
 
 def ef_büyüklüğü_tahmin(
     C: float,
-    ES_max: float = ES_DUGGAN,
+    ES_max: float = ES_MAX_BVT,
     beta: float = BETA_GATE
 ) -> float:
     """
     BVT efekt büyüklüğü tahmini:
         ES(C) ≈ C^β × ES_max
 
+    Kalibrasyon: Form A fix sonrası N=10 halka ⟨C⟩≈0.586,
+    hedef ES_Mossbridge=0.21 → ES_max = 0.21/0.586² ≈ 0.61 (= ES_MAX_BVT).
+    C→1 limiti: ES → ES_MAX_BVT = 0.61 (teorik tavan).
+
     Parametreler
     ------------
     C      : float ∈ [0, 1] — koherans değeri
-    ES_max : float — maksimum efekt büyüklüğü
+    ES_max : float — maksimum efekt büyüklüğü (varsayılan: ES_MAX_BVT=0.61)
     beta   : float — kapı dikliği
 
     Döndürür
     --------
     ES : float — tahmin edilen efekt büyüklüğü
 
-    Referans: BVT_Makale.docx, Bölüm 11.
+    Referans: BVT_Makale.docx, Bölüm 11; constants.py ES_MAX_BVT.
     """
     if C <= C_THRESHOLD:
         return 0.0
