@@ -229,7 +229,11 @@ RABI_FREQ_HZ: Final[float] = 2.18       # Hz (n_max=8 simülasyonu)
 RABI_FREQ_ANALYTIC_HZ: Final[float] = 1.35  # Hz (2-seviyeli analitik)
 RABI_PERIOD_S: Final[float] = 0.46      # s (T_Rabi = 1/f_Rabi)
 MIXING_ANGLE_DEG: Final[float] = 2.10   # derece (θ_mix, zayıf bağlaşım)
-CRITICAL_DETUNING_HZ: Final[float] = 0.003  # Hz (|7⟩→|16⟩ Schumann'a uzaklık)
+CRITICAL_DETUNING_HZ: Final[float] = 0.003  # Hz (|7⟩→|16⟩ — Schumann f1'e uzaklık)
+# NOT: Bu değer TISE özdeğerlerinden türetilendir (H_serbest 729×729 hamiltonyan).
+# v9.2'de KAPPA_EFF=5.0 olarak güncellendi, ancak TISE hamiltonyanı bağımsızdır;
+# dolayısıyla bu detuning değeri değişmez. KAPPA_EFF=21.9 veya 5.0 olması
+# TISE özdeğerlerini etkilemez. (SCIENTIFIC_CLAIMS §1.8 notu kapatıldı.)
 CRITICAL_DETUNING_RAD: Final[float] = 0.003  # rad/s (≈ 0.0005 Hz × 2π)
 
 # Rabi frekansı hesabı: Ω_R = √[(Δ_BS/2)²+g²_eff]

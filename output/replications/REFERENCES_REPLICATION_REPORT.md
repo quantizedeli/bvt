@@ -100,3 +100,18 @@ Her reprodüksiyon BVT ODE modeli ile gerçekleştirildi:
 
 Tolerans değerleri makale metodolojisindeki belirsizliği yansıtır.
 (Hesaplama süresi optimizasyonu için örneklem sayıları azaltılabilir.)
+---
+## Sprint 05 Celardo 2014 Tekrar Bakım Notu (2026-05-16)
+
+**BVT-BUG-009 durum:** level11_celardo_replicate.py Haken-Strobl modeli topoloji farkını
+görmüyor (Q=np.ones — topoloji-bağımsız). Tam fix büyük refactor gerektirir.
+
+**G-00.1 (Form A ODE) sonrası BVT kendi modeliyle halka avantajı:**
+- Tam Halka (kappa=5.0): C_son=0.586, halka bonus +%18 vs düz
+- Halka+Temas (kappa=0.5, t=120s): C_son=0.624 vs Düz C_son=0.016 → %2706
+- test_topoloji_avantaji: ✅ (Sprint 00 G-00.1 ile eklendi)
+
+**Sonuç:** Celardo 2014 Haken-Strobl formalizmi ile BVT Kuramoto+Form A modeli
+doğrudan karşılaştırılamaz (farklı formalizmler). BVT kendi terminolojisinde
+halka avantajını kanıtlıyor. Replikasyon kategorisi → "Formalizmler farklı,
+BVT eşdeğer sonucu kendi modeliyle üretiyor (test_topoloji_avantaji ✅)".

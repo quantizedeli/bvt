@@ -5,6 +5,33 @@ Bu dosya projedeki her önemli değişikliği kaydeder.
 
 ---
 
+## v9.9.0 — 2026-05-16 (Sprint 05 — Polish)
+
+### Eklendi
+- **test_holevo_sinir.py** — §1.3 Holevo sınırı test paketi (7 test)
+  - η_max < 1 garantisi, rank>1 karışık durumlar için (100 trial)
+  - 729-boyutlu Hilbert uzayı doğrulaması
+  - INSAN_I_KAMIL < 1 sabit tutarlılık kontrolü
+- **scripts/visual_regression.py** — görsel regresyon pipeline
+  - SSIM (skimage) veya MAE fallback
+  - 5 referans çifti: thumbnail + paper figures
+  - --mode update / check, CI uyumlu return code
+  - visual_regression/references/ dizini (5 referans PNG)
+
+### Düzeltildi
+- **CRITICAL_DETUNING_HZ** docstring güncellendi (KAPPA_EFF bağımsızlık notu)
+- **output/replications/REFERENCES_REPLICATION_REPORT.md** — Celardo 2014 tekrar bakım notu
+  - BVT Form A ODE halka avantajı kendi terminolojisinde doğrulandı
+  - Formalizmler farklılığı netleştirildi
+- **sprint_docs/SCIENTIFIC_CLAIMS_CHECKLIST.md** — Sprint 00-05 sonrası güncel durum tablosu
+  - 10 iddianın 9'u 🟢, 1'i 🟡
+
+### Test: 182 passed, 0 failed ✅  (+7 Holevo)
+
+### Visual regression: 5/5 PASS ✅
+
+---
+
 ## v9.8.0 — 2026-05-16 (Sprint 04 — Hero 05 Frequency Atlas)
 
 ### Eklendi

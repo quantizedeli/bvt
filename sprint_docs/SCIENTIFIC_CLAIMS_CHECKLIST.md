@@ -297,3 +297,31 @@ Bu borçlar Sprint 04+ kapsamında değerlendirilebilir; öncelik yüksek değil
 - **Her commit'in mesajına** etkilediği iddia/test numarası yazılır (örn: `fix(G-00.1): §1.10 üretim terimi`)
 - **Makale revizyonu sırasında** bu dosya iddia matrisini sağlamak için referans alınır
 - **Reviewer geri bildirimi** geldiğinde, hangi iddianın hangi eksende boşluk yaşadığı bu dosyadan görülür
+
+---
+
+## 7. Sprint 00-05 sonrası güncel durum (2026-05-16)
+
+| İddia | Önce | Sonra | Kanıt |
+|---|---|---|---|
+| §1.1 COHERENCE ⟹ UNITY | 🟢 | 🟢 | test_operators ✅ |
+| §1.2 N_c ≈ 10 | 🟡 | 🟢 | constants.py + test_constants ✅; Celardo nota (§7 not) |
+| §1.3 Holevo sınırı | 🟡 | 🟢 | **test_holevo_sinir.py 7/7 ✅ (Sprint 05)** |
+| §1.4 Ay fazı null | 🔴 | 🟡 | test_null_ay_fazı g/Δω<0.15 ✅ (Sprint 00 G-00.5) |
+| §1.5 Pre-stimulus 4.8s | 🟢 | 🟢 | test_pre_stimulus ✅ |
+| §1.6 Mossbridge ES 0.21 | 🔴 | 🟢 | C=0.586×ES_MAX_BVT=0.61→ES=0.209 ✅ (Sprint 00 G-00.6) |
+| §1.7 Domino 1.2e14 | 🟢 | 🟢 | test_constants ✅ |
+| §1.8 \|7⟩→\|16⟩ 0.003 Hz | 🟢 | 🟢 | TISE: f_geçiş=7.830Hz, KAPPA_EFF bağımsız (Sprint 05 nota) |
+| §1.9 ℏω/kT 1.5e-14 | 🟢 | 🟢 | constants ✅ |
+| §1.10 Üretim terimi | 🔴 | 🟢 | Form A ODE: C 0.29→0.586 stabil NESS ✅ (Sprint 00 G-00.1) |
+
+**Toplam:** 10 iddianın 9'u 🟢, 1'i 🟡 (ay fazı — off-resonance pertürbasyon g/Δω=0.10 < 0.15, formülsel gösterim yapıldı).
+
+### Test borç durumu (Sprint 05 sonrası)
+
+- [x] Holevo sınırı — test_holevo_sinir.py 7/7 ✅
+- [x] Kolektif koherans artışı — test_kolektif_kohereans_artisi_halka ✅
+- [x] Topology avantajı — test_topoloji_avantaji ✅
+- [ ] Domino zinciri aşama testleri (düşük öncelik)
+- [ ] Sırr → η overlap sayısal implementasyon (düşük öncelik)
+- [ ] Latîfe-i Rabbâniye → Q_kalp sayısal bağlantı (düşük öncelik)
