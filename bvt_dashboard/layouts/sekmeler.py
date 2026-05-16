@@ -198,9 +198,9 @@ def _hero_card(
     return dbc.Col(dbc.Card(body, style=card_style), width=3, className="px-2")
 
 
-def hero_strip() -> dbc.Row:
-    """4 hero card — Hero 01 aktif, Hero 02/03/04 Coming soon."""
-    return dbc.Row([
+def hero_strip() -> dbc.Container:
+    """5 hero card — 4+1 düzeni, 2 satır."""
+    satir1 = dbc.Row([
         _hero_card("Hero 01", "Single Heart", "Order from Noise",
                    thumb_path="hero01_thumbnail.png", coming_soon=False),
         _hero_card("Hero 02", "Two Persons", "Field Merge",
@@ -209,7 +209,15 @@ def hero_strip() -> dbc.Row:
                    thumb_path="hero03_thumbnail.png", coming_soon=False),
         _hero_card("Hero 04", "Phase Transition", "Parallel → N²",
                    thumb_path="hero04_thumbnail.png", coming_soon=False),
+    ], className="mb-2 g-0")
+
+    satir2 = dbc.Row([
+        _hero_card("Hero 05", "Frequency Atlas", "Sound & Coherence",
+                   thumb_path="hero05_thumbnail.png", coming_soon=False),
+        dbc.Col(width=9),  # boş alan
     ], className="mb-4 g-0")
+
+    return dbc.Container([satir1, satir2], fluid=True, className="px-0")
 
 
 def ana_layout():

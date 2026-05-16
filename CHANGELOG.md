@@ -5,6 +5,31 @@ Bu dosya projedeki her önemli değişikliği kaydeder.
 
 ---
 
+## v9.8.0 — 2026-05-16 (Sprint 04 — Hero 05 Frequency Atlas)
+
+### Eklendi
+- **G-04.1** output/cinematic/storyboards/hero05_storyboard.md
+  - 7 aşama, top-5 tablo, Schumann kilit anları, bilimsel risk notları
+- **G-04.4** scripts/refresh_l17_figures.py — 5 sinematik figür
+  - L17_frekans_haritasi_cinematic.png (22 scatter, koyu zemin, kategori renk)
+  - L17_uc_yol_egri.png (P1/P2/P3 fill + toplam)
+  - L17_top10_barh.png (yatay bar, kategori renkli)
+  - L17_schumann_harmonics.png (harmonik beat + yakın frekans detay)
+  - L17_alt_harmonik.png (440/432/528 → 7.83 Hz şema)
+- **G-04.5** render_realtime.hero05_render_html()
+  - 4 panel Plotly: 3-yol + toplam, 22 scatter, beat, top-10 bar
+  - output/cinematic/hero/hero05_interactive.html (108 KB)
+- **G-04.6** Dashboard 2-satır hero strip (4+1 düzeni)
+  - Hero 05 "Frequency Atlas" card aktif
+
+### Test: 175 passed, 0 failed ✅
+
+### Üretim (VS Code'da):
+    python scripts/render_cinematic.py --scene hero05 --quality preview
+    python scripts/refresh_l17_figures.py
+
+---
+
 ## v9.7.0 — 2026-05-16 (Sprint 03 — Hero 02 + Hero 04)
 
 ### Eklendi

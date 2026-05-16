@@ -1140,3 +1140,133 @@ def hero04_render_poster(sd: SceneData, out_path: str,
     fig.savefig(out_path, dpi=dpi, bbox_inches="tight", facecolor=_BG)
     plt.close(fig)
     print(f"  ✓ PNG: {out_path}  ({os.path.getsize(out_path)//1024} KB)")
+
+
+# ──────────────────────────────────────────────
+# HERO 05 — Frequency Atlas Plotly HTML
+# ──────────────────────────────────────────────
+
+def hero05_render_html(out_path: str) -> None:
+    """
+    Hero 05 Plotly interaktif HTML.
+    3 yol + toplam BVT eğrisi + 22 enstrüman scatter + harmonik beat.
+    Makale §17 için tam interaktif referans.
+    """
+    try:
+        import plotly.graph_objects as go
+        from plotly.subplots import make_subplots
+    except ImportError:
+        print("  [UYARI] Plotly yok"); return
+
+    from simulations.level17_ses_frekanslari import (
+        SES_FREKANSLARI,
+        _pathway1_direct, _pathway2_acoustic, _pathway3_rhythm, _harmonik_beat_etki,
+    )
+    from src.viz.cinematic.palettes import (
+        COHERENT, RESONANCE, INCOHERENT_1, BASELINE, THRESHOLD, BG_DEEP,
+    )
+
+    os.makedirs(os.path.dirname(out_path) if os.path.dirname(out_path) else ".", exist_ok=True)
+
+    f_grid = np.logspace(np.log10(0.5), np.log10(1000.0), 800)
+    P1   = np.array([_pathway1_direct(f)   for f in f_grid])
+    P2   = np.array([_pathway2_acoustic(f) for f in f_grid])
+    P3   = np.array([_pathway3_rhythm(f)   for f in f_grid])
+    BEAT = np.array([_harmonik_beat_etki(f) for f in f_grid])
+    TOT  = P1 + 0.6*P2 + 1.25*P3 + 0.4*BEAT
+
+    # 22 enstrüman verileri
+    enstr = []
+    for isim, v in SES_FREKANSLARI.items():
+        f = v["freq"]
+        dc = (_pathway1_direct(f) + 0.6*_pathway2_acoustic(f)
+              + 1.25*_pathway3_rhythm(f) + 0.4*_harmonik_beat_etki(f))
+        enstr.append({"isim": isim, "f_hz": f, "kategori": v["kategori"],
+                       "delta_C": dc})
+    enstr.sort(key=lambda x: x["delta_C"], reverse=True)
+
+    cat_colors = {
+        "Muzik": BASELINE, "Binaural": INCOHERENT_1, "Tibet Cani": "#FF9F1C",
+        "Saman Davul": "#CC4444", "Antik": "#44AA66",
+        "Solfeggio": RESONANCE, "Dogal": COHERENT,
+    }
+
+    fig = make_subplots(
+        rows=2, cols=2,
+        subplot_titles=[
+            "BVT Toplam ΔC(f) — 3 Yol Bileşimi",
+            "22 Enstrüman — Frekans × ΔC Scatter",
+            "Harmonik Beat Katkısı Θ(f)",
+            "Top-10 Enstrüman (ΔC sıralaması)",
+        ],
+        vertical_spacing=0.12, horizontal_spacing=0.08,
+    )
+
+    # (1,1) 3 yol + toplam
+    fig.add_trace(go.Scatter(x=f_grid, y=P1, name="Yol 1 — EEG",
+                              fill="tozeroy", line=dict(color=INCOHERENT_1, width=1),
+                              hovertemplate="f=%{x:.2f}Hz P1=%{y:.3f}"), row=1, col=1)
+    fig.add_trace(go.Scatter(x=f_grid, y=P3*1.25, name="Yol 3 — Vagal",
+                              fill="tozeroy", line=dict(color=COHERENT, width=1),
+                              hovertemplate="f=%{x:.2f}Hz P3=%{y:.3f}"), row=1, col=1)
+    fig.add_trace(go.Scatter(x=f_grid, y=P2*0.6, name="Yol 2 — Akustik",
+                              fill="tozeroy", line=dict(color=BASELINE, width=1),
+                              hovertemplate="f=%{x:.2f}Hz P2=%{y:.3f}"), row=1, col=1)
+    fig.add_trace(go.Scatter(x=f_grid, y=TOT, name="BVT Toplam",
+                              line=dict(color="white", width=2.5),
+                              hovertemplate="f=%{x:.2f}Hz ΔC=%{y:.4f}"), row=1, col=1)
+    for fsch in [7.83, 14.3, 20.8, 27.3, 33.8]:
+        fig.add_vline(x=fsch, line_dash="dot", line_color=RESONANCE,
+                      opacity=0.6, annotation_text=f"{fsch}Hz",
+                      annotation_font_size=8, row=1, col=1)
+
+    # (1,2) 22 enstrüman scatter
+    for cat in set(e["kategori"] for e in enstr):
+        sub = [e for e in enstr if e["kategori"] == cat]
+        fig.add_trace(go.Scatter(
+            x=[e["f_hz"] for e in sub],
+            y=[e["delta_C"] for e in sub],
+            mode="markers+text",
+            name=cat,
+            marker=dict(size=8, color=cat_colors.get(cat, "#888"),
+                         line=dict(width=0.5, color="white")),
+            text=[e["isim"] if e["delta_C"] > 0.6 else "" for e in sub],
+            textposition="top center",
+            textfont=dict(size=7, color="white"),
+            hovertemplate="%{text}<br>f=%{x:.2f}Hz<br>ΔC=%{y:.4f}",
+        ), row=1, col=2)
+
+    # (2,1) Harmonik beat
+    fig.add_trace(go.Scatter(x=f_grid, y=BEAT, name="Beat Θ(f)",
+                              line=dict(color=RESONANCE, width=2),
+                              hovertemplate="f=%{x:.2f}Hz Θ=%{y:.4f}"), row=2, col=1)
+
+    # (2,2) Top-10 bar
+    top10 = enstr[:10]
+    fig.add_trace(go.Bar(
+        x=[e["delta_C"] for e in top10],
+        y=[e["isim"] for e in top10],
+        orientation="h",
+        marker=dict(color=[cat_colors.get(e["kategori"], "#888") for e in top10],
+                     line=dict(width=0.3, color="#333")),
+        hovertemplate="%{y}<br>ΔC=%{x:.4f}",
+        name="Top-10",
+    ), row=2, col=2)
+
+    # Log ekseni
+    for axis in ["xaxis", "xaxis2", "xaxis3"]:
+        fig.layout[axis].update(type="log")
+
+    fig.update_layout(
+        title=dict(text="Hero 05 — BVT Frequency Atlas  |  22 Enstrüman × 3 Yol Model",
+                   font=dict(color="#e0e6ff", size=15)),
+        paper_bgcolor=BG_DEEP, plot_bgcolor="#0f1530",
+        font=dict(color="#a0aec0"), height=800,
+        legend=dict(bgcolor="#0f1530", bordercolor="#222", font=dict(size=8)),
+    )
+    for axis in list(fig.layout):
+        if str(axis).startswith("yaxis"):
+            fig.layout[axis].update(gridcolor="#1e2a50", zerolinecolor="#333")
+
+    fig.write_html(out_path, include_plotlyjs="cdn")
+    print(f"  ✓ HTML: {out_path}  ({os.path.getsize(out_path)//1024} KB)")
