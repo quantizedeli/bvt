@@ -5,6 +5,34 @@ Bu dosya projedeki her önemli değişikliği kaydeder.
 
 ---
 
+## v9.7.0 — 2026-05-16 (Sprint 03 — Hero 02 + Hero 04)
+
+### Eklendi
+- **G-03.1** scenes_two_person.py — hero02_scene_data()
+  - t-bağımlı V ODE: d(t) 3.0m→0.9m→0.3m (120s gerçek zamanlı)
+  - scipy solve_ivp ile anlık dipol bağlaşım güncelleme
+  - kappa=0.5, gamma=0.2 → C*=0.77, stabil plato
+  - SceneEvents: far_field/approach_start/half_distance/contact/merge
+- **G-03.4** scenes_phase_transition.py — hero04_scene_data()
+  - 3 aşamalı ODE: Parallel (kappa_eff) → Hybrid (artan kappa + biasing) → Serial
+  - Topoloji morph: rastgele → halka (_position_morph interpolasyon)
+  - N=10, kappa=0.5, gamma=0.3 → ⟨C⟩: 0.239→0.673, r→1.000, P: 13→100
+- **G-03.5** render_realtime.py'ye Hero 02 + Hero 04 render fonksiyonları
+  - hero02: d(t) gauge, köprü çizgisi, r vs d faz uzayı HTML
+  - hero04: P(t)=r²N²+N(1-r²) güç gauge, topoloji morph görüntüsü
+  - Plotly HTML: hero02 (6 panel), hero04 (4 panel)
+  - PNG poster: hero02 (t=95s), hero04 (t=100s)
+- **G-03.7** scripts/refresh_paper_figures.py
+  - §3/§6/§11/§15 makale figürleri 300 DPI PNG
+  - HOW_TO_EMBED.md gömme talimatları
+  - Mevcut posterler ve analitik eğriler birleştirildi
+- **G-03.8** Dashboard 4 hero card aktif (Coming soon YOK)
+- render_cinematic.py: hero02/hero04 CLI (choices güncellendi)
+
+### Test: 175 passed, 0 failed ✅
+
+---
+
 ## v9.6.1 — 2026-05-15 (Gerçek Zaman Düzeltmesi + HTML çıktıları)
 
 ### Düzeltildi

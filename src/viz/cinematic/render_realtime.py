@@ -676,3 +676,467 @@ def hero03_render_all(
     print(f"[hero03] MP4 üretiliyor ({t_end:.0f}s, {fps}fps = {int(t_end*fps)} frame)...")
     hero03_render_mp4(sd, f"{out_dir}/hero/hero03_ring_collective_16x9_realtime_v2.mp4",
                       fps=fps, width=width, height=height)
+
+
+# ──────────────────────────────────────────────
+# HERO 02 — Two Persons: Field Merge
+# ──────────────────────────────────────────────
+
+def _draw_hero02_frame(
+    fig: plt.Figure,
+    ax_main: plt.Axes,
+    ax_gauge: plt.Axes,
+    ax_ann: plt.Axes,
+    sd: SceneData,
+    t_idx: int,
+) -> None:
+    """Hero 02 tek frame: t-bağımlı konum + EM alan + mesafe+Δφ gauge."""
+    t_val = float(sd.t[t_idx])
+    fg = sd.field_grid[:, :, t_idx]
+    fmin, fmax = float(sd.field_grid.min()), float(sd.field_grid.max())
+    norm_fg = (fg - fmin) / (fmax - fmin + 1e-12)
+
+    # Mevcut iki kişi konumu
+    pos = sd.positions[:, :, t_idx]  # (2, 3)
+    d_now = float(np.linalg.norm(pos[0] - pos[1]))
+
+    ax_main.clear(); ax_main.set_facecolor(_BG)
+    ax_main.imshow(norm_fg, origin="lower", cmap="Blues",
+                   vmin=0, vmax=1, aspect="equal",
+                   extent=[-2.5, 2.5, -2.5, 2.5],
+                   interpolation="bilinear", alpha=0.75)
+
+    for k, (col, cmap_c) in enumerate(zip([_COH, _INC], [_COH, _INC])):
+        c_k = float(sd.coherence[k, t_idx])
+        phi_k = float(sd.phases[k, t_idx])
+        col_k = _lerp_color(_INC, _COH, c_k)
+        x0, y0 = float(pos[k, 0]), float(pos[k, 1])
+        ax_main.scatter(x0, y0, s=200, c=[col_k], zorder=5)
+        ax_main.annotate("",
+                          xy=(x0+0.3*np.cos(phi_k), y0+0.3*np.sin(phi_k)),
+                          xytext=(x0, y0),
+                          arrowprops=dict(arrowstyle="->", color=col_k, lw=2.5), zorder=6)
+        ax_main.text(x0, y0 - 0.35, f"C={c_k:.2f}",
+                      color=col_k, fontsize=8, ha="center", zorder=7)
+
+    # Köprü çizgisi — alan örtüşmeye başlayınca görünür
+    if d_now < 1.5:
+        alpha_bridge = min(1.0, (1.5 - d_now) / 1.2)
+        ax_main.plot([pos[0,0], pos[1,0]], [pos[0,1], pos[1,1]],
+                      color=_RES, lw=2*alpha_bridge, alpha=alpha_bridge*0.8,
+                      ls="--", zorder=4)
+
+    ax_main.set_xlim(-2.8, 2.8); ax_main.set_ylim(-2.8, 2.8)
+    ax_main.set_aspect("equal"); ax_main.set_xticks([]); ax_main.set_yticks([])
+
+    # Gauge: d(t) ve r(t)
+    ax_gauge.clear(); ax_gauge.set_facecolor(_BG)
+    n_hist = min(t_idx + 1, len(sd.t))
+    t_hist = sd.t[:n_hist]
+    r_hist = sd.order_param[:n_hist]
+    d_hist = sd.metrics["d_t"][:n_hist]
+
+    ax2 = ax_gauge.twinx()
+    ax_gauge.plot(t_hist, r_hist, color=_COH, lw=2, label="r(t)")
+    ax2.plot(t_hist, d_hist, color=_RES, lw=1.5, ls="--", label="d(t)")
+    ax_gauge.axhline(0.8, color=_COH, lw=0.8, ls=":", alpha=0.5)
+    ax_gauge.set_ylim(0, 1.05); ax_gauge.set_xlim(0, float(sd.t[-1]))
+    ax2.set_ylim(0, 3.2); ax2.set_ylabel("d (m)", color=_RES, fontsize=8)
+    ax_gauge.set_ylabel("r(t)", color=_COH, fontsize=8)
+    ax_gauge.tick_params(colors="#555", labelsize=6)
+    ax2.tick_params(colors="#555", labelsize=6)
+    for sp in ax_gauge.spines.values(): sp.set_color("#222")
+    ax_gauge.text(float(sd.t[-1])*0.97, 0.92,
+                   f"r={r_hist[-1]:.2f}", color=_COH, fontsize=8,
+                   ha="right", fontweight="bold")
+    ax_gauge.text(float(sd.t[-1])*0.97, 0.06,
+                   f"d={d_hist[-1]:.1f}m", color=_RES, fontsize=8, ha="right")
+    ax_gauge.set_facecolor(_BG); ax2.set_facecolor(_BG)
+
+    # Annotation
+    ax_ann.clear(); ax_ann.set_facecolor(_BG)
+    ax_ann.set_xticks([]); ax_ann.set_yticks([])
+    if t_val < 7.0:
+        ann = "Far field — independent"
+    elif d_now > 0.95:
+        ann = f"Approaching...  d = {d_now:.2f}m"
+    elif r_hist[-1] > 0.8:
+        ann = "Phase locked — fields merged"
+    else:
+        ann = f"Contact zone — d = {d_now:.2f}m"
+    ax_ann.text(0.5, 0.55, ann, ha="center", va="center",
+                color=_THR, fontsize=12, fontweight="bold",
+                transform=ax_ann.transAxes)
+    ax_ann.text(0.02, 0.15, f"t = {t_val:.1f}s", color="#555",
+                fontsize=8, transform=ax_ann.transAxes)
+
+
+def hero02_render_mp4(sd: SceneData, out_path: str,
+                       fps: int = 24, width: int = 1920, height: int = 1080) -> None:
+    """Hero 02 MP4 — gerçek zamanlı."""
+    dpi = 72
+    fig = plt.figure(figsize=(width/dpi, height/dpi), facecolor=_BG, dpi=dpi)
+    gs = gridspec.GridSpec(2, 2, figure=fig, width_ratios=[3, 1],
+                           height_ratios=[8, 1], hspace=0.04, wspace=0.04,
+                           left=0.01, right=0.99, top=0.97, bottom=0.01)
+    ax_main  = fig.add_subplot(gs[0, 0])
+    ax_gauge = fig.add_subplot(gs[0, 1])
+    ax_ann   = fig.add_subplot(gs[1, :])
+    t_arr = sd.t; n_t = len(t_arr)
+    dt_sim = float(t_arr[1] - t_arr[0]) if n_t > 1 else 1.0
+    n_frames = int(float(t_arr[-1]) * fps)
+
+    def _frames():
+        for vf in range(n_frames):
+            t_v = vf / fps
+            data_i = min(int(t_v / dt_sim), n_t - 1)
+            _draw_hero02_frame(fig, ax_main, ax_gauge, ax_ann, sd, data_i)
+            yield _fig_to_rgb(fig, dpi)
+            if vf % (fps * 15) == 0:
+                print(f"  frame {vf}/{n_frames} (t={t_v:.0f}s)", end="\r")
+
+    _write_mp4(_frames(), out_path, fps, width, height)
+    plt.close(fig)
+
+
+def hero02_render_html(sd: SceneData, out_path: str) -> None:
+    """Hero 02 Plotly HTML — d(t), r(t), Δφ(t), C_1/C_2(t), B_center."""
+    try:
+        import plotly.graph_objects as go
+        from plotly.subplots import make_subplots
+    except ImportError:
+        print("  [UYARI] Plotly yok"); return
+
+    os.makedirs(os.path.dirname(out_path) if os.path.dirname(out_path) else ".", exist_ok=True)
+    t = sd.t
+    fig = make_subplots(rows=3, cols=2,
+                        subplot_titles=[
+                            "r(t) — Faz Düzeni", "d(t) — Kişiler Arası Mesafe",
+                            "C₁(t) ve C₂(t) — Bireysel Koherans", "Δφ(t) — Faz Farkı",
+                            "B_merkez(t) — Merkez Alan", "r(t) vs d(t) Faz Uzayı",
+                        ],
+                        vertical_spacing=0.1, horizontal_spacing=0.08)
+
+    d_t = sd.metrics["d_t"]
+    r_t = sd.order_param
+    C1  = sd.metrics["C_1"]
+    C2  = sd.metrics["C_2"]
+    dphi = sd.metrics["delta_phi"]
+    B_c  = sd.metrics["B_center"]
+
+    fig.add_trace(go.Scatter(x=t, y=r_t, name="r(t)",
+                              line=dict(color=COHERENT, width=2.5),
+                              hovertemplate="t=%{x:.1f}s<br>r=%{y:.4f}"), row=1, col=1)
+    fig.add_hline(y=0.8, line_dash="dash", line_color=RESONANCE,
+                  opacity=0.7, annotation_text="r=0.8", row=1, col=1)
+
+    fig.add_trace(go.Scatter(x=t, y=d_t, name="d(t)",
+                              line=dict(color=RESONANCE, width=2),
+                              hovertemplate="t=%{x:.1f}s<br>d=%{y:.2f}m"), row=1, col=2)
+    for ev in sd.events:
+        fig.add_vline(x=ev.t, line_dash="dot", line_color=THRESHOLD, opacity=0.4,
+                      annotation_text=ev.label, annotation_font_size=8, row=1, col=1)
+
+    fig.add_trace(go.Scatter(x=t, y=C1, name="C₁",
+                              line=dict(color=COHERENT, width=2),
+                              hovertemplate="t=%{x:.1f}s<br>C₁=%{y:.3f}"), row=2, col=1)
+    fig.add_trace(go.Scatter(x=t, y=C2, name="C₂",
+                              line=dict(color=INCOHERENT_1, width=2, dash="dash"),
+                              hovertemplate="t=%{x:.1f}s<br>C₂=%{y:.3f}"), row=2, col=1)
+
+    fig.add_trace(go.Scatter(x=t, y=dphi, name="Δφ",
+                              line=dict(color=RESONANCE, width=2),
+                              hovertemplate="t=%{x:.1f}s<br>Δφ=%{y:.3f} rad"), row=2, col=2)
+    fig.add_hline(y=0.2, line_dash="dash", line_color=COHERENT,
+                  opacity=0.5, annotation_text="Δφ<0.2 kilitleme", row=2, col=2)
+
+    fig.add_trace(go.Scatter(x=t, y=B_c, name="B_merkez",
+                              line=dict(color=THRESHOLD, width=2),
+                              hovertemplate="t=%{x:.1f}s<br>B_c=%{y:.3f}"), row=3, col=1)
+
+    # Faz uzayı: r vs d
+    fig.add_trace(go.Scatter(x=d_t, y=r_t, name="r vs d",
+                              mode="lines+markers",
+                              marker=dict(size=4, color=t, colorscale="Viridis",
+                                          showscale=True,
+                                          colorbar=dict(title="t (s)", x=1.02)),
+                              line=dict(color=COHERENT, width=1),
+                              hovertemplate="d=%{x:.2f}m<br>r=%{y:.4f}"), row=3, col=2)
+
+    fig.update_layout(
+        title=dict(text=f"Hero 02 — Two Persons Field Merge  |  t_end={t[-1]:.0f}s",
+                   font=dict(color="#e0e6ff", size=15)),
+        paper_bgcolor=BG_DEEP, plot_bgcolor="#0f1530",
+        font=dict(color="#a0aec0"), height=900, showlegend=True,
+        legend=dict(bgcolor="#0f1530", bordercolor="#222", font=dict(size=9)),
+    )
+    for axis in list(fig.layout):
+        if str(axis).startswith("xaxis") or str(axis).startswith("yaxis"):
+            fig.layout[axis].update(gridcolor="#1e2a50", zerolinecolor="#333")
+
+    fig.write_html(out_path, include_plotlyjs="cdn")
+    print(f"  ✓ HTML: {out_path}  ({os.path.getsize(out_path)//1024} KB)")
+
+
+def hero02_render_poster(sd: SceneData, out_path: str,
+                          t_poster: float = 95.0,
+                          width: int = 1920, height: int = 1080) -> None:
+    """Hero 02 poster PNG."""
+    os.makedirs(os.path.dirname(out_path) if os.path.dirname(out_path) else ".", exist_ok=True)
+    t_idx = int(np.argmin(np.abs(sd.t - t_poster)))
+    dpi = 72
+    fig = plt.figure(figsize=(width/dpi, height/dpi), facecolor=_BG, dpi=dpi)
+    gs = gridspec.GridSpec(2, 2, figure=fig, width_ratios=[3, 1],
+                           height_ratios=[8, 1], hspace=0.04, wspace=0.04,
+                           left=0.01, right=0.99, top=0.94, bottom=0.01)
+    ax_main  = fig.add_subplot(gs[0, 0])
+    ax_gauge = fig.add_subplot(gs[0, 1])
+    ax_ann   = fig.add_subplot(gs[1, :])
+    _draw_hero02_frame(fig, ax_main, ax_gauge, ax_ann, sd, t_idx)
+    fig.text(0.5, 0.97, f"Two Persons: Field Merge — BVT Hero 02  (t={t_poster:.0f}s)",
+             ha="center", va="top", color=_THR, fontsize=16, fontweight="bold")
+    fig.savefig(out_path, dpi=dpi, bbox_inches="tight", facecolor=_BG)
+    plt.close(fig)
+    print(f"  ✓ PNG: {out_path}  ({os.path.getsize(out_path)//1024} KB)")
+
+
+# ──────────────────────────────────────────────
+# HERO 04 — Phase Transition
+# ──────────────────────────────────────────────
+
+def _draw_hero04_frame(
+    fig: plt.Figure,
+    ax_main: plt.Axes,
+    ax_gauge: plt.Axes,
+    ax_ann: plt.Axes,
+    sd: SceneData,
+    t_idx: int,
+    t_hybrid_start: float = 40.0,
+    t_serial_start: float = 80.0,
+) -> None:
+    """Hero 04 tek frame: topoloji morph + güç gauge."""
+    t_val = float(sd.t[t_idx])
+    N = sd.phases.shape[0]
+    fg = sd.field_grid[:, :, t_idx]
+    fmin, fmax = float(sd.field_grid.min()), float(sd.field_grid.max())
+    norm_fg = (fg - fmin) / (fmax - fmin + 1e-12)
+
+    ax_main.clear(); ax_main.set_facecolor(_BG)
+    ax_main.imshow(norm_fg, origin="lower", cmap="Blues",
+                   vmin=0, vmax=1, aspect="equal",
+                   extent=[-2.5, 2.5, -2.5, 2.5],
+                   interpolation="bilinear", alpha=0.65)
+
+    positions = sd.positions[:, :, t_idx]  # (N, 3) — t_idx'deki anlık konum
+    r_val = float(sd.order_param[t_idx])
+
+    for k in range(N):
+        c_k = float(sd.coherence[k, t_idx])
+        phi_k = float(sd.phases[k, t_idx])
+        col = _lerp_color(_INC, _COH, c_k)
+        x0, y0 = float(positions[k, 0]), float(positions[k, 1])
+        ax_main.scatter(x0, y0, s=130, c=[col], zorder=5)
+        ax_main.annotate("",
+                          xy=(x0+0.22*np.cos(phi_k), y0+0.22*np.sin(phi_k)),
+                          xytext=(x0, y0),
+                          arrowprops=dict(arrowstyle="->", color=col, lw=1.8), zorder=6)
+
+    if r_val > 0.5:
+        ag = min(1.0, (r_val - 0.5) / 0.5)
+        for rad, a in [(1.5, 0.10*ag), (0.9, 0.20*ag), (0.45, 0.30*ag)]:
+            ax_main.add_patch(plt.Circle((0, 0), rad, color=_RES, alpha=a, zorder=3))
+
+    # Aşama etiketi (köşede)
+    if t_val < t_hybrid_start:
+        phase_label = "Parallel"
+        phase_col = _INC
+    elif t_val < t_serial_start:
+        phase_label = "Hybrid"
+        phase_col = _BAS
+    else:
+        phase_label = "Serial"
+        phase_col = _COH
+    ax_main.text(0.03, 0.95, phase_label, transform=ax_main.transAxes,
+                  color=phase_col, fontsize=14, fontweight="bold",
+                  va="top", bbox=dict(boxstyle="round,pad=0.3", fc=_BG, ec=phase_col, alpha=0.8))
+
+    ax_main.set_xlim(-2.8, 2.8); ax_main.set_ylim(-2.8, 2.8)
+    ax_main.set_aspect("equal"); ax_main.set_xticks([]); ax_main.set_yticks([])
+
+    # Gauge: P(t) ve r(t)
+    ax_gauge.clear(); ax_gauge.set_facecolor(_BG)
+    n_hist = min(t_idx + 1, len(sd.t))
+    t_hist = sd.t[:n_hist]
+    r_hist = sd.order_param[:n_hist]
+    P_hist = sd.metrics["P_t"][:n_hist]
+    P_max  = float(N**2)
+
+    ax_gauge.fill_between(t_hist, P_hist, alpha=0.3, color=_RES)
+    ax_gauge.plot(t_hist, P_hist, color=_RES, lw=2, label="P(t)")
+    ax_gauge.axhline(P_max, color=_COH, lw=1, ls="--", alpha=0.7)
+    ax_gauge.axhline(N, color=_INC, lw=1, ls=":", alpha=0.7)
+    ax_gauge.set_ylim(0, P_max * 1.08)
+    ax_gauge.set_xlim(0, float(sd.t[-1]))
+    ax_gauge.set_ylabel("P(t) — Kolektif Güç", color=_RES, fontsize=7)
+    ax_gauge.text(float(sd.t[-1])*0.97, P_max*1.02, f"N²={N**2}",
+                   color=_COH, fontsize=8, ha="right")
+    ax_gauge.text(float(sd.t[-1])*0.97, N*1.02, f"N={N}",
+                   color=_INC, fontsize=8, ha="right")
+    ax_gauge.text(float(sd.t[-1])*0.97, P_hist[-1]*0.88,
+                   f"P={P_hist[-1]:.0f}", color=_RES, fontsize=9,
+                   ha="right", fontweight="bold")
+    ax_gauge.tick_params(colors="#555", labelsize=6)
+    for sp in ax_gauge.spines.values(): sp.set_color("#222")
+
+    # Annotation
+    ax_ann.clear(); ax_ann.set_facecolor(_BG)
+    ax_ann.set_xticks([]); ax_ann.set_yticks([])
+    C_mean = float(np.mean(sd.coherence[:, t_idx]))
+    P_now  = float(sd.metrics["P_t"][t_idx])
+    if t_val < t_hybrid_start:
+        ann = "Many emitters — P ≈ N"
+    elif t_val < t_serial_start:
+        ann = "Sub-groups forming — topology morphing"
+    elif r_val > 0.8:
+        ann = f"One collective mode  |  P = {P_now:.0f} ≈ N²"
+    else:
+        ann = f"Approaching collective lock  |  r = {r_val:.2f}"
+    ax_ann.text(0.5, 0.55, ann, ha="center", va="center",
+                color=_THR, fontsize=12, fontweight="bold",
+                transform=ax_ann.transAxes)
+    ax_ann.text(0.02, 0.15, f"t = {t_val:.1f}s", color="#555",
+                fontsize=8, transform=ax_ann.transAxes)
+    ax_ann.text(0.98, 0.15, f"⟨C⟩={C_mean:.3f}  r={r_val:.3f}",
+                color=_COH, fontsize=8, ha="right", transform=ax_ann.transAxes)
+
+
+def hero04_render_mp4(sd: SceneData, out_path: str,
+                       fps: int = 24, width: int = 1920, height: int = 1080,
+                       t_hybrid_start: float = 40.0,
+                       t_serial_start: float = 80.0) -> None:
+    """Hero 04 MP4 — gerçek zamanlı."""
+    dpi = 72
+    fig = plt.figure(figsize=(width/dpi, height/dpi), facecolor=_BG, dpi=dpi)
+    gs = gridspec.GridSpec(2, 2, figure=fig, width_ratios=[3, 1],
+                           height_ratios=[8, 1], hspace=0.04, wspace=0.04,
+                           left=0.01, right=0.99, top=0.97, bottom=0.01)
+    ax_main  = fig.add_subplot(gs[0, 0])
+    ax_gauge = fig.add_subplot(gs[0, 1])
+    ax_ann   = fig.add_subplot(gs[1, :])
+    t_arr = sd.t; n_t = len(t_arr)
+    dt_sim = float(t_arr[1] - t_arr[0]) if n_t > 1 else 1.0
+    n_frames = int(float(t_arr[-1]) * fps)
+
+    def _frames():
+        for vf in range(n_frames):
+            t_v = vf / fps
+            data_i = min(int(t_v / dt_sim), n_t - 1)
+            _draw_hero04_frame(fig, ax_main, ax_gauge, ax_ann, sd, data_i,
+                                t_hybrid_start, t_serial_start)
+            yield _fig_to_rgb(fig, dpi)
+            if vf % (fps * 15) == 0:
+                print(f"  frame {vf}/{n_frames} (t={t_v:.0f}s)", end="\r")
+
+    _write_mp4(_frames(), out_path, fps, width, height)
+    plt.close(fig)
+
+
+def hero04_render_html(sd: SceneData, out_path: str) -> None:
+    """Hero 04 Plotly HTML — r(t), P(t), C_i(t), topoloji morph animasyonu."""
+    try:
+        import plotly.graph_objects as go
+        from plotly.subplots import make_subplots
+    except ImportError:
+        print("  [UYARI] Plotly yok"); return
+
+    os.makedirs(os.path.dirname(out_path) if os.path.dirname(out_path) else ".", exist_ok=True)
+    t = sd.t; N = sd.phases.shape[0]
+    r_t   = sd.order_param
+    C_t   = sd.coherence
+    C_mean = np.mean(C_t, axis=0)
+    P_t   = sd.metrics["P_t"]
+    P_inco = sd.metrics["P_incoherent"]
+    P_sr  = sd.metrics["P_superradiant"]
+
+    fig = make_subplots(rows=2, cols=2,
+                        subplot_titles=[
+                            "r(t) — Kuramoto Düzen Parametresi",
+                            "P(t) — Kolektif Güç  (N → N²)",
+                            "⟨C⟩(t) — Ortalama Koherans",
+                            "Bireysel C_i(t)",
+                        ],
+                        vertical_spacing=0.12, horizontal_spacing=0.08)
+
+    fig.add_trace(go.Scatter(x=t, y=r_t, name="r(t)",
+                              line=dict(color=COHERENT, width=2.5),
+                              hovertemplate="t=%{x:.1f}s<br>r=%{y:.4f}"), row=1, col=1)
+    fig.add_hline(y=0.8, line_dash="dash", line_color=RESONANCE, opacity=0.7, row=1, col=1)
+
+    fig.add_trace(go.Scatter(x=t, y=P_t, name="P(t)", fill="tozeroy",
+                              line=dict(color=RESONANCE, width=2.5),
+                              hovertemplate="t=%{x:.1f}s<br>P=%{y:.1f}"), row=1, col=2)
+    fig.add_trace(go.Scatter(x=t, y=P_sr, name=f"N²={N**2}",
+                              line=dict(color=COHERENT, width=1, dash="dash"),
+                              hovertemplate="N²"), row=1, col=2)
+    fig.add_trace(go.Scatter(x=t, y=P_inco, name=f"N={N}",
+                              line=dict(color=INCOHERENT_1, width=1, dash="dot"),
+                              hovertemplate="N"), row=1, col=2)
+
+    fig.add_trace(go.Scatter(x=t, y=C_mean, name="⟨C⟩",
+                              line=dict(color=RESONANCE, width=2.5),
+                              hovertemplate="t=%{x:.1f}s<br>⟨C⟩=%{y:.4f}"), row=2, col=1)
+
+    colors_ind = [COHERENT, INCOHERENT_1, INCOHERENT_2, RESONANCE, BASELINE,
+                  "#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4", "#FFEAA7"]
+    for k in range(N):
+        fig.add_trace(go.Scatter(x=t, y=C_t[k], name=f"C_{k+1}",
+                                  line=dict(color=colors_ind[k % len(colors_ind)], width=1.2),
+                                  opacity=0.75,
+                                  hovertemplate=f"C_{k+1}: t=%{{x:.1f}}s %{{y:.3f}}"),
+                       row=2, col=2)
+
+    # SceneEvents
+    for ev in sd.events:
+        for row, col in [(1,1),(1,2),(2,1)]:
+            fig.add_vline(x=ev.t, line_dash="dot", line_color=THRESHOLD, opacity=0.4,
+                          annotation_text=ev.label if row==1 and col==1 else "",
+                          annotation_font_size=9, row=row, col=col)
+
+    fig.update_layout(
+        title=dict(text=f"Hero 04 — Phase Transition: Parallel→Hybrid→Serial  N={N}",
+                   font=dict(color="#e0e6ff", size=15)),
+        paper_bgcolor=BG_DEEP, plot_bgcolor="#0f1530",
+        font=dict(color="#a0aec0"), height=700,
+        legend=dict(bgcolor="#0f1530", bordercolor="#222", font=dict(size=9)),
+    )
+    for axis in list(fig.layout):
+        if str(axis).startswith("xaxis") or str(axis).startswith("yaxis"):
+            fig.layout[axis].update(gridcolor="#1e2a50", zerolinecolor="#333")
+
+    fig.write_html(out_path, include_plotlyjs="cdn")
+    print(f"  ✓ HTML: {out_path}  ({os.path.getsize(out_path)//1024} KB)")
+
+
+def hero04_render_poster(sd: SceneData, out_path: str,
+                          t_poster: float = 100.0,
+                          width: int = 1920, height: int = 1080,
+                          t_hybrid_start: float = 40.0,
+                          t_serial_start: float = 80.0) -> None:
+    """Hero 04 poster PNG."""
+    os.makedirs(os.path.dirname(out_path) if os.path.dirname(out_path) else ".", exist_ok=True)
+    t_idx = int(np.argmin(np.abs(sd.t - t_poster)))
+    dpi = 72
+    fig = plt.figure(figsize=(width/dpi, height/dpi), facecolor=_BG, dpi=dpi)
+    gs = gridspec.GridSpec(2, 2, figure=fig, width_ratios=[3, 1],
+                           height_ratios=[8, 1], hspace=0.04, wspace=0.04,
+                           left=0.01, right=0.99, top=0.94, bottom=0.01)
+    ax_main  = fig.add_subplot(gs[0, 0])
+    ax_gauge = fig.add_subplot(gs[0, 1])
+    ax_ann   = fig.add_subplot(gs[1, :])
+    _draw_hero04_frame(fig, ax_main, ax_gauge, ax_ann, sd, t_idx,
+                        t_hybrid_start, t_serial_start)
+    fig.text(0.5, 0.97, f"Phase Transition: N → N²  — BVT Hero 04  (t={t_poster:.0f}s)",
+             ha="center", va="top", color=_THR, fontsize=16, fontweight="bold")
+    fig.savefig(out_path, dpi=dpi, bbox_inches="tight", facecolor=_BG)
+    plt.close(fig)
+    print(f"  ✓ PNG: {out_path}  ({os.path.getsize(out_path)//1024} KB)")

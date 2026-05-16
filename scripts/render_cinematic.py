@@ -457,7 +457,7 @@ def main():
         description="BVT Cinematic Render CLI — Hero animation üretimi"
     )
     parser.add_argument("--scene", required=True,
-                        choices=["hero01", "hero03", "hero05"],   # hero01: Sprint 01, hero03: Sprint 02, hero05: Sprint 04
+                        choices=["hero01", "hero02", "hero03", "hero04", "hero05"],   # Sprint 01/03/02/03/04
                         help="Hangi hero sahnesi")
     parser.add_argument("--quality",
                         choices=["preview", "final"],
@@ -505,6 +505,21 @@ def main():
         for asp in formats:
             name = f"hero03_ring_collective_emergence_{asp}_{args.quality}_v01.mp4"
             _r03(sd03, str(OUTPUT_HERO_DIR / name), aspect=asp, quality=args.quality)
+        return
+
+    # Hero04: Phase Transition
+    if args.scene == "hero04":
+        from src.viz.cinematic.scenes_phase_transition import hero04_scene_data
+        from src.viz.cinematic.render_realtime import hero04_render_mp4 as _r04
+        _dt = 2.0 if args.quality == "preview" else 1.0
+        sd04 = hero04_scene_data(N=10, t_end=120.0, dt=_dt,
+                                  n_grid=30 if args.quality=="preview" else 40)
+        formats = ["16x9"] if args.format == "16x9" else ["9x16"] if args.format == "9x16" else ["16x9", "9x16"]
+        fps = 12 if args.quality == "preview" else 24
+        w, h = (960, 540) if args.quality == "preview" else (1920, 1080)
+        for asp in formats:
+            name = f"hero04_phase_transition_{asp}_{args.quality}_v2.mp4"
+            _r04(sd04, str(OUTPUT_HERO_DIR / name), fps=fps, width=w, height=h)
         return
 
     # Quality + format ile RenderConfig

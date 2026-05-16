@@ -203,12 +203,12 @@ def hero_strip() -> dbc.Row:
     return dbc.Row([
         _hero_card("Hero 01", "Single Heart", "Order from Noise",
                    thumb_path="hero01_thumbnail.png", coming_soon=False),
-        _hero_card("Hero 02", "Two Persons", "Coherence Transfer",
-                   coming_soon=True),
+        _hero_card("Hero 02", "Two Persons", "Field Merge",
+                   thumb_path="hero02_thumbnail.png", coming_soon=False),
         _hero_card("Hero 03", "Ring Collective", "N² Superradiance",
                    thumb_path="hero03_thumbnail.png", coming_soon=False),
-        _hero_card("Hero 04", "Phase Transition", "From Many to One",
-                   coming_soon=True),
+        _hero_card("Hero 04", "Phase Transition", "Parallel → N²",
+                   thumb_path="hero04_thumbnail.png", coming_soon=False),
     ], className="mb-4 g-0")
 
 
