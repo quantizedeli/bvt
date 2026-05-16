@@ -317,3 +317,52 @@ Sprint 00-03 bittiğinde:
 grep -c "\\[x\\]" MASTER_CHECKLIST.md     # tamamlanan
 grep -c "\\[ \\]" MASTER_CHECKLIST.md     # bekleyen
 ```
+
+---
+
+## Sprint 00-05 Kapanış Durumu (2026-05-16)
+
+### Tamamlanan görevler özeti
+
+| Sprint | Tag | Ana katkı | Test |
+|---|---|---|---|
+| Sprint 00 | v9.4-foundation-repair | 7→0 fail, BUG-001..006, Form A ODE | 175 pass |
+| Sprint 01 | v9.5-hero01 | Hero 01 SceneData + render motoru | 175 pass |
+| Sprint 02 | v9.6-hero03 | Hero 03 Ring Collective | 175 pass |
+| fix | ee707ad | Gerçek zamanlı MP4 (1s=1s) + HTML | 175 pass |
+| Sprint 03 | v9.7-sprint03 | Hero 02 + Hero 04 + makale figürleri | 175 pass |
+| Sprint 04 | v9.8-sprint04 | Hero 05 + L17 figürler + HTML | 175 pass |
+| Sprint 05 | v9.9-sprint05-polish | Holevo + visual regression + claims | 182 pass |
+| Patch | patch/sprint05-final-qa | inter_module_audit + QA + KURAL'lar | 182 pass |
+
+### Proje bitiş metrikleri
+
+| Metrik | Değer |
+|---|---|
+| Test paketi | **182 passed, 0 failed** |
+| Scientific claims | **9/10 🟢, 1/10 🟡** (ay fazı — off-resonance g/Δω=0.10) |
+| Inter-modül audit | **51/51 PASS** |
+| Visual regression | **5/5 PASS** (SSIM=1.00) |
+| Output audit | 10 PASS, 3 WARN, 3 FAIL (level1 PNG eksik — kabul edilmiş borç) |
+| Tutarlılık denetimi | 74 PASS, 4 FAIL (bvt_studio MISSING — Marimo sprint) |
+| Hero animations (kod) | **5/5 hazır** (VS Code'da üretilecek) |
+| HTML interaktif | **hero01, hero03, hero05** Plotly hazır |
+| Makale figürleri | §3/§6/§11/§15 + §17 (10 figür, 300 DPI) |
+| Dashboard | 5 hero card, 2-satır, tümü aktif |
+
+### Üretim komutları (VS Code'da)
+
+```bash
+# 5 hero MP4 (her biri ~120s gerçek zamanlı)
+for scene in hero01 hero02 hero03 hero04 hero05; do
+    python scripts/render_cinematic.py --scene $scene --quality preview
+done
+
+# Makale figürleri
+python scripts/refresh_paper_figures.py
+python scripts/refresh_l17_figures.py
+
+# QA kontrol
+python scripts/inter_module_audit.py
+python scripts/visual_regression.py --mode check
+```

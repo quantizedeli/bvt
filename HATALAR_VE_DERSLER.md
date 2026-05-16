@@ -664,3 +664,76 @@ Her sprint sonunda buraya bir blok eklenir:
 *Bu dosya hata kabul etme + sürekli iyileşme aracıdır. Sprint sonunda dolu olmak iyi bir şey; eğer boş ise, ya hata yapmadım ya da farkına varmadım — ikincisi daha olası.*
 
 *Format kaynağı: `hpcv1` nuclear physics projesinden 33 KURAL deneyimi (2026-05-03 oluşturulma) BVT'ye uyarlandı.*
+
+---
+
+## BÖLÜM B — Hata Kayıtları (Sprint 00-05 bu oturum)
+
+### Hata #01 — Yanlış branch (feature/* yerine master)
+**Oturum:** 2026-05-16  
+**Sprint:** 00 öncesi (repo klonlama)  
+**Ne oldu:** `git clone` sonrası doğru branchi kontrol etmeden iş başladım.  
+**Düzeltme:** Kemal "master branch klonla" dedi — commit link'ine bakmak yeterliydi.  
+**KURAL 4 yeni uygulaması:** Clone sonrası `git log --oneline -3` + `git remote show origin` zorunlu.
+
+---
+
+### Hata #02 — Render süresi fiziksel zamanla uyuşmuyor
+**Oturum:** 2026-05-16  
+**Sprint:** 01-02 arası  
+**Ne oldu:** KAPPA_EFF=5.0 ile hero03 r>0.8 sadece 3.8s'de gerçekleşti. 36s simülasyon 36s video gibi görünüyordu ama fiziksel anlam yoktu (tau_sync=0.2s).  
+**Düzeltme:** kappa_override=0.5 → r>0.8 @ t=38s, 120s gerçek zamanlı.  
+**Yeni KURAL 34:** SceneData üreticilerinde `t_end` saniye = video saniye = fiziksel süre olmalı. Her hero için beklenen "kilit anı" önceden hesaplanmalı, storyboard'a yazılmalı.
+
+---
+
+### Hata #03 — _pathway1_eeg vs _pathway1_direct isimlendirme
+**Oturum:** 2026-05-16  
+**Sprint:** 04 başı  
+**Ne oldu:** scenes_acoustic.py docstring + sprint04 dökümanı `_pathway1_eeg` adını kullanıyordu. Gerçek kod `_pathway1_direct`.  
+**Düzeltme:** `python -c "from simulations.level17... import _pathway1_direct"` ile kontrol.  
+**KURAL 1 uygulama:** Fonksiyon adını varsaymadan önce `grep -n "^def " simulations/level17*.py` koş.
+
+---
+
+### Hata #04 — kappa=gamma → C*=0 (Form A denge analizi atlandı)
+**Oturum:** 2026-05-16  
+**Sprint:** 03 başı  
+**Ne oldu:** hero02_scene_data() ilk versiyonunda kappa=0.5, gamma=GAMMA_DEC_HIGH=0.5 → G_pomp=0.5 → C*=1-gamma/G_pomp=0. C tümüyle sıfıra çöktü.  
+**Düzeltme:** gamma_override=0.2 → C*=0.77. Analitik denge formülü (`C* = 1 - γ/G_pomp`) her yeni ODE kurulumunda önce hesaplanmalı.  
+**Yeni KURAL 35:** Form A ODE parametreleri seçilirken `C* = 1 - γ/(κ²/(κ²+γ²))` > 0.3 olmalı. Aksi hâlde NESS platoya ulaşamaz.
+
+---
+
+### Hata #05 — Silent exception → kaleido write_image sessizce başarısız
+**Oturum:** 2026-05-16  
+**Sprint:** 02-03 arası  
+**Ne oldu:** `write_image` kaleido/Chrome gerektiriyor, ortamda yok. Exception `except: pass` ile yutuldu → _plotly.png boş/eski kaldı.  
+**Düzeltme:** Her `write_image` sonrası `os.path.getsize > 5000` kontrolü + matplotlib fallback.  
+**KURAL QA-1 (yeni):** Her görsel çıktı üretimi sonrası boyut kontrolü zorunlu.
+
+---
+
+## BÖLÜM C — Yeni KURAL'lar (bu oturumdan)
+
+### KURAL 34: SceneData gerçek zaman garantisi
+Storyboard'da belirtilen "kilit anı" t_event ≤ t_end * 0.7 olmalı. Simülasyon başlamadan:
+```python
+tau_sync = 1 / (kappa * np.sqrt(N))
+t_lock_tahmini = 2 * tau_sync
+assert t_lock_tahmini < t_end * 0.7, f"t_lock={t_lock_tahmini:.0f}s, t_end={t_end}s — video çok kısa"
+```
+
+### KURAL 35: Form A ODE denge kontrolü
+N-kişi ODE kurmadan önce:
+```python
+G_pomp = kappa**2 / (kappa**2 + gamma**2)
+C_star = 1 - gamma / G_pomp
+assert C_star > 0.3, f"C* = {C_star:.3f} — kappa/gamma oranı düzelt"
+```
+
+### KURAL 36: Inter-modül audit → her sprint sonu
+`python scripts/inter_module_audit.py` → 0 FAIL koşulu sprint kapanış kriterine eklendi.
+
+### KURAL 37: Visual regression → her görsel pipeline değişikliğinde
+`python scripts/visual_regression.py --mode check` SSIM ≥ 0.80 koşulu.

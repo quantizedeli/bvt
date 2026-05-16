@@ -337,3 +337,75 @@ Bu matris her sprint sonunda gözden geçirilir. Yeni bir modül eklendiğinde *
 ---
 
 *Bu kitap, hpcv1 Sprint 1-13 deneyimleri + BVT Sprint 00 hazırlık deneyimi temelinde yazıldı. Her yeni sprint için başlangıç noktası olarak kullan; yeni pattern keşfedilirse buraya ekle.*
+
+---
+
+## Bölüm 11: Sprint 00-05 Deneyimlerinden Yeni Kontroller
+
+### 11.1 Form A ODE denge kontrolü (KURAL 35)
+
+Her yeni N-kişi ODE kurulumunda:
+```python
+def ode_denge_kontrolu(kappa: float, gamma: float) -> float:
+    G_pomp = kappa**2 / (kappa**2 + gamma**2)
+    C_star = 1 - gamma / G_pomp
+    assert C_star > 0.3, f"C* = {C_star:.3f} < 0.3 — kappa/gamma oranı hatalı"
+    return C_star
+```
+
+### 11.2 kaleido / write_image boyut doğrulama
+
+```python
+try:
+    fig.write_image(out_path, width=W, height=H)
+    assert os.path.getsize(out_path) > 5000, "PNG çok küçük — kaleido başarısız"
+except Exception:
+    # matplotlib fallback
+    ...
+```
+
+### 11.3 SceneData gerçek zaman garantisi (KURAL 34)
+
+Storyboard yazmadan önce:
+```python
+tau_sync = 1 / (kappa_override * N**0.5)
+t_lock = 2 * tau_sync
+t_end = 120  # video süresi
+assert t_lock < t_end * 0.7, f"kilitlenme t={t_lock:.0f}s, video t_end={t_end}s"
+```
+
+### 11.4 Sprint kapanış denetim sırası (genişletilmiş)
+
+```bash
+# 1. Test paketi
+pytest tests/ -q --tb=no | tail -3
+
+# 2. Tutarlılık
+python scripts/bvt_tutarlilik_denetimi.py | grep ÖZET
+
+# 3. Inter-modül (YENİ — KURAL 36)
+python scripts/inter_module_audit.py | tail -5
+
+# 4. Output audit
+python scripts/output_audit.py | grep Sonuç
+
+# 5. Visual regression (YENİ — KURAL 37)
+python scripts/visual_regression.py --mode check | tail -5
+
+# 6. Bilimsel iddialar matrisi
+grep "🔴" sprint_docs/SCIENTIFIC_CLAIMS_CHECKLIST.md | wc -l  # → 0 olmalı
+```
+
+### 11.5 Bölüm 10 güncellemesi — Yeni modüller eklendi
+
+| Modül A | Modül B | Kontrol edilen |
+|---|---|---|
+| `src/viz/cinematic/scenes_single_heart.py` | `render_realtime.hero01_*` | SceneData.coherence[2,n_t], phases[2,n_t] |
+| `src/viz/cinematic/scenes_ring_collective.py` | `render_realtime.hero03_*` | SceneData.order_param(n_t,), positions(N,3,n_t) |
+| `src/viz/cinematic/scenes_two_person.py` | `render_realtime.hero02_*` | SceneData.metrics["d_t","delta_phi","B_center"] |
+| `src/viz/cinematic/scenes_phase_transition.py` | `render_realtime.hero04_*` | SceneData.metrics["P_t","P_incoherent","P_superradiant"] |
+| `scripts/refresh_paper_figures.py` | `output/paper_figures/*.png` | 300 DPI, beyaz zemin, çift sütun |
+| `scripts/refresh_l17_figures.py` | `output/paper_figures/section_17_acoustic/*.png` | 300 DPI, koyu zemin |
+| `scripts/inter_module_audit.py` | — | 51 kontrol, 0 FAIL sprint standardı |
+| `scripts/visual_regression.py` | `visual_regression/references/*.png` | SSIM ≥ 0.80/0.90 |
+

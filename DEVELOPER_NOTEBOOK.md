@@ -213,3 +213,13 @@ Sprint biten her ayın sonunda, "Ne öğrendim" satırlarından çıkan **tekrar
 ---
 
 *Defterin amacı: Sprint sonunda geriye dönüp baktığımızda "Şurada bir şey öğrenmiştik" diyebileceğimiz kayıtları tutmak. 3 satır az, 30 sprint sonra çok.*
+
+### 2026-05-16 04:00 — [Sprint 05 / Final QA] — Tüm sprint'ler tamamlandı, patch branch açıldı
+
+**Ne yaptım:** QA_PLAYBOOK'a göre tam repo analizi yapıldı. inter_module_audit.py yazıldı (51 kontrol, 0 FAIL). HATALAR_VE_DERSLER'e 5 yeni hata + 4 yeni KURAL (34-37) eklendi. QA_PLAYBOOK'a Bölüm 11 eklendi (Form A denge, kaleido boyut, gerçek zaman garantisi, genişletilmiş kapanış denetimi, yeni modül matrisi). DEVELOPER_NOTEBOOK güncellendi. Scientific claims matrisi güncellendi (10/10: 9🟢 + 1🟡). MASTER_CHECKLIST "1/10?" sorusu netleştirildi — 10 iddia, 9🟢 1🟡 (ay fazı off-resonance g/Δω=0.10 < 0.15). Tüm değişiklikler patch/sprint05-final-qa branch'inde.
+
+**Ne öğrendim:** QA_PLAYBOOK'un inter_module_audit scripti önermiş ama hiç yazılmamıştı — bu "belge var, uygulama yok" tipik teknik borç. 51 kontrol yazıldığında 51/51 PASS geldi; ama bir hatayı yakalaması için yazılmış olması gerekiyordu. Önleyici QA scriptleri "olduğunda temiz" değil "değişiklik geldiğinde yakalayan" mantıkla yazılmalı. Celardo 2014 replikasyonunun fail nedeni: Haken-Strobl vs Kuramoto formalizmler — bu BVT'nin kendi terminolojisinde avantajı gösterdiği ama Celardo'nun tam metodolojisini kopyalamadığı anlamına geliyor. Makale §6'ya "BVT modeli Celardo'nun Haken-Strobl formalizmini değil, eşdeğer sonucu kendi Kuramoto+Form A ODE çerçevesinde üretiyor" notu eklenmesi önerilir.
+
+**Sonraki commit'te dikkat:** patch/sprint05-final-qa → master merge PR. Merge öncesi: pytest 182 PASS, inter_module_audit 51/51 PASS, visual_regression 5/5 PASS. Output audit'teki 3 FAIL level1 PNG eksikliği kabul edilmiş açık borç (level1 sim hiç koşulmadı). bvt_studio/ MISSING 4 dosya Marimo sprint için bekleniyor.
+
+---
