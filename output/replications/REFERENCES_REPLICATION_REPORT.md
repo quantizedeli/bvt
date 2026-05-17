@@ -8,7 +8,7 @@
 
 | Makale | Metrik | BVT | Orijinal | Sapma | Durum | Kaynak |
 |---|---|---|---|---|---|---|
-| Sharika 2024 PNAS | Sınıflandırma Accuracy | 63.6 % | ~70% (KNN) | 9.1% | ✓ | PNAS 2024 §Methods |
+| Sharika 2024 PNAS | Sınıflandırma Accuracy | 65.9 % | ~70% (KNN) | 5.8% | ✓ | PNAS 2024 §Methods |
 | McCraty 2004 Part 2 | t_max (RPA) | 2.84  | t_max > 3.0 | 19.0% | ✓ | J. Altern. Complement. Med. 2004 |
 | Celardo 2014 | Halka bonusu (γ_φ^cr artışı) | 0 % | ~35% | 100.0% | ✗ | Phys. Rev. B 2014 |
 | Mossbridge 2012 | Aggregate ES (Cohen's d) | 0.0889  | 0.21 [0.15-0.27] | 57.7% | ✓ | Front. Psych. 2012 |
@@ -19,14 +19,14 @@
 | Plonka 2024 | SA/Batı circaseptan oranı | 2.11 × | SA+NZ > CA/Lit/Eng | 40.5% | ✓ | Front. Physiol. 2024 |
 | Al 2020 | HEP criterion kayması (Δdet) | 0.0556  | high_HEP < low_HEP det | 11.3% | ✓ | PNAS 2020 |
 | Celardo 2018 | Mikrotübül superradyans (×γ) | 13 × | >= N/2 = 6.5× | 0.0% | ✓ | Phys. Rev. B 2018 |
-| Yumatov 2019 | Bilinçli/bilinçsiz alfa oranı | 0.935  | bilinçli > bilinçsiz (oran > 0.2) | 0.0% | ✓ | Biomed. Radioelectronics 2019 |
+| Yumatov 2019 | Bilinçli/bilinçsiz alfa oranı | 0.941  | bilinçli > bilinçsiz (oran > 0.2) | 0.0% | ✓ | Biomed. Radioelectronics 2019 |
 | Montoya 1993 | Anlamlı santral elektrod sayısı | 3 /3 | Cz, C3, C4 anlamlı | 0.0% | ✓ | Int. J. Neuroscience 1993 |
 
 ## Açıklamalar
 
 ### ✓ Sharika 2024 PNAS
 **Açıklama:** HRV senkronizasyon → grup karar dogrulugu sınıflandırması
-**Sonuç:** BVT=63.6 vs Orijinal=~70% (KNN), sapma=9.1% (tolerans ≤20%)
+**Sonuç:** BVT=65.9 vs Orijinal=~70% (KNN), sapma=5.8% (tolerans ≤20%)
 
 ### ✓ McCraty 2004 Part 2
 **Açıklama:** Pre-stimulus ERP: calm vs emotional (Coherence modu)
@@ -70,7 +70,7 @@
 
 ### ✓ Yumatov 2019
 **Açıklama:** CWT alfa gücü: bilinçli/bilinçsiz fark oranı (con-uncon)/uncon > 0.2
-**Sonuç:** BVT=0.935 vs Orijinal=bilinçli > bilinçsiz (oran > 0.2), sapma=0.0% (tolerans ≤0%)
+**Sonuç:** BVT=0.941 vs Orijinal=bilinçli > bilinçsiz (oran > 0.2), sapma=0.0% (tolerans ≤0%)
 
 ### ✓ Montoya 1993
 **Açıklama:** ATT vs DIS: {Cz,C3,C4} içinde p<0.05 olan elektrod sayısı

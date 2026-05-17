@@ -153,6 +153,69 @@ class TestNullTahmin:
             f"50 Hz grid g/Δω = {suppression:.4f}, beklenen < 0.05 (off-resonance)"
 
 
+class TestFormAPompalamaDenge:
+    """
+    Form A pompalama (G_pomp*C*(1-C)) denge nokta kontrolü.
+    KURAL 11.1 — QA_PLAYBOOK Bölüm 11.1.
+
+    multi_person.py::kuramoto_bvt_coz içindeki pompalama=True modunda C dinamiği:
+        dC/dt = G_pomp * C * (1-C) − γ*C + (K/N)*f_C*Σ(C_j - C_i)
+
+    Uniform dağılım için difüzyon terimi sıfır, sabit nokta:
+        G_pomp*(1-C*) = γ → C* = 1 - γ/G_pomp
+        G_pomp = K²/(K²+γ²)
+    """
+
+    def test_form_a_denge_noktasi_default(self):
+        """KAPPA_EFF=5.0, GAMMA_DEC=0.50 için C* ≈ 0.49"""
+        from src.core.constants import KAPPA_EFF, GAMMA_DEC
+        G_pomp = KAPPA_EFF**2 / (KAPPA_EFF**2 + GAMMA_DEC**2)
+        C_star = 1 - GAMMA_DEC / G_pomp
+        assert C_star > 0.30, \
+            f"C* = {C_star:.3f} < 0.30 (eşik üstü olmalı, kapı f(C) açılması için)"
+        # Sayısal değer: 25 / (25 + 0.25) ≈ 0.9901, C* = 1 - 0.50/0.9901 ≈ 0.495
+        assert abs(C_star - 0.495) < 0.05, \
+            f"C* = {C_star:.3f}, beklenen ≈ 0.495 (KAPPA=5.0, γ=0.50)"
+
+    def test_form_a_denge_timofejeva_hli(self):
+        """Timofejeva HLI parametreleri: K=KAPPA_EFF*(1.5+0.50)=10, γ=0.40"""
+        from src.core.constants import KAPPA_EFF
+        K = KAPPA_EFF * 2.0  # ortalama HLI faktör
+        gamma = 0.40
+        G_pomp = K**2 / (K**2 + gamma**2)
+        C_star = 1 - gamma / G_pomp
+        assert C_star > 0.55, \
+            f"Timofejeva HLI C* = {C_star:.3f} < 0.55 (f(C) yeterli açık olmalı)"
+
+    def test_form_a_ode_simulasyonu(self):
+        """
+        kuramoto_bvt_coz pompalama=True ile çalıştır, C_final beklendi gibi olmalı.
+        """
+        from src.models.multi_person import kuramoto_bvt_coz
+        sonuc = kuramoto_bvt_coz(
+            N=10, K=10.0, gamma_dec=0.40, C_init=np.full(10, 0.50),
+            t_end=60.0, n_points=120, pompalama=True, rng_seed=42
+        )
+        C_final_mean = float(sonuc["C_t"][-1].mean())
+        assert C_final_mean > 0.40, \
+            f"Pompalama=True ile C_final={C_final_mean:.3f}, beklenen >0.40"
+
+    def test_form_a_pompalama_false_default(self):
+        """
+        Pompalama=False (default) ile C dinamiği eski Form (C→0 söner).
+        Geriye dönük uyumluluk testi.
+        """
+        from src.models.multi_person import kuramoto_bvt_coz
+        sonuc = kuramoto_bvt_coz(
+            N=10, K=1.0, gamma_dec=0.50, C_init=np.full(10, 0.40),
+            t_end=10.0, n_points=50, rng_seed=42
+        )
+        # Default pompalama=False, C decay etmeli
+        C_final_mean = float(sonuc["C_t"][-1].mean())
+        assert C_final_mean < 0.10, \
+            f"Pompalama=False ile C decay olmalı: C_final={C_final_mean:.3f}"
+
+
 class TestKritikRezonans:
     """BVT'nin en kritik sayısal bulgusunu doğrular."""
 

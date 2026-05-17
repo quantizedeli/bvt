@@ -58,7 +58,10 @@
       "Bash(python main.py --kontrol)",
       "Bash(python main.py --zaman-em-dalga)",
       "Bash(python -c \"import ast; ast.parse\\(open\\('simulations/level13_uclu_rezonans.py'\\).read\\(\\)\\); print\\('L13 OK'\\)\")",
-      "Bash(python -c \"import ast; ast.parse\\(open\\('simulations/level12_seri_paralel_em.py'\\).read\\(\\)\\); print\\('L12 OK'\\)\")"
+      "Bash(python -c \"import ast; ast.parse\\(open\\('simulations/level12_seri_paralel_em.py'\\).read\\(\\)\\); print\\('L12 OK'\\)\")",
+      "Bash(python scripts/inter_module_audit.py)",
+      "Bash(python scripts/bvt_tutarlilik_denetimi.py)",
+      "Bash(python scripts/output_audit.py)"
     ],
     "additionalDirectories": [
       "c:\\Users\\Hakan Yakut\\Desktop\\ahmet\\bvt simu\\bvt_claude_code_4\\.claude"

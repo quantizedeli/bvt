@@ -1,0 +1,7 @@
+{
+  "hero01": {"duration": 24, "fps": 24, "backend": "matplotlib+pyvista"},
+  "hero02": {"duration": 8, "fps": 6, "backend": "matplotlib"},
+  "hero03": {"duration": 36, "fps": 24, "backend": "matplotlib+pyvista"},
+  "hero04": {"duration": 8, "fps": 6, "backend": "matplotlib"},
+  "hero05": {"duration": 54, "fps": 12, "backend": "matplotlib+audio_mux"}
+}

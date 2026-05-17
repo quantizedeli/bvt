@@ -35,6 +35,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
+from src.viz.cinematic.render_realtime import _write_mp4, _fig_to_rgb
 
 from src.viz.cinematic import (
     SceneData, RenderConfig,
@@ -131,22 +132,18 @@ def render_hero05(
 
         return ax,
 
-    print(f"[hero05] Render başlıyor: {len(sd.t)} kare @ {config.fps} fps")
-    ani = FuncAnimation(
-        fig, update, frames=len(sd.t),
-        interval=1000.0 / config.fps, blit=False,
-    )
-
     output_path.parent.mkdir(parents=True, exist_ok=True)
     print(f"[hero05] MP4 yazılıyor: {output_path}")
-    ani.save(
-        str(output_path),
-        fps=config.fps,
-        dpi=config.dpi,
-        codec="libx264",
-        extra_args=["-pix_fmt", "yuv420p"],
-        savefig_kwargs={"facecolor": BG_DEEP},
-    )
+    print(f"[hero05] Render başlıyor: {len(sd.t)} kare @ {config.fps} fps")
+
+    def _frames():
+        for frame_idx in range(len(sd.t)):
+            update(frame_idx)
+            yield _fig_to_rgb(fig, config.dpi)
+            if frame_idx % max(config.fps * 5, 1) == 0:
+                print(f"  frame {frame_idx}/{len(sd.t)}", end="\r")
+
+    _write_mp4(_frames(), str(output_path), config.fps, config.width, config.height)
     plt.close(fig)
     print(f"[hero05] Tamamlandı: {output_path}")
 
@@ -397,7 +394,7 @@ def _asama_7_kudum(ax, t, sd):
             transform=ax.transAxes, color=THRESHOLD,
             fontsize=20, ha="center", weight="bold")
 
-    ax.text(cx, cy - 0.36, f"ΔC = {sd._extra["top_5"][4]['delta_C']:.3f}",
+    ax.text(cx, cy - 0.36, f"ΔC = {sd._extra['top_5'][4]['delta_C']:.3f}",
             transform=ax.transAxes, color=COHERENT,
             fontsize=14, ha="center")
 

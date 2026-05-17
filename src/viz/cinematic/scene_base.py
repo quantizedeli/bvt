@@ -190,6 +190,11 @@ class RenderConfig:
                     width=960, height=540, output_path=output_path)
 
     @classmethod
+    def preview_9x16(cls, output_path: str) -> "RenderConfig":
+        return cls(aspect="9x16", quality="preview", fps=12,
+                    width=540, height=960, output_path=output_path)
+
+    @classmethod
     def final_16x9(cls, output_path: str) -> "RenderConfig":
         return cls(aspect="16x9", quality="final", fps=24,
                     width=1920, height=1080, output_path=output_path)

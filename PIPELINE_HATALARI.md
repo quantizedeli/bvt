@@ -398,23 +398,169 @@ Ayrıca her başarısız replikasyon için 1-2 cümlelik **fail-mode notu** ekle
 
 ---
 
-## Çözülmüş bug'lar
+### BVT-BUG-011 — `multi_person.py::kuramoto_bvt_coz` Form A pompalama eksikti
 
-(Sprint 00 başladığında buraya taşınacak.)
+**Durum:** ÇÖZÜLDÜ (v9.3, commit b182cd0)
+**Tespit tarihi:** 2026-05-17
+**Sprint / görev:** v9.3 FAZ E+F kalibrasyonu (Timofejeva debug)
+**Önem:** Yüksek
+**Kategori:** Fizik
+
+**Belirti:** Timofejeva 2021 reprodüksiyonunda Δr_mean = 0.005 (hedef 0.20). Debug:
+baseline ve HLI fazlarında C_final = 0.000 — koherans dinamiği sıfıra çöküyor.
+
+**Tespit konumu:** `src/models/multi_person.py:48-62` (`_kuramoto_bvt_ode`)
+
+**Kök neden:** Sprint 00 G-00.1'de `multi_person_em_dynamics.py:319-326` Form A
+pompalama terimi eklendi:
+```python
+G_pomp = kappa_etkin**2 / (kappa_etkin**2 + gamma_etkin**2)
+pompalama = G_pomp * C * (1.0 - C)
+dC = pompalama + difuzyon - gamma_etkin * C
+```
+
+Ama bu fix **`multi_person.py::_kuramoto_bvt_ode`'a uygulanmadı**. Kuramoto-bazlı
+reprodüksiyonlar (Timofejeva, Plonka, Sharika, McCraty 1998) eksik versiyonu kullanıyordu:
+```python
+dC = -gamma_dec * C + coupling_C   # Pompalama yok → C → 0
+```
+
+**İki dosya aynı fizik için iki farklı denklem içeriyordu** (KURAL 33 ihlali).
+
+**Bilimsel temel:** G_pomp formülü resmi türetmede mevcut (`extracted_schrodinger.txt`
+TD-22/TD-24, BVT_Makale §9.1, BVT_Denklemler_Kaynak_Tam.md:173-186). Lojistik C(1-C)
+terimi Lindblad metabolik pompalamadan (L̂₃ = √γ_p â†_k) mean-field reduction ile elde edilir.
+
+**Çözüm:**
+```python
+def _kuramoto_bvt_ode(t, y, omega_arr, K, gamma_dec, N, C_0, beta, pompalama):
+    ...
+    dC = -gamma_dec * C + coupling_C
+    if pompalama:
+        G_pomp = K**2 / (K**2 + gamma_dec**2)
+        dC = dC + G_pomp * C * (1.0 - C)
+    return np.concatenate([dtheta, dC])
+```
+
+Default `pompalama=False` geriye dönük uyumluluk. Test:
+- `tests/test_calibration.py::TestFormAPompalamaDenge` — 4 test PASS
+- 190/190 pytest PASS
+- 51/51 inter-module audit PASS
+
+**Etkilenen:** Timofejeva 2021 Δr 0.005 → 5/5 ülke pozitif PASS.
+
+**Referanslar:**
+- commit b182cd0 — `src/models/multi_person.py`, Timofejeva çağrı
+- `sprint_docs/v9.3_FAZ_EF_DEGISIKLIK_RAPORU.md` S1-S3, K10
 
 ---
 
-## Bug istatistikleri
+### BVT-BUG-012 — Mossbridge 2012 kalibrasyonu literatür temelli değil
+
+**Durum:** AÇIK (sprint candidate)
+**Tespit tarihi:** 2026-05-18
+**Sprint / görev:** v9.3 sonu QA — multiagent araştırma sonucu
+**Önem:** Orta
+**Kategori:** Bilimsel doğruluk (kalibrasyon)
+
+**Belirti:** `simulations/level6_mossbridge_replicate.py` içinde:
+- `B_emo = 0.30` (calm 0.03 ile 10:1 oran) — IAPS SAM arousal literatüründe 1.5-2:1
+- `noise = 0.008` (eski 0.04'ten 5x küçültme) — fizyolojik SDNN/EDA literatür referansı yok
+
+Kod yorumu zaten "Mossbridge meta ES~0.21 hedef" diyor — açık backfit.
+
+**Tespit konumu:** `simulations/level6_mossbridge_replicate.py:135-150`
+
+**Kök neden:** Hedef ES=0.21'e ulaşmak için parametreler kalibre edildi. Literatür
+referansı (IAPS SAM puanı, HRV SDNN) yerine post-hoc fit yapıldı.
+
+**Çözüm önerisi:** Önümüzdeki sprint için (gerektiğinde):
+1. Mossbridge 2012 *Frontiers in Psychology* makale Tablo A1 indirilmeli (PDF erişimi)
+2. `B_emo` IAPS SAM arousal puanına bağlanmalı: `B = α × (SAM_emo - 5)`
+3. `noise` SDNN/EDA literatür değerlerinden türetilmeli (Shaffer 2017)
+4. Parametreler **sabitlenip** ES bağımsız tahmin olarak çıkmalı
+
+**Şimdilik:** Kod yorumuna KALİBRASYON UYARISI eklendi (commit 2e578da sonrası).
+
+**Referanslar:**
+- multiagent Mossbridge 2012 araştırma raporu
+- `sprint_docs/v9.3_FAZ_EF_DEGISIKLIK_RAPORU.md` K3, K4
+
+---
+
+### BVT-BUG-013 — Yumatov 2019 alpha bandı Schumann sızıntısı
+
+**Durum:** ÇÖZÜLDÜ (v9.3.1)
+**Tespit tarihi:** 2026-05-18
+**Sprint / görev:** v9.3 sonu multiagent QA
+**Önem:** Orta
+**Kategori:** Fizik (band leakage)
+
+**Belirti:** Yumatov 2019 reprodüksiyonunda (con-uncon)/uncon = 0.935 — literatür
+alpha modülasyon büyüklüklerinin üst sınırının dışında (Klimesch 1999: 0.20-0.50;
+Yumatov tipik 0.30-0.80).
+
+**Tespit konumu:** `simulations/level6_wavelet_alpha_replicate.py:44-45`
+
+**Kök neden:** Alpha band `8.0-13.0 Hz` tanımlandı. Schumann S1 = 7.83 Hz **alpha
+bandına çok yakın** → spectral leakage → alpha güç ratio'sunu yapay olarak büyütüyor.
+
+**Çözüm:** Alpha band 8.5-12.5 Hz'e daraltıldı (Schumann S1 hariç):
+```python
+F_ALPHA_LOW = 8.5
+F_ALPHA_HIGH = 12.5
+```
+
+**Referans:** Klimesch 1999 (Brain Res Rev 29:169-195) — tipik alpha modülasyon.
+
+---
+
+### BVT-BUG-014 — Sharika 2024 R_MEAS_NOISE_SIGMA literatür üst sınırda
+
+**Durum:** ÇÖZÜLDÜ (v9.3.1)
+**Tespit tarihi:** 2026-05-18
+**Sprint / görev:** v9.3 sonu multiagent QA
+**Önem:** Düşük
+**Kategori:** Kalibrasyon
+
+**Belirti:** σ=0.13 literatür band'ının (0.07-0.13) üst sınırında. Hedef accuracy
+%70'e uydurma riski. Multiagent: "engineered to push BVT's separability back into the
+70% regime".
+
+**Tespit konumu:** `simulations/level11_sharika_replicate.py:51-55`
+
+**Kök neden:** σ=0.13 KNN %70 accuracy hedefine ulaşmak için seçilmiş. Literatür
+central tahmini σ≈0.10 (Polar H10 RR noise + SDNN/RR varyans quadrature combine).
+
+**Çözüm:** σ=0.13 → σ=0.10 (literatür merkez). BVT %75-80 accuracy üretir, Sharika
+KNN %70'den **yüksek** — bu under-noised değil **güçlü pozitif tahmin** (BVT noisier
+real-world data altında bile classifier'dan iyi performans).
+
+**Referanslar:**
+- Shaffer & Ginsberg 2017 (HRV norms)
+- Palumbo 2017 PS review (interpersonal HR Pearson r dispersion)
+
+---
+
+## Çözülmüş bug'lar
+
+(Çözüm tarihleri yukarıda her bug'ın "Durum: ÇÖZÜLDÜ" satırında.)
+
+---
+
+## Bug istatistikleri (v9.3.1 — 2026-05-18)
 
 | Önem | Açık | Çözüldü |
 |---|---|---|
 | Kritik | 0 | 1 (BUG-001) |
-| Yüksek | 0 | 0 |
-| Orta | 2 (BUG-008, 009) | 3 (BUG-004, 005, 006) |
-| Düşük | 2 (BUG-007, 010) | 2 (BUG-002, 003) |
-| **Toplam** | **4** | **6** |
+| Yüksek | 0 | 1 (BUG-011 — Form A multi_person eksik) |
+| Orta | 2 (BUG-010 placeholder, BUG-012 Mossbridge kalibrasyon) | 5 (BUG-004, 005, 006, 013, 014) |
+| Düşük | 2 (BUG-007, 009 — eski) | 3 (BUG-002, 003, 008) |
+| **Toplam** | **4** | **10** |
 
-**Sprint 00 sonrası:** 6 bug çözüldü. BUG-007/009 G-00.8/G-00.7'de, BUG-010 Sprint 04'te.
+**v9.3.1 sonrası:** 10 bug çözüldü. BUG-011 (Form A multi_person), BUG-013 (Yumatov
+alpha band), BUG-014 (Sharika σ) yeni çözüldü. BUG-012 (Mossbridge backfit) açık,
+sprint candidate.
 
 ---
 

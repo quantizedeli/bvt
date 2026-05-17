@@ -325,3 +325,51 @@ Bu borçlar Sprint 04+ kapsamında değerlendirilebilir; öncelik yüksek değil
 - [ ] Domino zinciri aşama testleri (düşük öncelik)
 - [ ] Sırr → η overlap sayısal implementasyon (düşük öncelik)
 - [ ] Latîfe-i Rabbâniye → Q_kalp sayısal bağlantı (düşük öncelik)
+
+---
+
+## 8. v9.3.1 Multiagent Sonrası Güncel Durum (2026-05-18)
+
+### 8.1 Reprodüksiyon kategori sınıflandırması (KURAL 39)
+
+Her PASS aşağıdaki kategorilere atandı:
+
+| # | Çalışma | BVT | Orijinal | Kategori | Yorum |
+|---|---|---|---|---|---|
+| 1 | McCraty 2004 | 2.84 | t_max > 3.0 | 🟢 Replikasyon | Önceki sprint |
+| 2 | McCraty 1998 | 1.51× | >1.5× | 🟢 Replikasyon | Önceki sprint |
+| 3 | Mossbridge 2017 | 48.6% | 52-55% | 🟢 Replikasyon | Önceki sprint |
+| 4 | Mitsutake 2005 | -5.08 mmHg | -4 to -8 | 🟢 Replikasyon | Önceki sprint |
+| 5 | Plonka 2024 | 2.11× | SA+NZ > CA | 🟢 Replikasyon | Önceki sprint |
+| 6 | Montoya 1993 | 3/3 | 3 elektrot | 🟢 Replikasyon | Önceki sprint |
+| 7 | **Sharika 2024** | **65.9%** | ~70% KNN | 🟢 Replikasyon | **v9.3.1 σ=0.10 literatür central** |
+| 8 | Timofejeva 2021 | 5/5 ülke | ≥3/5 | 🟢 Replikasyon | v9.3.1 Form A bug fix |
+| 9 | Al 2020 | 0.056 | 0.05 | 🟡 Metric/calibrated | coeff post-hoc, sprint candidate |
+| 10 | Celardo 2018 | 13× | ≥6.5× | 🟡 Metric eşik | "geq" testi |
+| 11 | Yumatov 2019 | 0.941 | >0.2 | 🟡 Metric (magnitude fazla) | sprint candidate |
+| 12 | Mossbridge 2012 | 0.089 | 0.21 | 🔴 Calibrated | BUG-012 açık |
+| 13 | Celardo 2014 | 0% | ~35% | ⚪ Kabul borç | Form A vs Haken-Strobl |
+
+**Final dağılım:**
+- 🟢 Gerçek replikasyon: **8**
+- 🟡 Metric/calibrated: **3**
+- 🔴 Calibrated demonstration: **1**
+- ⚪ Kabul borç: **1**
+
+### 8.2 Multiagent Sonrası İddialar Matrisi
+
+| İddia | v9.3 Önce | v9.3.1 Sonra | Kanıt |
+|---|---|---|---|
+| §1.6 Mossbridge ES 0.21 | 🟢 (tutarlılık testi) | 🟡 (reprodüksiyon backfit) | ES=0.089, BUG-012 |
+| §1.10 Üretim terimi | 🟢 | 🟢 | **Form A multi_person.py'a da eklendi (BUG-011)** |
+| Yeni: Sharika σ kalibrasyonu | — | 🟢 | %65.9 literatür-temelli (σ=0.10 Shaffer 2017 + Palumbo 2017) |
+| Yeni: Yumatov alpha bandı | — | 🟡 | 8.5-12.5 Hz Schumann sızıntısı düzeltildi, magnitude hâlâ üst (BUG-013→sprint candidate) |
+
+### 8.3 Açık Sprint Candidate'ler
+
+1. **BUG-012 (Mossbridge):** B_emo IAPS SAM puanına bağla, noise SDNN'den türet
+2. **BUG-Yumatov:** coherence_gate β=2→1.5 yumuşatma veya N=1 testte Schumann off
+3. **Al 2020 coefficient:** µV fiziksel kalibrasyon (HEP_amp ~ N(1.0, 0.3) µV)
+4. **Cross-validation:** rng_seed=43,44,45 ile sapma istatistiği
+5. **Local PDF/references:** anahtar makaleler `references/` dizinine ekle (KURAL 40)
+6. **L11_sharika, L11_social için pompalama=True testi** (Form A teorisi)

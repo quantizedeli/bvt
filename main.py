@@ -89,7 +89,7 @@ FAZ_BİLGİ = {
         "açıklama": "NESS koherans, entropi, Rabi frekansı",
         "betik": "simulations/level3_qutip.py",
         "tahmini_süre": "~5 dk (hizli), ~30 dk (tam)",
-        "hizli_args": ["--t-end", "10", "--n-points", "50"],
+        "hizli_args": ["--t-end", "5", "--n-points", "30"],
         "tam_args": ["--t-end", "60", "--n-points", "100", "--n-max", "7"],
         "html": True,
     },
@@ -116,7 +116,7 @@ FAZ_BİLGİ = {
         "açıklama": "Hiss-i Kablel Vuku, ES dağılımı, Mossbridge + advanced wave",
         "betik": "simulations/level6_hkv_montecarlo.py",
         "tahmini_süre": "~3 saat",
-        "hizli_args": ["--trials", "50", "--advanced-wave"],
+        "hizli_args": ["--trials", "20", "--advanced-wave"],
         "tam_args": ["--trials", "1000", "--parallel", "8", "--advanced-wave"],
         "html": True,
     },
@@ -838,7 +838,7 @@ def main():
             print(f"\n  {renk('✗ FAZ ' + str(faz_no) + ' BAŞARISIZ', 'kırmızı')}: {hata}")
 
     # ---- HTML ŞEKİLLER (--html veya tüm fazlar çalıştırıldığında üret) ----
-    üret_html = args.html or (not args.faz and not args.phases)
+    üret_html = args.html or ((not args.faz and not args.phases) and not args.hizli)
     if üret_html:
         başlık_yazdır("Etkileşimli HTML Şekilleri", "-")
         interaktif_görselleştirme(args.output)
@@ -846,7 +846,7 @@ def main():
         print(f"\n  {renk('ℹ HTML şekilleri atlandı', 'sarı')} (--html ile üret)")
 
     # ---- ANİMASYONLAR (--animasyon veya tüm fazlar çalıştırıldığında üret) ----
-    üret_anim = args.animasyon or (not args.faz and not args.phases)
+    üret_anim = args.animasyon or ((not args.faz and not args.phases) and not args.hizli)
     if üret_anim:
         başlık_yazdır("Animasyonlar (HTML + GIF)", "-")
         anim_dosyalar = animasyon_üret(args.output, hizli=args.hizli)

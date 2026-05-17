@@ -36,3 +36,75 @@
 **Notlar:** Manyetik dipol yaklaşımı. μ_kalp = 5e-08 A·m²
 
 ---
+
+## [2026-05-16 07:09] Level 1 — 3D Kalp EM Alan Simülasyonu
+
+**Parametre seti:**
+- n_r=20, n_theta=20
+- r_max=3.0 m
+
+**Çalışma süresi:** 19.5 saniye
+
+**Önemli bulgular:**
+- r=5cm |B| = 75.0 pT  (SQUID 50-100 pT → ✓)
+- r=1m  |B| = 0.009375000000000003 pT  (Schumann < 1.0 pT → ✓)
+
+**Literatür uyumu:** 2/2 ✓
+
+**Notlar:** Manyetik dipol yaklaşımı. μ_kalp = 5e-08 A·m²
+
+---
+
+## [2026-05-16 07:12] Level 1 — 3D Kalp EM Alan Simülasyonu
+
+**Parametre seti:**
+- n_r=20, n_theta=20
+- r_max=3.0 m
+
+**Çalışma süresi:** 11.2 saniye
+
+**Önemli bulgular:**
+- r=5cm |B| = 75.0 pT  (SQUID 50-100 pT → ✓)
+- r=1m  |B| = 0.009375000000000003 pT  (Schumann < 1.0 pT → ✓)
+
+**Literatür uyumu:** 2/2 ✓
+
+**Notlar:** Manyetik dipol yaklaşımı. μ_kalp = 5e-08 A·m²
+
+---
+
+## [2026-05-16 07:42] Level 1 — 3D Kalp EM Alan Simülasyonu
+
+**Parametre seti:**
+- n_r=20, n_theta=20
+- r_max=3.0 m
+
+**Çalışma süresi:** 15.5 saniye
+
+**Önemli bulgular:**
+- r=5cm |B| = 75.0 pT  (SQUID 50-100 pT → ✓)
+- r=1m  |B| = 0.009375000000000003 pT  (Schumann < 1.0 pT → ✓)
+
+**Literatür uyumu:** 2/2 ✓
+
+**Notlar:** Manyetik dipol yaklaşımı. μ_kalp = 5e-08 A·m²
+
+---
+
+## [2026-05-16 07:48] Level 1 — 3D Kalp EM Alan Simülasyonu
+
+**Parametre seti:**
+- n_r=20, n_theta=20
+- r_max=3.0 m
+
+**Çalışma süresi:** 22.3 saniye
+
+**Önemli bulgular:**
+- r=5cm |B| = 75.0 pT  (SQUID 50-100 pT → ✓)
+- r=1m  |B| = 0.009375000000000003 pT  (Schumann < 1.0 pT → ✓)
+
+**Literatür uyumu:** 2/2 ✓
+
+**Notlar:** Manyetik dipol yaklaşımı. μ_kalp = 5e-08 A·m²
+
+---

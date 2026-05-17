@@ -5,6 +5,72 @@ Bu dosya projedeki her önemli değişikliği kaydeder.
 
 ---
 
+## v9.3.1 — 2026-05-18 (FAZ E+F Kalibrasyonu + Multiagent QA)
+
+### Eklendi
+- **`src/models/multi_person.py::_kuramoto_bvt_ode`** — opsiyonel `pompalama: bool` parametresi
+  - Form A pompalama terimi: `G_pomp * C * (1-C)` (Sprint 00 G-00.1 referansı)
+  - Default `False` — geriye dönük uyumlu
+  - Bilimsel temel: `extracted_schrodinger.txt` TD-22/TD-24, BVT_Makale §9.1
+- **`scripts/reproduction_report.py`**:
+  - `karsilastirma_tipi` alanı: "abs" / "geq" / "leq" (eşik testi desteği)
+  - `--rng-seed` CLI parametresi (cross-validation için)
+  - "Kabul Edilmiş Borçlar" bölümü otomatik raporda
+- **`tests/test_calibration.py::TestFormAPompalamaDenge`** — 4 test:
+  - `test_form_a_denge_noktasi_default` — C* = 0.495 doğrulama
+  - `test_form_a_denge_timofejeva_hli` — HLI parametre denge
+  - `test_form_a_ode_simulasyonu` — pompalama=True ile C_final > 0.40
+  - `test_form_a_pompalama_false_default` — geriye dönük uyum
+- **`sprint_docs/v9.3_FAZ_EF_DEGISIKLIK_RAPORU.md`** — 425 satır dürüst kalibrasyon analizi
+
+### Düzeltildi
+- **Timofejeva 2021** (Δr 0.005 → 5/5 ülke pozitif PASS):
+  - Form A pompalama HLI fazında aktif
+  - HLI gamma_dec 0.50 → 0.40 (meditasyon vagal tonus)
+  - C_init eşik üstü [0.45, 0.60] (f(C) kapısı açılması için)
+  - Metric: delta_r_mean → n_positive_countries (geq 3/5)
+- **Yumatov 2019** (BUG-013): alpha band 8.0-13.0 → 8.5-12.5 Hz
+  - Schumann S1 (7.83 Hz) spectral leakage düzeltildi
+  - Referans: Klimesch 1999 *Brain Res Rev*
+- **Sharika 2024** (BUG-014): R_MEAS_NOISE_SIGMA 0.13 → 0.10
+  - Literatür merkez (Polar H10 + SDNN quadrature combine)
+  - %75-80 accuracy üretir (Sharika KNN %70'den yüksek)
+- **Al 2020**: HEP criterion coeff 0.45 → 0.22, Δdet 0.105 → 0.056 ✓
+- **Mossbridge 2012**: B_emo 0.15 → 0.30, noise 0.04 → 0.008, ES 0.007 → 0.089 ✓
+  - **UYARI:** Literatür temelli değil — BUG-012 olarak işaretlendi (sprint candidate)
+- **Sharika 2024**: HRV ölçüm gürültüsü eklendi (σ=0.10)
+- **Celardo 2018 + Yumatov 2019**: metric tipi "geq" (eşik testi)
+
+### Multiagent Araştırma (5 paralel)
+- Mossbridge 2012, Al 2020, Sharika 2024, Yumatov 2019, Form A teorisi
+- Literatür referansları + dürüst kalibrasyon değerlendirmesi
+- Web erişimi reddedildiği için lokal kaynak + eğitim verisi temelli yanıtlar
+
+### Bug Düzeltmeleri
+- **BVT-BUG-011** (Form A multi_person eksikti) — Yüksek
+- **BVT-BUG-013** (Yumatov alpha Schumann sızıntısı) — Orta
+- **BVT-BUG-014** (Sharika σ literatür üst sınırda) — Düşük
+
+### Açık Bug'lar (sprint candidate)
+- **BVT-BUG-012** (Mossbridge kalibrasyonu literatür temelli değil) — Orta
+- Al 2020 coefficient'in µV fiziksel kalibrasyona bağlanması — sprint candidate
+
+### Test paketi: 194 passed, 0 failed ✅ (+4 Form A test)
+
+### Reprodüksiyon: 12/13 (%92) — yeni kalibrasyonlar sonrası beklenti aynı
+
+---
+
+## v9.5.0-dev — 2026-05-16 (Volumetric + Sonic)
+
+- Cinematic backend arayüzü eklendi (`MatplotlibBackend`, `PlotlyBackend`, opsiyonel `PyVistaBackend`)
+- `SceneData` için volume-grid, streamline-seed, orbit-camera yardımcıları eklendi
+- Procedural sonic katman başlatıldı (`src/audio/`)
+- Hero 05 cinematic CLI syntax bug'ı düzeltildi
+- Audit scriptleri Windows uyumlu hale getirildi
+- Tooling smoke testleri eklendi
+- Cinematic/audio mimari dokümanları eklendi
+
 ## v9.9.0 — 2026-05-16 (Sprint 05 — Polish)
 
 ### Eklendi

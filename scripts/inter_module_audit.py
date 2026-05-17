@@ -34,6 +34,12 @@ import traceback
 from pathlib import Path
 from typing import Any, Callable
 
+if sys.platform == "win32":
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    if hasattr(sys.stderr, "reconfigure"):
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
 # Repo kökünü path'e ekle
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -268,13 +274,14 @@ def audit_cinematic():
 # ──────────────────────────────────────────────
 
 def audit_dependency_direction():
-    import subprocess
-    r = subprocess.run(
-        ["grep", "-rn", "--include=*.py", "from src.viz.cinematic",
-         "src/models/", "simulations/"],
-        capture_output=True, text=True
-    )
-    violations = [l for l in r.stdout.split("\n") if l.strip()]
+    from pathlib import Path
+    violations = []
+    for root in (Path("src/models"), Path("simulations")):
+        for path in root.rglob("*.py"):
+            text = path.read_text(encoding="utf-8", errors="ignore")
+            for lineno, line in enumerate(text.splitlines(), start=1):
+                if "from src.viz.cinematic" in line:
+                    violations.append(f"{path}:{lineno}:{line.strip()}")
 
     def _check():
         assert not violations, (

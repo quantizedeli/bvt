@@ -131,7 +131,13 @@ def simulate_paradigm_es(paradigm: dict, n_sims: int = 200,
         except Exception:
             resp_calm = 0.0
 
-        # Emotional: yüksek uyarı (B_emo amplifier — Mossbridge meta ES~0.21 hedef)
+        # Emotional: yüksek uyarı
+        # Mossbridge 2012 26-paradigm aggregate ES=0.21 (Cohen's d).
+        # KALİBRASYON UYARISI: B_emo=0.30 (calm 0.03) literatür temelli DEĞİL — hedef ES'e
+        # uydurma. IAPS SAM arousal puanı (1-9) → B_emo eşleştirmesi yapılmalı:
+        #   B_emo = α × (SAM_emotional - 5), α calibration parameter
+        # Mevcut 10:1 calm/emotional oranı IAPS literatüründeki 1.5-2:1 oranından büyük.
+        # Bkz. sprint_docs/v9.3_FAZ_EF_DEGISIKLIK_RAPORU.md K3/K4 satırları.
         B_emo = 0.30 * sensitivity
         def B_emo_func(t): return B_emo * f_C
 

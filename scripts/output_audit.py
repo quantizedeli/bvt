@@ -20,10 +20,16 @@ from pathlib import Path
 from collections import defaultdict
 from typing import List, Tuple
 
+if sys.platform == "win32":
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    if hasattr(sys.stderr, "reconfigure"):
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
 # Beklenen dosyalar manifestı — "olması gereken" listesi
 # Burası ls output/ çıktısından değil, simülasyon tasarımından gelir.
 MANIFEST = {
-    "level1":  ["L1_em_3d_surface.png", "L1_em_slices.png", "L1_literature_comparison.png"],
+    "level1":  ["H1_em_3d_surface.png", "H1_em_slices.png", "H1_literature_comparison.png"],
     "level2":  ["level2_kavite.png"],
     "level3":  [],  # QuTiP gerektirir, opsiyonel
     "level4":  ["level4_multiperson.png"],

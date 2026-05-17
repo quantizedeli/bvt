@@ -157,6 +157,9 @@ def _hero_card(
     title: str,
     subtitle: str,
     thumb_path: str = None,
+    preview_path: str = None,
+    interactive_path: str = None,
+    audio_path: str = None,
     coming_soon: bool = False,
 ) -> dbc.Col:
     """Tek hero card — thumbnail + başlık + alt başlık."""
@@ -185,13 +188,26 @@ def _hero_card(
             style={"width": "100%", "height": "120px", "objectFit": "cover",
                    "display": "block" if thumb_path else "none"},
         )
+        media = html.Video(
+            src=f"/assets/cinematic/{preview_path}", autoPlay=True, muted=True, loop=True, controls=False,
+            style={"width": "100%", "height": "120px", "objectFit": "cover",
+                   "display": "block" if preview_path else "none"},
+        )
+        links = []
+        if interactive_path:
+            links.append(html.A("interactive", href=f"/assets/cinematic/{interactive_path}", target="_blank", style={"marginRight": "8px"}))
+        if preview_path:
+            links.append(html.A("video", href=f"/assets/cinematic/{preview_path}", target="_blank", style={"marginRight": "8px"}))
+        if audio_path:
+            links.append(html.A("listen + watch", href=f"/assets/{audio_path}", target="_blank"))
         body = html.Div([
-            img,
+            media if preview_path else img,
             dbc.CardBody([
                 html.H6(hero_id, style={"color": "#4fc3f7", "fontSize": "11px", "marginBottom": "2px"}),
                 html.P(title, style={"color": "#e0e6ff", "fontWeight": "bold",
                                       "fontSize": "13px", "marginBottom": "2px"}),
                 html.P(subtitle, style={"color": "#a0aec0", "fontSize": "11px"}),
+                html.Div(links, style={"fontSize": "11px"}) if links else html.Div(),
             ], style={"padding": "10px"}),
         ])
 
@@ -202,18 +218,18 @@ def hero_strip() -> dbc.Container:
     """5 hero card — 4+1 düzeni, 2 satır."""
     satir1 = dbc.Row([
         _hero_card("Hero 01", "Single Heart", "Order from Noise",
-                   thumb_path="hero01_thumbnail.png", coming_soon=False),
+                   thumb_path="hero01_thumbnail.png", interactive_path="hero01_interactive.html", coming_soon=False),
         _hero_card("Hero 02", "Two Persons", "Field Merge",
-                   thumb_path="hero02_thumbnail.png", coming_soon=False),
+                   thumb_path="hero02_thumbnail.png", preview_path="hero02_preview.mp4", interactive_path="hero02_interactive.html", coming_soon=False),
         _hero_card("Hero 03", "Ring Collective", "N² Superradiance",
-                   thumb_path="hero03_thumbnail.png", coming_soon=False),
+                   thumb_path="hero03_thumbnail.png", interactive_path="hero03_interactive.html", coming_soon=False),
         _hero_card("Hero 04", "Phase Transition", "Parallel → N²",
-                   thumb_path="hero04_thumbnail.png", coming_soon=False),
+                   thumb_path="hero04_thumbnail.png", preview_path="hero04_preview.mp4", interactive_path="hero04_interactive.html", coming_soon=False),
     ], className="mb-2 g-0")
 
     satir2 = dbc.Row([
         _hero_card("Hero 05", "Frequency Atlas", "Sound & Coherence",
-                   thumb_path="hero05_thumbnail.png", coming_soon=False),
+                   thumb_path="hero05_thumbnail.png", interactive_path="hero05_interactive.html", audio_path="audio/hero05_binaural_10hz.wav", coming_soon=False),
         dbc.Col(width=9),  # boş alan
     ], className="mb-4 g-0")
 

@@ -141,3 +141,18 @@ python bvt_dashboard/app.py
 | KAPPA_EFF | 21.9 rad/s | TISE türetimi |
 | G_EFF | 5.06 rad/s | TISE türetimi |
 | N_C_SUPERRADIANCE | 11 kişi | Literatür |
+
+---
+
+## Cinematic + Sonic Katman
+
+- `src/viz/cinematic/`: ortak `SceneData`, backend adapter'lar? ve hero sahneleri
+- `output/cinematic/`: poster, thumbnail, HTML ve scene-data artefaktlar?
+- `src/audio/`: drone, davul, binaural ve WAV export prototipleri
+- `scripts/render_audio_demo.py`: Hero 05 i?in dinlenebilir ilk sonic demolar
+
+Opsiyonel ger?ek 3D backend i?in:
+
+```bash
+pip install pyvista
+```

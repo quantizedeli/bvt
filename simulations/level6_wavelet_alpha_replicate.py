@@ -41,8 +41,11 @@ from src.core.constants import C_THRESHOLD, BETA_GATE, F_ALPHA
 N_SUBJECTS = 20
 T_EPOCH_S = 5.0
 FS_HZ = 256
-F_ALPHA_LOW = 8.0
-F_ALPHA_HIGH = 13.0
+# Alpha bandı 8.5-12.5 Hz: Schumann S1 (7.83 Hz) alpha bandına sızmaması için daraltıldı.
+# Klimesch 1999 (Brain Res Rev 29:169-195) tipik alpha modülasyon literatür referansı.
+# (Eski 8.0-13.0 Hz Schumann sızıntısı nedeniyle alpha güç ratio'sunu yapay olarak büyütüyordu.)
+F_ALPHA_LOW = 8.5
+F_ALPHA_HIGH = 12.5
 
 # PyWavelets opsiyonel — scipy fallback
 try:

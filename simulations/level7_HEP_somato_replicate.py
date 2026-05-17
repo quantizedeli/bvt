@@ -84,7 +84,12 @@ def simulate_subject(
         stimulus_strength = float(STIMULUS_THRESHOLD + rng.normal(0, STIMULUS_STRENGTH_STD))
 
         # SDT criterion: yüksek HEP → daha yüksek eşik (konservatif)
-        # Al 2020 ~Δdet=0.05 küçük etki; coefficient kalibrasyonu (eski 0.45 → 0.22)
+        # Al 2020 (PNAS 117:10575) Δc ~0.10-0.15 kriter shift → Δdet ~0.05-0.06
+        # Coefficient kalibrasyonu (eski 0.45 → 0.22):
+        #   HEP_amp ∈ [0, 0.5] normalize → ortalama criterion etki = 0.22*0.25 ≈ 0.055
+        #   Bu Al 2020'nin Δdet=0.05 ile SDT-eşdeğer aralıkta.
+        # NOT: Coefficient'in fiziksel µV birimine bağlanması ileride yapılmalı:
+        #   HEP_amp_µV ~ N(1.0, 0.3) literatür → coeff = Δc_lit / mean_HEP_µV ≈ 0.12 µV⁻¹
         criterion = STIMULUS_THRESHOLD + 0.22 * HEP_amp
 
         # Deteksiyon

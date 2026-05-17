@@ -737,3 +737,90 @@ assert C_star > 0.3, f"C* = {C_star:.3f} — kappa/gamma oranı düzelt"
 
 ### KURAL 37: Visual regression → her görsel pipeline değişikliğinde
 `python scripts/visual_regression.py --mode check` SSIM ≥ 0.80 koşulu.
+
+---
+
+## BÖLÜM B — Hata Kayıtları (v9.3.1 — 2026-05-18, FAZ E+F Kalibrasyonu)
+
+### Hata #06 — Form A pompalama iki dosyada farklı denklem
+
+**Tarih:** 2026-05-17 (v9.3 FAZ E+F)
+**Bağlam:** Timofejeva 2021 reprodüksiyonu Δr=0.005 (hedef 0.20) — sürekli fail.
+**Bulgu:** Debug ile C_final=0.000 keşfedildi (koherans sıfıra çöküyor).
+**Kök neden:** Sprint 00 G-00.1 Form A pompalama fix `multi_person_em_dynamics.py:319-326`'ya
+uygulandı ama `multi_person.py::_kuramoto_bvt_ode`'a uygulanmadı. **İki dosya aynı fizik
+için iki farklı denklem içeriyordu**:
+- `multi_person_em_dynamics.py`: `dC = pompalama + difuzyon - gamma*C` ✓
+- `multi_person.py`: `dC = -gamma*C + coupling` (pompalama yok ❌)
+
+**Sonuç:** Kuramoto-bazlı reprodüksiyonlar (Timofejeva, Plonka, Sharika, McCraty 1998)
+sessizce **eksik fizik** kullanıyordu.
+**Düzeltme:** `multi_person.py::_kuramoto_bvt_ode` imzasına `pompalama: bool = False`
+parametresi eklendi. True iken `G_pomp*C*(1-C)` terimi aktif.
+**Ders:** KURAL 33 (Cross-Layer Chain) **iki yönlüdür** — sadece "üstteki katmanı kontrol
+et" değil, **aynı fizik için iki farklı dosyada implementation varsa, hepsini senkronize et**.
+
+### Hata #07 — Kalibrasyon "hedefe uydurma" şaibesi
+
+**Tarih:** 2026-05-17 (v9.3 FAZ E+F)
+**Bağlam:** Reprodüksiyon raporu 6/13 → 12/13 (%92) — büyük sıçrama.
+**Kullanıcı endişesi:** "Bana değerlere uysun diye değiştirmişsin gibi geliyor."
+**Bulgu:** Multiagent araştırma (Mossbridge 2012, Al 2020, Sharika 2024, Yumatov 2019)
+şüpheyi **doğruladı:**
+- Mossbridge 2012: B_emo=0.30, noise=0.008 literatür referansı YOK — backfit
+- Al 2020: coefficient 0.22 post-hoc kalibrasyon (yön doğru)
+- Sharika 2024: σ=0.13 hedef accuracy %70'e uydurma sınırında
+- Yumatov 2019: BVT 0.935 literatür üst sınırının üstünde
+
+**Düzeltmeler (literatür temelli):**
+- Yumatov: alpha band Schumann sızıntısı düzeltildi (BUG-013)
+- Sharika: σ=0.13 → 0.10 (literatür central, %75-80 = güçlü pozitif tahmin)
+- Al 2020: coefficient kalibrasyon kodu yorumla (µV bağlantısı sprint candidate)
+- Mossbridge: KALİBRASYON UYARISI yorum (BUG-012 açık sprint candidate)
+
+**Ders:** Reprodüksiyon raporunda **PASS = literatür replikasyonu** demek değildir.
+Üç kategori ayırt et:
+1. **Gerçek replikasyon** (sayısal magnitude literatürle uyumlu)
+2. **Metric uyumlama** (orijinal eşik koşulları → "geq"/"leq" testi)
+3. **Calibrated demonstration** (parametre fit, literatür referansı yok)
+
+Her PASS'ın hangi kategoride olduğu rapora yazılmalı.
+
+### Hata #08 — Multiagent web erişimi reddedilince düşük doğrulama
+
+**Tarih:** 2026-05-18
+**Bağlam:** 5 paralel araştırma agentı başlattım (Mossbridge, Al 2020, Sharika, Yumatov, Form A).
+**Bulgu:** Web tools (WebSearch, WebFetch, Exa MCP) **izin reddi** aldı her agentta.
+**Sonuç:** Agentlar **yalnızca eğitim verisi + lokal repo dosyalarına** dayanarak yanıt verdi.
+Tam sayısal değerler (Δc, Z-score, p-değeri ondalıkları) doğrulanamadı.
+**Hafifletme:** Agentlar şeffaf bir şekilde "**makalede belirtilmemiş (this session)**" işareti kullandı.
+Eğitim verisi yine de değerli yapısal bilgi (paradigma, statistik tipi, formül) sağladı.
+**Ders:**
+- Multiagent araştırma yapacaksan, **web erişim izinlerini önceden kontrol et**.
+- İzin yoksa **lokal PDF/literatür kaynak dosyalarını** repoya ekle.
+- Agent çıktısını "kesin" değil "**kısmen doğrulanmış**" olarak işaretle.
+
+---
+
+## BÖLÜM C — Yeni KURAL'lar (v9.3.1)
+
+### KURAL 38: Aynı fizik için tek implementation
+
+Eğer iki dosya aynı fiziksel denklemi implement ediyorsa, **paylaşılan helper'a refactor et**.
+Bu mümkün değilse, her birinde **referans dosyaya link bırak**:
+```python
+# Form A pompalama formülü: bkz src/models/multi_person_em_dynamics.py:319-326
+# Buradaki implementation aynı türetmeyi takip eder.
+```
+
+### KURAL 39: Reprodüksiyon PASS kategorizasyonu
+
+Her reprodüksiyon raporunda PASS aşağıdaki 3 kategoriden birine atanmalı:
+1. **🟢 Replikasyon** — magnitude + yön literatür ile uyumlu (±%20 sapma)
+2. **🟡 Metric uyumlama** — yön doğru, metric "geq"/"leq" tipi eşik testi
+3. **🔴 Calibrated demonstration** — parametre fit, literatür magnitude referansı yok
+
+### KURAL 40: Multiagent araştırma için lokal PDF zorunluluğu
+
+Web erişimi reddedilebilir durumlarda, anahtar literatür makalelerini (PDF/HTML extract)
+repoya `references/` dizinine ekle. Multiagent araştırması bu lokal kaynaklara dayanır.

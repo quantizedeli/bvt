@@ -231,8 +231,8 @@ REPLICATIONS = [
 ]
 
 
-def run_all_replications(fast: bool = False) -> list:
-    """5 reprodüksiyonu çalıştır ve sonuçları topla."""
+def run_all_replications(fast: bool = False, rng_seed: int = 42) -> list:
+    """13 reprodüksiyonu çalıştır ve sonuçları topla."""
     results = []
 
     for rep in REPLICATIONS:
@@ -244,11 +244,9 @@ def run_all_replications(fast: bool = False) -> list:
             mod = __import__(module_name, fromlist=[parts[-1]])
             func = getattr(mod, rep["bvt_func"])
 
-            # Hızlı mod için azaltılmış parametreler
+            kwargs = {"rng_seed": int(rng_seed)}
             if fast:
-                kwargs = {"rng_seed": 42}
-            else:
-                kwargs = {}
+                kwargs["fast"] = True
 
             result_dict = func(**kwargs)
             bvt_val = float(result_dict[rep["bvt_key"]]) * rep["skala"]
@@ -452,6 +450,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="BVT Reprodüksiyon Raporu")
     parser.add_argument("--fast", action="store_true", help="Hızlı mod (azaltılmış parametre)")
     parser.add_argument("--include-faz-e", action="store_true", help="(legacy flag, artık her zaman dahil)")
+    parser.add_argument("--rng-seed", type=int, default=42, help="rng_seed (cross-validation için)")
     args = parser.parse_args()
 
     print("=" * 60)
@@ -468,7 +467,7 @@ if __name__ == "__main__":
     print("(Her biri birkaç dakika sürebilir)")
     print()
 
-    results = run_all_replications(fast=args.fast)
+    results = run_all_replications(fast=args.fast, rng_seed=args.rng_seed)
 
     gecen = sum(1 for r in results if r.get("tutarli"))
     n = len(results)
