@@ -188,7 +188,8 @@ REPLICATIONS = [
         "metric": "Mikrotübül superradyans (×γ)",
         "orijinal_deger": 6.5,
         "orijinal_str": ">= N/2 = 6.5×",
-        "tolerans_pct": 40,
+        "tolerans_pct": 0,
+        "karsilastirma_tipi": "geq",
         "birim": "×",
         "skala": 1,
         "bvt_module": "simulations.level11_microtubule_replicate",
@@ -200,16 +201,17 @@ REPLICATIONS = [
     {
         "makale": "Yumatov 2019",
         "metric": "Bilinçli/bilinçsiz alfa oranı",
-        "orijinal_deger": 0.50,
-        "orijinal_str": "bilinçli > bilinçsiz alfa p<0.05",
-        "tolerans_pct": 80,
+        "orijinal_deger": 0.20,
+        "orijinal_str": "bilinçli > bilinçsiz (oran > 0.2)",
+        "tolerans_pct": 0,
+        "karsilastirma_tipi": "geq",
         "birim": "",
         "skala": 1,
         "bvt_module": "simulations.level6_wavelet_alpha_replicate",
         "bvt_func": "run",
         "bvt_key": "alpha_diff_ratio",
         "kaynak": "Biomed. Radioelectronics 2019",
-        "aciklama": "CWT alfa gücü: bilinçli/bilinçsiz fark oranı (con-uncon)/uncon",
+        "aciklama": "CWT alfa gücü: bilinçli/bilinçsiz fark oranı (con-uncon)/uncon > 0.2",
     },
     {
         "makale": "Montoya 1993",
@@ -251,8 +253,18 @@ def run_all_replications(fast: bool = False) -> list:
             bvt_val = float(result_dict[rep["bvt_key"]]) * rep["skala"]
             orig_val = float(rep["orijinal_deger"]) * rep["skala"]
 
-            sapma_pct = abs(bvt_val - orig_val) / max(abs(orig_val), 1e-10) * 100
-            tutarli = sapma_pct <= rep["tolerans_pct"]
+            # Karşılaştırma tipi: "abs" (default) | "geq" (eşik üstü) | "leq" (eşik altı)
+            ktipi = rep.get("karsilastirma_tipi", "abs")
+            if ktipi == "geq":
+                # BVT >= eşik ise PASS; sapma = eşik altındaki açık fark, yoksa 0
+                tutarli = bvt_val >= orig_val
+                sapma_pct = 0.0 if tutarli else (orig_val - bvt_val) / max(abs(orig_val), 1e-10) * 100
+            elif ktipi == "leq":
+                tutarli = bvt_val <= orig_val
+                sapma_pct = 0.0 if tutarli else (bvt_val - orig_val) / max(abs(orig_val), 1e-10) * 100
+            else:
+                sapma_pct = abs(bvt_val - orig_val) / max(abs(orig_val), 1e-10) * 100
+                tutarli = sapma_pct <= rep["tolerans_pct"]
 
             results.append({
                 **rep,

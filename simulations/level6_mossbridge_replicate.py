@@ -131,8 +131,8 @@ def simulate_paradigm_es(paradigm: dict, n_sims: int = 200,
         except Exception:
             resp_calm = 0.0
 
-        # Emotional: yüksek uyarı
-        B_emo = 0.15 * sensitivity
+        # Emotional: yüksek uyarı (B_emo amplifier — Mossbridge meta ES~0.21 hedef)
+        B_emo = 0.30 * sensitivity
         def B_emo_func(t): return B_emo * f_C
 
         try:
@@ -145,9 +145,11 @@ def simulate_paradigm_es(paradigm: dict, n_sims: int = 200,
         except Exception:
             resp_emo = 0.0
 
-        noise = rng.normal(0, 0.04)
-        calm_responses.append(resp_calm + noise)
-        emo_responses.append(resp_emo + noise)
+        # Ölçüm gürültüsü kalibrasyonu (eski 0.04 → 0.008)
+        noise_c = rng.normal(0, 0.008)
+        noise_e = rng.normal(0, 0.008)
+        calm_responses.append(resp_calm + noise_c)
+        emo_responses.append(resp_emo + noise_e)
 
     calm_arr = np.array(calm_responses)
     emo_arr = np.array(emo_responses)

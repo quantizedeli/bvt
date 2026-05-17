@@ -84,7 +84,8 @@ def simulate_subject(
         stimulus_strength = float(STIMULUS_THRESHOLD + rng.normal(0, STIMULUS_STRENGTH_STD))
 
         # SDT criterion: yüksek HEP → daha yüksek eşik (konservatif)
-        criterion = STIMULUS_THRESHOLD + 0.45 * HEP_amp
+        # Al 2020 ~Δdet=0.05 küçük etki; coefficient kalibrasyonu (eski 0.45 → 0.22)
+        criterion = STIMULUS_THRESHOLD + 0.22 * HEP_amp
 
         # Deteksiyon
         if stimulus_present and stimulus_strength > criterion:

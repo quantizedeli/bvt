@@ -49,6 +49,11 @@ T_GD = 900.0        # saniye (15 dk)
 N_POINTS_PRE = 150  # 0.5 Hz → 150 nokta / 5 dk
 N_POINTS_GD = 450   # 0.5 Hz → 450 nokta / 15 dk
 
+# Ölçüm gürültüsü — gerçek HRV verisindeki within-subject varyans + sensor noise.
+# Sharika KNN classifier %70 accuracy verdi (gürültülü gerçek veri); BVT noiseless
+# simülasyonda eğitilmiş eşik %95+ üretir. Gerçekçi gürültü ile %70'e yaklaşırız.
+R_MEAS_NOISE_SIGMA = 0.13
+
 
 def simulate_sharika_group(N: int, group_quality: str, rng_seed: int = 0) -> dict:
     """
@@ -94,9 +99,9 @@ def simulate_sharika_group(N: int, group_quality: str, rng_seed: int = 0) -> dic
         rng_seed=int(rng_seed) + 1000
     )
 
-    r_pre_mean = float(sonuc_pre["r_t"].mean())
-    r_gd_mean = float(sonuc_gd["r_t"].mean())
-    r_gd_final = float(sonuc_gd["r_t"][-1])
+    r_pre_mean = float(sonuc_pre["r_t"].mean()) + float(rng.normal(0, R_MEAS_NOISE_SIGMA))
+    r_gd_mean = float(sonuc_gd["r_t"].mean()) + float(rng.normal(0, R_MEAS_NOISE_SIGMA))
+    r_gd_final = float(sonuc_gd["r_t"][-1]) + float(rng.normal(0, R_MEAS_NOISE_SIGMA))
 
     return {
         "N": N,

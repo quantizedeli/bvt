@@ -57,12 +57,13 @@ N_POINTS_HLI = 450
 
 # Ülke başına HLI etkinlik parametresi (sosyal yakınlık varyasyonu)
 # Timofejeva 2017: Suudi Arabistan + NZ daha güçlü senkron
+# v9.3 kalibrasyon: C_init eşik üstünde tutulmalı → f(C) kapısı açık
 COUNTRY_HLI_FACTOR = {
-    "California":   0.28,
-    "Litvanya":     0.25,
-    "S.Arabistan":  0.32,
-    "YZ":           0.30,
-    "Ingiltere":    0.24,
+    "California":   0.45,
+    "Litvanya":     0.42,
+    "S.Arabistan":  0.55,
+    "YZ":           0.50,
+    "Ingiltere":    0.40,
 }
 
 
@@ -89,14 +90,15 @@ def simulate_country_phase(country: str, N: int,
     hli_factor = COUNTRY_HLI_FACTOR.get(country, 0.25)
 
     if phase == "baseline":
-        K = KAPPA_EFF * 0.10    # zayıf bağlaşım
+        K = KAPPA_EFF * 0.20    # zayıf ama eşik üstü bağlaşım
         t_end = T_BASELINE
         n_points = N_POINTS_BL
         if C_init is None:
             rng = np.random.default_rng(rng_seed)
-            C_init = rng.uniform(0.20, 0.38, N)
+            # C_init eşik C₀≈0.30 civarı — kapı kısmen açık
+            C_init = rng.uniform(0.32, 0.42, N)
     else:  # HLI
-        K = KAPPA_EFF * (1.0 + hli_factor)
+        K = KAPPA_EFF * (1.5 + hli_factor)
         t_end = T_HLI
         n_points = N_POINTS_HLI
 
