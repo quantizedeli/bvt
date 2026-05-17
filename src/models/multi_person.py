@@ -45,8 +45,13 @@ def coherence_gate(C, C_0=None, beta=None):
     return np.clip(f, 0.0, 1.0)
 
 
-def _kuramoto_bvt_ode(t, y, omega_arr, K, gamma_dec, N, C_0, beta):
-    """BVT-Kuramoto iç ODE — faz + koherans çift dinamiği (2N boyutlu)."""
+def _kuramoto_bvt_ode(t, y, omega_arr, K, gamma_dec, N, C_0, beta, pompalama):
+    """BVT-Kuramoto iç ODE — faz + koherans çift dinamiği (2N boyutlu).
+
+    pompalama : bool — True ise Form A yerel pompalama (G_pomp*C*(1-C)) eklenir.
+                False (default) yalnızca difüzyon + söndürme. Sprint 00 G-00.1
+                referansı: multi_person_em_dynamics.py:319-326.
+    """
     theta = y[:N]
     C = y[N:]
     f_C = coherence_gate(C, C_0, beta)
@@ -58,6 +63,9 @@ def _kuramoto_bvt_ode(t, y, omega_arr, K, gamma_dec, N, C_0, beta):
     diff_C = C[np.newaxis, :] - C[:, np.newaxis]
     coupling_C = (K / N) * f_C * np.sum(diff_C, axis=1)
     dC = -gamma_dec * C + coupling_C
+    if pompalama:
+        G_pomp = K**2 / (K**2 + gamma_dec**2)
+        dC = dC + G_pomp * C * (1.0 - C)
 
     return np.concatenate([dtheta, dC])
 
@@ -73,6 +81,7 @@ def kuramoto_bvt_coz(
     t_end: float = 60.0,
     n_points: int = 600,
     rng_seed: int = 42,
+    pompalama: bool = False,
 ) -> dict:
     """
     BVT-uyumlu Kuramoto çözücü (f(Ĉ) koherans kapısı dahil).
@@ -102,7 +111,7 @@ def kuramoto_bvt_coz(
     t_eval = np.linspace(0, t_end, n_points)
     sol = solve_ivp(
         _kuramoto_bvt_ode, (0, t_end), y0, t_eval=t_eval,
-        args=(omega_arr, K, gamma_dec, N, C_0, beta),
+        args=(omega_arr, K, gamma_dec, N, C_0, beta, pompalama),
         method="RK45", rtol=1e-6,
     )
 

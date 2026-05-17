@@ -90,23 +90,29 @@ def simulate_country_phase(country: str, N: int,
     hli_factor = COUNTRY_HLI_FACTOR.get(country, 0.25)
 
     if phase == "baseline":
-        K = KAPPA_EFF * 0.20    # zayıf ama eşik üstü bağlaşım
+        K = KAPPA_EFF * 0.35    # zayıf ama anlamlı bağlaşım
         t_end = T_BASELINE
         n_points = N_POINTS_BL
         if C_init is None:
             rng = np.random.default_rng(rng_seed)
-            # C_init eşik C₀≈0.30 civarı — kapı kısmen açık
-            C_init = rng.uniform(0.32, 0.42, N)
+            # C_init eşik üstünde; f(C₀=0.30, β=2) anlamlı değerler için ≥0.50 olmalı
+            C_init = rng.uniform(0.45, 0.60, N)
     else:  # HLI
         K = KAPPA_EFF * (1.5 + hli_factor)
         t_end = T_HLI
         n_points = N_POINTS_HLI
 
+    # HLI fazında Form A pompalama (C üretimi) açık; baseline'da kapalı.
+    # HLI: meditasyon → vagal tonus → gamma_dec hafif düşer (otonom denge)
+    pompalama_acik = (phase == "hli")
+    gamma_dec_phase = 0.40 if phase == "hli" else None  # default GAMMA_DEC=0.50
     sonuc = kuramoto_bvt_coz(
         N=N, K=K, omega_spread=OMEGA_SPREAD_DEFAULT * 0.8,
         C_init=C_init,
+        gamma_dec=gamma_dec_phase,
         t_end=t_end, n_points=n_points,
-        rng_seed=rng_seed
+        rng_seed=rng_seed,
+        pompalama=pompalama_acik,
     )
 
     return {

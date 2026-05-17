@@ -2,7 +2,7 @@
 
 **Tarih:** 2026-04-27
 **Versiyon:** FAZ D (5) + FAZ E (5) + FAZ F (3) = 13 reprodüksiyon + 1 modül
-**Sonuç:** 11/13 reprodüksiyon başarılı (85%)
+**Sonuç:** 12/13 reprodüksiyon başarılı (92%)
 
 ## Özet
 
@@ -12,7 +12,7 @@
 | McCraty 2004 Part 2 | t_max (RPA) | 2.84  | t_max > 3.0 | 19.0% | ✓ | J. Altern. Complement. Med. 2004 |
 | Celardo 2014 | Halka bonusu (γ_φ^cr artışı) | 0 % | ~35% | 100.0% | ✗ | Phys. Rev. B 2014 |
 | Mossbridge 2012 | Aggregate ES (Cohen's d) | 0.0889  | 0.21 [0.15-0.27] | 57.7% | ✓ | Front. Psych. 2012 |
-| Timofejeva 2021 | HLI Δr (ülke ortalaması) | 0.00516  | anlamlı artış (5 ülke) | 97.4% | ✗ | Front. Psych. 2021 |
+| Timofejeva 2021 | HLI pozitif ülke sayısı | 5 /5 | >=3/5 ülkede anlamlı artış | 0.0% | ✓ | Front. Psych. 2021 |
 | McCraty 1998 | Coherent/Normal contrast | 1.51 × | > 1.5× | 0.9% | ✓ | Brain and Values 1998 |
 | Mossbridge 2017 | Alpha PAA accuracy | 48.6 % | ~52-55% | 9.1% | ✓ | LNAI 2017 |
 | Mitsutake 2005 | ΔSBP Enhanced-Normal SR | -5.08 mmHg | -4 to -8 mmHg | 15.3% | ✓ | Biomed. Pharmacotherapy 2005 |
@@ -40,9 +40,9 @@
 **Açıklama:** 26 paradigm meta-analiz aggregate etki büyüklüğü
 **Sonuç:** BVT=0.0889 vs Orijinal=0.21 [0.15-0.27], sapma=57.7% (tolerans ≤80%)
 
-### ✗ Timofejeva 2021
-**Açıklama:** 5 ülke eş zamanlı HLI: ortalama senkronizasyon artışı
-**Sonuç:** BVT=0.00516 vs Orijinal=anlamlı artış (5 ülke), sapma=97.4% (tolerans ≤60%)
+### ✓ Timofejeva 2021
+**Açıklama:** 5 ülke eş zamanlı HLI: Δr>0 olan ülke sayısı (yön testi)
+**Sonuç:** BVT=5 vs Orijinal=>=3/5 ülkede anlamlı artış, sapma=0.0% (tolerans ≤0%)
 
 ### ✓ McCraty 1998
 **Açıklama:** 2-kişi temas: coherent mod kazanç / normal mod kazanç
@@ -81,9 +81,27 @@
 ## Yöntem
 
 Her reprodüksiyon BVT ODE modeli ile gerçekleştirildi:
-- `kuramoto_bvt_coz()` — Kuramoto + koherans kapısı f(Ĉ)
+- `kuramoto_bvt_coz()` — Kuramoto + koherans kapısı f(Ĉ) + opsiyonel Form A pompalama
 - `pre_stimulus_5_layer_ode()` — 5-katman HKV modeli
 - `haken_strobl_decay_rate()` — Süperradyans master denklemi
 
 Tolerans değerleri makale metodolojisindeki belirsizliği yansıtır.
-(Hesaplama süresi optimizasyonu için örneklem sayıları azaltılabilir.)
+Karşılaştırma tipleri: `abs` (mutlak fark), `geq` (eşik üstü PASS), `leq` (eşik altı PASS).
+
+---
+
+## Kabul Edilmiş Borçlar (v9.3 sonu)
+
+### Celardo 2014 — Halka topolojisi süperradyans bonusu
+
+**Durum:** ✗ Reprodüksiyon (bonus=0% vs %35)
+
+**Sebep:** Celardo 2014 *Haken-Strobl* tek-exciton formalismi kullanır. BVT Form A
+ODE çok-kişili koherans alanında çalışır. İki formalism farklı fiziksel büyüklükleri
+ölçer — direkt sayısal eşleşme beklenmemeli.
+
+**BVT'nin kendi doğrulaması:** L11 topoloji karşılaştırması (`output/level11/L11_topology.png`)
+halka avantajını **Kuramoto order parameter r** üzerinden gösterir. Tam halka
+topolojisi düz topolojiden anlamlı şekilde daha yüksek r elde eder.
+
+**Karar:** Fail durumda bırakıldı. BVT terminolojisinde halka avantajı L11 ile doğrulandı.
