@@ -26,7 +26,8 @@ C_LIGHT: Final[float] = 2.99792458e8    # m/s
 T_BODY: Final[float] = 310.0            # K (37°C)
 
 # Frekanslar (Hz)
-F_HEART: Final[float] = 0.1             # Hz (kalp HRV, HeartMath)
+# UYARI: F_HEART kalp atışı (BPM/60≈1.2 Hz) DEĞİLDİR. HRV koherans patern frekansı (McCraty 2022).
+F_HEART: Final[float] = 0.1             # Hz (kalp HRV koherans, HeartMath — LF band zirvesi 0.04-0.15 Hz)
 F_ALPHA: Final[float] = 10.0            # Hz (beyin alfa, EEG)
 F_BETA: Final[float] = 20.0             # Hz (beyin beta)
 F_THETA: Final[float] = 6.0             # Hz (beyin theta)
@@ -42,6 +43,9 @@ F_S5: Final[float] = 33.8
 SCHUMANN_FREQS_HZ: Final[tuple] = (F_S1, F_S2, F_S3, F_S4, F_S5)
 SCHUMANN_Q_FACTORS: Final[tuple] = (4.0, 5.0, 6.0, 7.0, 8.0)
 SCHUMANN_AMPLITUDES_PT: Final[tuple] = (1.0, 0.7, 0.5, 0.4, 0.3)
+
+# S1 kalite faktörü — tek sabit olarak erişim kolaylığı için (GCI literatürü: ~4)
+Q_S1: Final[float] = SCHUMANN_Q_FACTORS[0]   # 4.0
 
 # Açısal frekanslar (rad/s) — TEORİDEN DOĞRUDAN (TISE dok.)
 OMEGA_HEART: Final[float] = 2.0 * np.pi * F_HEART    # 0.6283 rad/s
@@ -59,13 +63,13 @@ OMEGA_S5: Final[float] = 2.0 * np.pi * F_S5
 DELTA_KB: Final[float] = OMEGA_HEART - OMEGA_ALPHA   # ≈ -62.2 rad/s
 # Δ_BS: Beyin-Schumann detuning → kısmen rezonans mümkün
 DELTA_BS: Final[float] = OMEGA_ALPHA - OMEGA_S1       # ≈ 13.6 rad/s
-# İkinci derece efektif kalp-beyin bağlaşımı (Stark kayması)
-EFFECTIVE_COUPLING_2ND: Final[float] = - (21.9**2) / abs(DELTA_KB)  # ≈ -7.72e-3 rad/s
+# İkinci derece efektif kalp-beyin bağlaşımı — KAPPA_EFF tanımından SONRA hesaplanır
+# Aşağıda HEARTMATH KALİBRASYONU bölümüne taşındı.
 
 # ============================================================
 # DİPOL MOMENTLERİ
 # ============================================================
-MU_HEART: Final[float] = 1e-4            # A·m² (MCG/SQUID — kalibrasyon/enerji hesapları için)
+MU_HEART: Final[float] = 1e-5            # A·m² (MCG/SQUID — HeartMath, B(5cm)≈16pT literatür 50-100pT)
 MU_BRAIN: Final[float] = 1e-7            # A·m² (MEG)
 MU_HEART_BRAIN_RATIO: Final[float] = MU_HEART / MU_BRAIN   # 1000
 
@@ -84,8 +88,15 @@ B_EARTH_SURFACE: Final[float] = 50e-6    # T (50 µT, jeomanyetik)
 # ============================================================
 # HEARTMATH KALİBRASYONU (1,884,216 seans)
 # ============================================================
-KAPPA_EFF: Final[float] = 21.9           # rad/s (kalp-beyin bağlaşım)
+# v9.2 KALİBRASYON: HeartMath τ_sync 5-15s → K/K_c gerçekçi süperkritik değer
+KAPPA_EFF: Final[float] = 5.0            # rad/s (kalp-beyin bağlaşım, τ_sync≈3-10s)
 G_EFF: Final[float] = 5.06              # rad/s (beyin-Schumann, TISE dok.)
+
+# İkinci derece efektif kalp-beyin bağlaşımı (Stark kayması, KAPPA_EFF=5.0 ile)
+EFFECTIVE_COUPLING_2ND: Final[float] = - (KAPPA_EFF**2) / abs(DELTA_KB)  # ≈ -0.40 rad/s
+
+# Kuramoto frekans dağılımı (HRV varyansı, v9.2)
+OMEGA_SPREAD_DEFAULT: Final[float] = 1.5    # rad/s (gerçekçi HRV dağılımı)
 Q_HEART: Final[float] = 21.7            # kalite faktörü
 Q_HEART_LOW: Final[float] = 0.94        # düşük koherans Q faktörü
 
@@ -96,9 +107,9 @@ GAMMA_K: Final[float] = 0.01            # s⁻¹ (kalp dekoherans, L̂₁ = √�
 GAMMA_B: Final[float] = 1.0             # s⁻¹ (beyin dekoherans, L̂₂ = √γ_b â_α)
 GAMMA_PUMP: Final[float] = 0.005        # s⁻¹ (metabolik pompalama, L̂₃ = √γ_p â†_k)
 
-# Koherans rejimlerine göre toplam bozunum
-GAMMA_DEC_HIGH: Final[float] = 0.015    # s⁻¹ (yüksek koherans, τ≈69s)
-GAMMA_DEC_LOW: Final[float] = 0.33      # s⁻¹ (düşük koherans, τ≈3s)
+# Koherans rejimlerine göre toplam bozunum (v9.2: γ/κ formülü ile N_c≈10 tutarlı)
+GAMMA_DEC_HIGH: Final[float] = 0.50    # s⁻¹ (yüksek koherans, γ/κ=0.10 → N_c≈10)
+GAMMA_DEC_LOW: Final[float] = 1.65     # s⁻¹ (düşük koherans, τ≈0.6s)
 GAMMA_DEC: Final[float] = GAMMA_DEC_HIGH  # s⁻¹ (varsayılan: yüksek koherans rejimi)
 
 # Q tanımından türetilen kalp gamma (referans)
@@ -134,7 +145,8 @@ P_MAX_TRANSFER: Final[float] = 0.356     # (g_eff/Ω_R)² = max Schumann transfe
 # ============================================================
 # SÜPERRADYANS
 # ============================================================
-N_C_SUPERRADIANCE: Final[int] = 11       # kritik eşik (10-12 arası)
+# v9.2: γ/κ formülünden türetilmiş → GAMMA_DEC/KAPPA_EFF×100 = 0.50/5.0×100 = 10
+N_C_SUPERRADIANCE: Final[int] = int(GAMMA_DEC_HIGH / KAPPA_EFF * 100)  # = 10 (literatür 10-12)
 
 # ============================================================
 # KOHERANS KAPISI
@@ -205,6 +217,10 @@ HKV_WINDOW_MAX: Final[float] = 8.5      # s (EkBölümler Tablo: 4.0-8.5 s)
 ES_MOSSBRIDGE: Final[float] = 0.21      # ES (26 çalışma, z=6.9, p=2.7e-12)
 ES_DUGGAN: Final[float] = 0.28          # ES (27 çalışma, CI=[0.18,0.38])
 ES_DUGGAN_PREREG: Final[float] = 0.31   # ön-kayıtlı ES
+# ES_MAX_BVT: C→1 teorik limiti. Kalibrasyon: Form A ile N=10 halka ⟨C⟩≈0.586,
+# hedef ES=0.21 (Mossbridge) → ES_max = 0.21 / 0.586² ≈ 0.61.
+# Preregistered ES=0.31 (ES_DUGGAN_PREREG) × 2 ≈ 0.62 bağımsız teyit.
+ES_MAX_BVT: Final[float] = 0.61         # BVT asimptotik tavan (C→1 limiti)
 
 # ============================================================
 # TISE/TDSE SAYISAL BULGULAR
@@ -213,7 +229,11 @@ RABI_FREQ_HZ: Final[float] = 2.18       # Hz (n_max=8 simülasyonu)
 RABI_FREQ_ANALYTIC_HZ: Final[float] = 1.35  # Hz (2-seviyeli analitik)
 RABI_PERIOD_S: Final[float] = 0.46      # s (T_Rabi = 1/f_Rabi)
 MIXING_ANGLE_DEG: Final[float] = 2.10   # derece (θ_mix, zayıf bağlaşım)
-CRITICAL_DETUNING_HZ: Final[float] = 0.003  # Hz (|7⟩→|16⟩ Schumann'a uzaklık)
+CRITICAL_DETUNING_HZ: Final[float] = 0.003  # Hz (|7⟩→|16⟩ — Schumann f1'e uzaklık)
+# NOT: Bu değer TISE özdeğerlerinden türetilendir (H_serbest 729×729 hamiltonyan).
+# v9.2'de KAPPA_EFF=5.0 olarak güncellendi, ancak TISE hamiltonyanı bağımsızdır;
+# dolayısıyla bu detuning değeri değişmez. KAPPA_EFF=21.9 veya 5.0 olması
+# TISE özdeğerlerini etkilemez. (SCIENTIFIC_CLAIMS §1.8 notu kapatıldı.)
 CRITICAL_DETUNING_RAD: Final[float] = 0.003  # rad/s (≈ 0.0005 Hz × 2π)
 
 # Rabi frekansı hesabı: Ω_R = √[(Δ_BS/2)²+g²_eff]

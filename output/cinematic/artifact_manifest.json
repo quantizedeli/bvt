@@ -1,0 +1,7 @@
+{
+  "hero01": ["hero01_thumbnail.png", "hero01_interactive.html", "hero01_pyvista_volume_prototype.png", "hero01_pyvista_isosurface_prototype.png"],
+  "hero02": ["hero02_thumbnail.png", "hero02_interactive.html", "hero02_preview.mp4"],
+  "hero03": ["hero03_thumbnail.png", "hero03_interactive.html", "hero03_pyvista_streamline_prototype.png"],
+  "hero04": ["hero04_thumbnail.png", "hero04_interactive.html", "hero04_preview.mp4"],
+  "hero05": ["hero05_interactive.html", "hero05_visual_sonic_cue_sheet.md", "hero05_frequency_atlas_preview_16x9_v01.mp4", "hero05_preview_sonic.mp4"]
+}

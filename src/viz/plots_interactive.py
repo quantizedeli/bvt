@@ -16,7 +16,10 @@ HD boyutlarda (1920×1080 veya 1080×1080) etkileşimli Plotly HTML şekilleri.
     10. sekil_hkv_dagılım          — Pre-stimulus ES dağılımı
     11. sekil_berry_faz            — Berry fazı analizi
     12. sekil_entropi_dinamigi     — Entropi dinamiği
-    13. sekil_3d_em_alan           — EM alan haritası
+    13. sekil_3d_em_alan           — EM alan haritası (2D ısı haritası)
+    14. sekil_topoloji_karsilastirma — N_c_etkin & senkronizasyon (level11)
+    15. sekil_seri_paralel_em      — PARALEL→HİBRİT→SERİ faz geçişi (level12)
+    16. sekil_3d_kalp_isosurface   — Kalp EM alanı 3D isosurface (interaktif)
 
 Kullanım:
     from src.viz.plots_interactive import tum_sekilleri_kaydet
@@ -54,6 +57,7 @@ from src.core.constants import (
     ES_MOSSBRIDGE, ES_DUGGAN,
     C_THRESHOLD,
     HBAR,
+    F_S1, Q_S1,
 )
 
 # ─── Boyut sabitleri ──────────────────────────────────────────
@@ -67,12 +71,12 @@ TMPL   = "plotly_dark"
 HM_CR_MID   = np.array([0.5, 1.5, 2.5, 3.5, 4.5, 5.5])
 HM_SIGMA_F  = np.array([0.0533, 0.0362, 0.0158, 0.0075, 0.0041, 0.0023])
 
-# BVT V2 kalibre parametreler (BVT_v2_final.py)
-KAPPA_EFF_V2 = 21.9   # rad/s
-G_EFF_V2     = 5.06   # rad/s
-F_SCH        = 7.83   # Hz
-Q_SCH        = 3.5
-GAMMA_SCH    = 2 * np.pi * (F_SCH / Q_SCH)   # ~14.06 rad/s
+# BVT V2 kalibre parametreler — constants.py'den
+KAPPA_EFF_V2 = KAPPA_EFF                          # 21.9 rad/s
+G_EFF_V2     = G_EFF                              # 5.06 rad/s
+F_SCH        = F_S1                               # 7.83 Hz
+Q_SCH        = Q_S1                               # 4.0 — GCI (eski değer 3.5 yanlıştı)
+GAMMA_SCH    = 2 * np.pi * (F_SCH / Q_SCH)       # ~12.29 rad/s
 
 
 def _html_kaydet(fig: Any, path: str, png: bool = True) -> None:
@@ -90,6 +94,10 @@ def _html_kaydet(fig: Any, path: str, png: bool = True) -> None:
         png_path = os.path.splitext(path)[0] + ".png"
         try:
             # Animasyonlu sekillerde (frames var) sadece ilk kareyi PNG olarak kaydet
+            try:
+                fig.update_layout(paper_bgcolor="white", plot_bgcolor="#f0f4f8", font=dict(color="#111111"))
+            except Exception:
+                pass
             fig.write_image(png_path, width=fig.layout.width or W_HD,
                             height=fig.layout.height or H_HD, scale=1)
             print(f"  PNG:        {png_path}")
@@ -353,18 +361,30 @@ def sekil_sigma_f_heartmath(output_path: Optional[str] = None) -> Optional[Any]:
 # 5. LİNDBLAD KOHERANS EVRİMİ ANİMASYONU
 # ============================================================
 
-def sekil_lindblad_animasyon(output_path: Optional[str] = None) -> Optional[Any]:
+def sekil_lindblad_animasyon(
+    output_path: Optional[str] = None,
+    full_dim: bool = False,
+) -> Optional[Any]:
     """
     Lindblad master denklemi ile koherans, dolanıklık, saflık ve η evrimi
     animasyonu. Meditasyon → koherans → Ψ_Sonsuz örtüşmesi dinamiği.
 
-    Model: N=6 boyutlu kalp⊗beyin (BVT_tek_kisi_tamamlama.py)
+    Model:
+      full_dim=False : N=4, dim=16 (kalp⊗beyin, hızlı)
+      full_dim=True  : N_k=N_b=9, dim=81 (kalp⊗beyin, 9 mod/sistem —
+                       BVT'nin tam 729=9³ uzayının kalp-beyin alt-uzayı)
+                       NOT: 729-dim tam sistemi (kalp⊗beyin⊗Schumann)
+                       için Liouvillian 531K×531K → animasyon için gerçek zamanlı değil.
+
     Referans: BVT_Makale.docx, Bölüm 4.
     """
     if not PLOTLY_OK:
         return None
 
-    N = 4          # N=4 → dim=16, L_mat 256×256 — hizli cozum
+    if full_dim:
+        N = 9      # N=9 → dim=81, Liouvillian 6561×6561 — BVT alt-uzay
+    else:
+        N = 4      # N=4 → dim=16, hızlı animasyon
     dim = N * N
 
     def annihilation_op(n):
@@ -418,8 +438,7 @@ def sekil_lindblad_animasyon(output_path: Optional[str] = None) -> Optional[Any]
         return psi / np.linalg.norm(psi)
 
     psi_k0 = coherent_state(1.5, N)
-    psi_b0 = np.array([0.1, 0.7, 0.5, 0.3], dtype=complex)[:N]
-    psi_b0 /= np.linalg.norm(psi_b0)
+    psi_b0 = coherent_state(0.8, N)  # N'e bağımsız koherant durum
     psi_0  = np.kron(psi_k0, psi_b0)
     rho_0  = np.outer(psi_0, psi_0.conj())
 
@@ -442,7 +461,7 @@ def sekil_lindblad_animasyon(output_path: Optional[str] = None) -> Optional[Any]
         eigs = eigs[eigs > 1e-15]
         return float(-np.sum(eigs * np.log2(eigs)))
 
-    print("  Lindblad denklemi cozuluyor (animasyon icin, N=4, dim=16)...")
+    print(f"  Lindblad denklemi cozuluyor (N={N}, dim={dim}, L_mat {dim**2}x{dim**2})...")
     t_eval = np.linspace(0, 10.0, 60)
     sol = integrate.solve_ivp(
         lambda t, y: L_mat @ y,
@@ -647,25 +666,26 @@ def sekil_rabi_animasyon(output_path: Optional[str] = None) -> Optional[Any]:
         P_exc    = (g_eff_sc / Omega_R)**2 * np.sin(Omega_R * t)**2
         all_frames_data.append((t, P_exc, sc["label"], sc["color"]))
 
-    # Statik arka plan izleri
+    # Statik tam çizgiler — opak, kalın, legend'da göster
     for t_arr, P_arr, lbl, col in all_frames_data:
         fig.add_trace(go.Scatter(
             x=t_arr, y=P_arr,
             mode="lines",
-            name=lbl + " (tam)",
-            line=dict(color=col.replace(")", ",0.2)").replace("(", "a(")
-                           if col.startswith("rgb") else col, width=2, dash="dot"),
-            opacity=0.25
+            name=lbl,
+            line=dict(color=col, width=3),
+            opacity=1.0,
+            showlegend=True,
         ))
 
-    # Animasyon izleri
+    # Animasyon izleri — legend'da gizle (yukarıdaki statik izler zaten var)
     for t_arr, P_arr, lbl, col in all_frames_data:
         fig.add_trace(go.Scatter(
             x=t_arr[:1], y=P_arr[:1],
             mode="lines+markers",
-            name=lbl,
+            name=lbl + " (anim)",
             line=dict(color=col, width=3),
-            marker=dict(size=8, color=col)
+            marker=dict(size=8, color=col),
+            showlegend=False,
         ))
 
     # Frames — N_sc statik iz + N_sc animasyon izi
@@ -836,29 +856,36 @@ def sekil_overlap_evrimi(output_path: Optional[str] = None) -> Optional[Any]:
     )
 
     # Panel 1: yüksek vs düşük koherans
-    eta_high = ETA_SS_HIGH - (ETA_SS_HIGH - 0.3) * np.exp(-GAMMA_DEC_HIGH * t)
-    eta_low  = ETA_SS_LOW  - (ETA_SS_LOW  - 0.3) * np.exp(-GAMMA_DEC_LOW  * t)
+    # BVT öngörüsü: yüksek koherans → yüksek η_ss VE hızlı yakınsama
+    # Yüksek C → g_eff büyük → hızlı rise + yüksek steady state
+    eta_high_ss = 0.85    # C=0.85, g_eff >> γ_eff
+    eta_low_ss  = 0.20    # C=0.15, g_eff < γ_eff eşiği altında
+    rate_high   = GAMMA_DEC_LOW    # yüksek koherans → hızlı kenetlenme (0.33)
+    rate_low    = GAMMA_DEC_HIGH   # düşük koherans → yavaş, gürültülü artış (0.015)
+
+    eta_high = eta_high_ss - (eta_high_ss - 0.02) * np.exp(-rate_high * t)
+    eta_low  = eta_low_ss  - (eta_low_ss  - 0.02) * np.exp(-rate_low  * t)
 
     fig.add_trace(go.Scatter(
         x=t, y=eta_high, mode="lines",
-        name=f"Yüksek koherans (η_ss={ETA_SS_HIGH})",
+        name=f"Yüksek koherans C=0.85 (η_ss≈{eta_high_ss})",
         line=dict(color="cyan", width=3)
     ), row=1, col=1)
     fig.add_trace(go.Scatter(
         x=t, y=eta_low, mode="lines",
-        name=f"Düşük koherans (η_ss={ETA_SS_LOW})",
+        name=f"Düşük koherans C=0.15 (η_ss≈{eta_low_ss})",
         line=dict(color="orange", width=3, dash="dash")
     ), row=1, col=1)
 
-    fig.add_hline(y=ETA_SS_HIGH, line_dash="dot", line_color="cyan",
+    fig.add_hline(y=eta_high_ss, line_dash="dot", line_color="cyan",
                   opacity=0.4, row=1, col=1)
-    fig.add_hline(y=ETA_SS_LOW, line_dash="dot", line_color="orange",
+    fig.add_hline(y=eta_low_ss, line_dash="dot", line_color="orange",
                   opacity=0.4, row=1, col=1)
 
     # Panel 2: N kişi
     N_values   = [1, 5, 10, 15]
     N_c_val    = N_C_SUPERRADIANCE
-    colors_N   = ["gray", "lime", "gold", "magenta"]
+    colors_N   = ["orangered", "lime", "gold", "magenta"]
 
     for N_p, col in zip(N_values, colors_N):
         # Süperradyans N²/N_c faktörü ile η_ss ölçekleme
@@ -1201,16 +1228,18 @@ def sekil_3d_em_alan(output_path: Optional[str] = None) -> Optional[Any]:
 
     try:
         from src.models.em_field_composite import ızgara_2d_orta_kesit
-        X, Z, B_mag = ızgara_2d_orta_kesit(extent=0.5, n=80)
+        # 3m menzil: [-1.5, +1.5] eksenler
+        X, Z, B_mag = ızgara_2d_orta_kesit(extent=1.5, n=60)
         B_log = np.log10(np.where((B_mag <= 0) | np.isnan(B_mag), np.nan, B_mag / 1e-12))
         x_axis = X[:, 0].tolist()
         y_axis = Z[0, :].tolist()
     except Exception:
-        x_axis = np.linspace(-0.5, 0.5, 80).tolist()
-        y_axis = np.linspace(-0.5, 0.8, 80).tolist()
+        # Fallback: 3m menzil ile yaklaşık dipol hesabı
+        x_axis = np.linspace(-1.5, 1.5, 60).tolist()
+        y_axis = np.linspace(-1.5, 1.8, 60).tolist()
         XX, ZZ = np.meshgrid(x_axis, y_axis, indexing='ij')
-        # Kalp dipol + Schumann arka plan (yaklaşık)
-        r_kalp  = np.sqrt(XX**2 + ZZ**2) + 0.02
+        # Kalp dipol + beyin dipol + Schumann arka plan (yaklaşık)
+        r_kalp  = np.sqrt(XX**2 + ZZ**2) + 0.05
         r_beyin = np.sqrt(XX**2 + (ZZ - 0.3)**2) + 0.02
         B_raw = 1e-11 / r_kalp**2 + 1e-14 / r_beyin**2 + 1e-12
         B_log = np.log10(B_raw / 1e-12)
@@ -1229,20 +1258,34 @@ def sekil_3d_em_alan(output_path: Optional[str] = None) -> Optional[Any]:
         hovertemplate="x=%{x:.2f}m  z=%{y:.2f}m<br>|B|=10^%{z:.2f} pT<extra></extra>"
     ), row=1, col=1)
 
-    # Kaynak işaretleri
+    # Kaynak işaretleri — sadece marker; etiketler annotation ile saydam bgcolor
     fig.add_trace(go.Scatter(
-        x=[0], y=[0], mode="markers+text",
+        x=[0], y=[0], mode="markers",
         marker=dict(size=18, color="red", symbol="star"),
-        text=["Kalp"], textposition="top center",
-        name="Kalp dipol", textfont=dict(size=14, color="white")
+        name="Kalp dipol",
     ), row=1, col=1)
 
     fig.add_trace(go.Scatter(
-        x=[0], y=[0.30], mode="markers+text",
+        x=[0], y=[0.30], mode="markers",
         marker=dict(size=14, color="dodgerblue", symbol="diamond"),
-        text=["Beyin"], textposition="top center",
-        name="Beyin dipol", textfont=dict(size=14, color="white")
+        name="Beyin dipol",
     ), row=1, col=1)
+
+    # Etiket annotation'ları — bgcolor saydam (GÖREV B.3)
+    fig.add_annotation(
+        x=0, y=0, xref="x", yref="y",
+        text="Kalp", showarrow=True, arrowhead=2, ax=25, ay=-30,
+        font=dict(size=13, color="red"),
+        bgcolor="rgba(0,0,0,0)",  # saydam arkaplan
+        bordercolor="rgba(0,0,0,0)",
+    )
+    fig.add_annotation(
+        x=0, y=0.30, xref="x", yref="y",
+        text="Beyin", showarrow=True, arrowhead=2, ax=25, ay=-30,
+        font=dict(size=13, color="dodgerblue"),
+        bgcolor="rgba(0,0,0,0)",  # saydam arkaplan
+        bordercolor="rgba(0,0,0,0)",
+    )
 
     # Radyal profil (z ekseni, x=0)
     z_arr = np.array(y_axis)
@@ -1430,10 +1473,538 @@ def sekil_em_koherans_karsilastirma(output_path: Optional[str] = None) -> Option
 
 
 # ============================================================
+# YENİ: TOPOLOJİ KARŞILAŞTIRMASI
+# ============================================================
+
+def sekil_topoloji_karsilastirma(output_path: Optional[str] = None) -> Optional[Any]:
+    """
+    3 panel: topoloji vs N_c_etkin / senkronizasyon / N ölçekleme.
+
+    Veri kaynağı: src.models.multi_person_em_dynamics.N_kisi_tam_dinamik
+    Referans: BVT_Makale.docx Bölüm 7; simulations/level11_topology.py
+    """
+    if not PLOTLY_OK:
+        return None
+
+    from src.models.multi_person_em_dynamics import kisiler_yerlestir, N_kisi_tam_dinamik
+
+    topolojiler = [
+        ("Duz",        0.00),
+        ("Yarim-halka", 0.15),
+        ("Tam-halka",  0.35),
+        ("Halka+temas", 0.50),
+    ]
+    renkler = ["orangered", "dodgerblue", "lime", "gold"]
+    N_sabit = 8
+    t_end   = 30.0
+
+    N_c_etkin_vals = []
+    r_son_vals     = []
+
+    for isim, f_geo in topolojiler:
+        konumlar = kisiler_yerlestir(N_sabit, "tam_halka" if f_geo > 0 else "duz", radius=1.5)
+        rng = np.random.default_rng(0)
+        sonuc = N_kisi_tam_dinamik(
+            konumlar=konumlar,
+            C_baslangic=rng.uniform(0.2, 0.5, N_sabit),
+            phi_baslangic=rng.uniform(0, 2 * np.pi, N_sabit),
+            t_span=(0, t_end),
+            dt=0.5,
+            f_geometri=f_geo,
+        )
+        N_c_etkin_vals.append(float(sonuc["N_c_etkin"]))
+        r_son_vals.append(float(sonuc["r_t"][-1]))
+
+    isimler = [t[0] for t in topolojiler]
+
+    # N ölçekleme: Tam-halka vs Düz
+    N_arr = np.arange(4, 20, 2)
+    N_c_halka = []
+    N_c_duz   = []
+    for N in N_arr:
+        rng = np.random.default_rng(1)
+        for f_geo, liste in [(0.35, N_c_halka), (0.0, N_c_duz)]:
+            konumlar = kisiler_yerlestir(N, "tam_halka" if f_geo > 0 else "duz", radius=1.5)
+            sonuc = N_kisi_tam_dinamik(
+                konumlar=konumlar,
+                C_baslangic=rng.uniform(0.2, 0.5, N),
+                phi_baslangic=rng.uniform(0, 2 * np.pi, N),
+                t_span=(0, 20.0), dt=0.5, f_geometri=f_geo,
+            )
+            liste.append(float(sonuc["N_c_etkin"]))
+
+    fig = make_subplots(
+        rows=1, cols=3,
+        subplot_titles=[
+            "N_c_etkin (N=8, t=30s)",
+            "Senkronizasyon r_son (N=8)",
+            "N Olcekleme: Halka vs Duz"
+        ],
+        horizontal_spacing=0.1,
+    )
+
+    # Panel 1: N_c_etkin bar
+    fig.add_trace(go.Bar(
+        x=isimler, y=N_c_etkin_vals,
+        marker_color=renkler,
+        text=[f"{v:.1f}" for v in N_c_etkin_vals],
+        textposition="outside",
+        name="N_c_etkin",
+    ), row=1, col=1)
+    fig.add_hline(y=N_C_SUPERRADIANCE, line_dash="dot", line_color="red",
+                  annotation=dict(text=f"N_c literatur={N_C_SUPERRADIANCE}",
+                                  font=dict(size=11, color="red")), row=1, col=1)
+
+    # Panel 2: r_son bar
+    fig.add_trace(go.Bar(
+        x=isimler, y=r_son_vals,
+        marker_color=renkler,
+        text=[f"{v:.3f}" for v in r_son_vals],
+        textposition="outside",
+        name="r_son",
+        showlegend=False,
+    ), row=1, col=2)
+    fig.add_hline(y=0.8, line_dash="dot", line_color="cyan",
+                  annotation=dict(text="r>0.8=Seri", font=dict(size=11, color="cyan")),
+                  row=1, col=2)
+
+    # Panel 3: N ölçekleme
+    fig.add_trace(go.Scatter(
+        x=N_arr.tolist(), y=N_c_halka, mode="lines+markers",
+        name="Tam-halka", line=dict(color="lime", width=3),
+    ), row=1, col=3)
+    fig.add_trace(go.Scatter(
+        x=N_arr.tolist(), y=N_c_duz, mode="lines+markers",
+        name="Duz", line=dict(color="orangered", width=3, dash="dash"),
+    ), row=1, col=3)
+
+    fig.update_layout(
+        title=dict(text="BVT — Topoloji Karsilastirmasi: N_c_etkin & Senkronizasyon",
+                   font=dict(size=18)),
+        width=W_HD, height=600,
+        template=TMPL,
+    )
+    fig.update_yaxes(title_text="N_c_etkin", row=1, col=1)
+    fig.update_yaxes(title_text="r_son (Kuramoto)", row=1, col=2)
+    fig.update_yaxes(title_text="N_c_etkin", row=1, col=3)
+    fig.update_xaxes(title_text="Kisi sayisi N", row=1, col=3)
+
+    if output_path:
+        _html_kaydet(fig, output_path)
+    return fig
+
+
+# ============================================================
+# YENİ: SERİ-PARALEL EM FAZ GEÇİŞİ
+# ============================================================
+
+def sekil_seri_paralel_em(output_path: Optional[str] = None) -> Optional[Any]:
+    """
+    3 panel: r(t) faz gecisi / kolektif guc / ortalama koherans C(t).
+
+    Veri kaynagi: src.models.multi_person_em_dynamics.N_kisi_tam_dinamik
+    Referans: BVT_Makale.docx Bolum 7; simulations/level12_seri_paralel_em.py
+    """
+    if not PLOTLY_OK:
+        return None
+
+    from src.models.multi_person_em_dynamics import kisiler_yerlestir, N_kisi_tam_dinamik
+
+    N = 8
+    t_end = 40.0
+    rng = np.random.default_rng(42)
+    konumlar = kisiler_yerlestir(N, "tam_halka", radius=1.5)
+
+    sonuc = N_kisi_tam_dinamik(
+        konumlar=konumlar,
+        C_baslangic=rng.uniform(0.1, 0.35, N),
+        phi_baslangic=rng.uniform(0, 2 * np.pi, N),
+        t_span=(0, t_end),
+        dt=0.3,
+        f_geometri=0.35,
+    )
+
+    t_arr = sonuc["t"]
+    r_arr = sonuc["r_t"]
+    C_t   = sonuc["C_t"]   # (N, n_t)
+    C_ort = np.mean(C_t, axis=0)
+
+    # Kolektif güç: P = N*<C> + N(N-1)*<C>*r
+    P_arr = N * C_ort + N * (N - 1) * C_ort * r_arr
+
+    # Faz etiketi
+    def faz_rengi(r):
+        if r > 0.8:
+            return "gold"
+        elif r > 0.3:
+            return "dodgerblue"
+        return "tomato"
+
+    fig = make_subplots(
+        rows=1, cols=3,
+        subplot_titles=[
+            "Kuramoto Sira Parametresi r(t)",
+            "Kolektif Guc P(t)",
+            "Ortalama Koherans <C>(t)",
+        ],
+        horizontal_spacing=0.1,
+    )
+
+    # Panel 1: r(t) + faz bantları
+    fig.add_hrect(y0=0.8, y1=1.0, fillcolor="gold", opacity=0.12, line_width=0,
+                  annotation_text="SERİ", annotation_position="top right", row=1, col=1)
+    fig.add_hrect(y0=0.3, y1=0.8, fillcolor="dodgerblue", opacity=0.08, line_width=0,
+                  annotation_text="HİBRİT", row=1, col=1)
+    fig.add_hrect(y0=0.0, y1=0.3, fillcolor="tomato", opacity=0.08, line_width=0,
+                  annotation_text="PARALEL", row=1, col=1)
+    fig.add_trace(go.Scatter(
+        x=t_arr.tolist(), y=r_arr.tolist(),
+        mode="lines", name="r(t)",
+        line=dict(color="royalblue", width=3),
+    ), row=1, col=1)
+    fig.update_yaxes(range=[0, 1.1], row=1, col=1)
+
+    # Panel 2: Kolektif güç
+    fig.add_trace(go.Scatter(
+        x=t_arr.tolist(), y=P_arr.tolist(),
+        mode="lines", name="P(t)",
+        line=dict(color="magenta", width=3),
+        fill="tozeroy", fillcolor="rgba(200,0,200,0.15)",
+    ), row=1, col=2)
+
+    # Panel 3: <C>(t) bireysel + ortalama
+    for i in range(N):
+        fig.add_trace(go.Scatter(
+            x=t_arr.tolist(), y=C_t[i].tolist(),
+            mode="lines", opacity=0.35,
+            line=dict(color="cyan", width=1),
+            showlegend=(i == 0),
+            name="C_i(t)" if i == 0 else None,
+        ), row=1, col=3)
+    fig.add_trace(go.Scatter(
+        x=t_arr.tolist(), y=C_ort.tolist(),
+        mode="lines", name="<C>(t) ortalama",
+        line=dict(color="lime", width=4),
+    ), row=1, col=3)
+
+    r_son = float(r_arr[-1])
+    label = "SERİ" if r_son > 0.8 else ("HİBRİT" if r_son > 0.3 else "PARALEL")
+    fig.update_layout(
+        title=dict(
+            text=f"BVT — Seri-Paralel EM Faz Gecisi (N={N}, t_son r={r_son:.3f} [{label}])",
+            font=dict(size=18),
+        ),
+        width=W_HD, height=600,
+        template=TMPL,
+    )
+    fig.update_yaxes(title_text="r (Kuramoto)", range=[0, 1.05], row=1, col=1)
+    fig.update_yaxes(title_text="P (a.u.)", row=1, col=2)
+    fig.update_yaxes(title_text="Koherans C", row=1, col=3)
+    for col in range(1, 4):
+        fig.update_xaxes(title_text="Zaman (s)", row=1, col=col)
+
+    if output_path:
+        _html_kaydet(fig, output_path)
+    return fig
+
+
+# ============================================================
+# YENİ: 3D KALP EM ALANI İSOSURFACE
+# ============================================================
+
+def sekil_3d_kalp_isosurface(output_path: Optional[str] = None) -> Optional[Any]:
+    """
+    Kalp manyetik dipol alaninin 3D isosurface + hacimsel görselleştirmesi.
+
+    go.Isosurface ile |B|(x,y,z) için 3 yüzey seviyesi:
+      - dış: 1 pT  (uzak alan)
+      - orta: 10 pT (ara alan)
+      - iç: 100 pT (yakın alan, kalp çevresinde yoğunlaşır)
+
+    Referans: BVT_Makale.docx Bölüm 2; BVT Level 1.
+    """
+    if not PLOTLY_OK:
+        return None
+
+    # 3D ızgara: kalp orijinde, z-yönünde dipol (3m × 3m × 3m)
+    n = 30
+    extent = 1.5  # m — ±1.5m = 3m toplam
+    ax_lin = np.linspace(-extent, extent, n)
+    X, Y, Z = np.meshgrid(ax_lin, ax_lin, ax_lin, indexing="ij")
+
+    mu0_4pi = 1e-7
+    mu_heart = MU_HEART   # 1e-4 A·m²
+    m_hat = np.array([0, 0, 1])  # z-yönünde dipol
+
+    Rx, Ry, Rz = X, Y, Z
+    R = np.sqrt(Rx**2 + Ry**2 + Rz**2) + 1e-4
+
+    m_dot_r = m_hat[0] * Rx/R + m_hat[1] * Ry/R + m_hat[2] * Rz/R
+    Bx = mu0_4pi * mu_heart / R**3 * (3 * m_dot_r * Rx/R - m_hat[0])
+    By = mu0_4pi * mu_heart / R**3 * (3 * m_dot_r * Ry/R - m_hat[1])
+    Bz = mu0_4pi * mu_heart / R**3 * (3 * m_dot_r * Rz/R - m_hat[2])
+    B_mag = np.sqrt(Bx**2 + By**2 + Bz**2) / 1e-12   # pT
+
+    # Beyin dipol (30 cm yukarıda, 1000× zayıf)
+    mu_brain = MU_BRAIN  # 1e-7 A·m²
+    brain_z = 0.3
+    Rb = np.sqrt(Rx**2 + Ry**2 + (Rz - brain_z)**2) + 1e-4
+    m_dot_rb = m_hat[2] * (Rz - brain_z) / Rb
+    B_brain = mu0_4pi * mu_brain / Rb**3 * np.sqrt(
+        (3*m_dot_rb*Rx/Rb)**2 + (3*m_dot_rb*Ry/Rb)**2 +
+        (3*m_dot_rb*(Rz-brain_z)/Rb - 1)**2
+    ) / 1e-12
+    B_total = B_mag + B_brain
+
+    # Flatten for Plotly
+    x_flat = X.flatten().tolist()
+    y_flat = Y.flatten().tolist()
+    z_flat = Z.flatten().tolist()
+    v_flat = np.clip(B_total, 0.01, 5000).flatten().tolist()
+
+    fig = go.Figure()
+
+    # Isosurface: 3 seviye
+    fig.add_trace(go.Isosurface(
+        x=x_flat, y=y_flat, z=z_flat, value=v_flat,
+        isomin=1.0, isomax=500.0,
+        surface_count=5,
+        colorscale="Hot",
+        caps=dict(x_show=False, y_show=False, z_show=False),
+        opacity=0.35,
+        colorbar=dict(
+            title="|B| (pT)",
+            tickvals=[1, 10, 100, 500],
+            ticktext=["1 pT", "10 pT", "100 pT", "500 pT"],
+            tickfont=dict(size=12),
+            thickness=20,
+            len=0.6,
+            x=1.02,
+        ),
+        name="|B| isosurface",
+    ))
+
+    # Kalp ve beyin konumlarını işaretle
+    fig.add_trace(go.Scatter3d(
+        x=[0], y=[0], z=[0],
+        mode="markers+text",
+        marker=dict(size=12, color="red", symbol="circle"),
+        text=["Kalp (μ=10⁻⁴ A·m²)"],
+        textposition="top center",
+        name="Kalp",
+    ))
+    fig.add_trace(go.Scatter3d(
+        x=[0], y=[0], z=[brain_z],
+        mode="markers+text",
+        marker=dict(size=10, color="dodgerblue", symbol="diamond"),
+        text=["Beyin (μ=10⁻⁷ A·m²)"],
+        textposition="top center",
+        name="Beyin",
+    ))
+
+    _ax_style = dict(
+        backgroundcolor="#0a0e17",
+        gridcolor="#2a3050",
+        showbackground=True,
+        tickfont=dict(color="white", size=11),
+    )
+    _title_font = dict(color="white", size=13)
+    fig.update_layout(
+        title=dict(
+            text="BVT — Kalp + Beyin 3D Manyetik Dipol Alani |B| (pT) — 3m kube",
+            font=dict(size=18, color="white"),
+        ),
+        scene=dict(
+            xaxis=dict(title=dict(text="x (m)", font=_title_font), **_ax_style),
+            yaxis=dict(title=dict(text="y (m)", font=_title_font), **_ax_style),
+            zaxis=dict(title=dict(text="z (m)", font=_title_font), **_ax_style),
+            bgcolor="#0a0e17",
+            camera=dict(eye=dict(x=1.5, y=1.5, z=1.0)),
+        ),
+        width=W_SQ, height=W_SQ,
+        template=TMPL,
+        paper_bgcolor="#0a0e17",
+        font=dict(color="white"),
+    )
+
+    if output_path:
+        _html_kaydet(fig, output_path)
+    return fig
+
+
+def sekil_3d_iki_kisi_isosurface(
+    mesafe_m: float = 0.9,
+    output_path: Optional[str] = None,
+) -> Optional[Any]:
+    """
+    İki kişi arası mesafeye göre kalp EM alanı 3D isosurface.
+
+    Parametreler
+    -----------
+    mesafe_m : kişiler arası mesafe (m). 3 standart değer: 0.3, 0.9, 3.0
+    """
+    if not PLOTLY_OK:
+        return None
+
+    n = 28
+    extent = max(mesafe_m * 1.2, 1.5)
+    ax_lin = np.linspace(-extent, extent, n)
+    X, Y, Z = np.meshgrid(ax_lin, ax_lin, ax_lin, indexing="ij")
+
+    mu0_4pi = 1e-7
+    mu_heart = MU_HEART  # 1e-4 A·m²
+    m_hat = np.array([0, 0, 1])
+    half_d = mesafe_m / 2.0
+
+    def _B_dipol_3d(cx: float) -> np.ndarray:
+        Rx = X - cx; Ry = Y; Rz = Z
+        R = np.sqrt(Rx**2 + Ry**2 + Rz**2) + 1e-4
+        m_r = m_hat[2] * Rz / R
+        Bx_ = mu0_4pi * mu_heart / R**3 * (3*m_r*Rx/R - m_hat[0])
+        By_ = mu0_4pi * mu_heart / R**3 * (3*m_r*Ry/R - m_hat[1])
+        Bz_ = mu0_4pi * mu_heart / R**3 * (3*m_r*Rz/R - m_hat[2])
+        return np.sqrt(Bx_**2 + By_**2 + Bz_**2) / 1e-12  # pT
+
+    B1 = _B_dipol_3d(-half_d)
+    B2 = _B_dipol_3d(+half_d)
+    B_total = B1 + B2  # süperpozisyon
+
+    x_f = X.flatten().tolist()
+    y_f = Y.flatten().tolist()
+    z_f = Z.flatten().tolist()
+    v_f = np.clip(B_total, 0.01, 5000).flatten().tolist()
+
+    fig = go.Figure()
+    fig.add_trace(go.Isosurface(
+        x=x_f, y=y_f, z=z_f, value=v_f,
+        isomin=1.0, isomax=300.0,
+        surface_count=4,
+        colorscale="Plasma",
+        caps=dict(x_show=False, y_show=False, z_show=False),
+        opacity=0.30,
+        colorbar=dict(title=dict(text="|B| (pT)", font=dict(color="white")),
+                      tickfont=dict(color="white")),
+        name="|B| toplam",
+    ))
+    for cx, lbl in [(-half_d, "Kişi 1"), (+half_d, "Kişi 2")]:
+        fig.add_trace(go.Scatter3d(
+            x=[cx], y=[0], z=[0],
+            mode="markers+text",
+            marker=dict(size=10, color="red"),
+            text=[lbl], textposition="top center",
+            textfont=dict(color="white"),
+            name=lbl,
+        ))
+
+    _ax_style = dict(
+        backgroundcolor="#0a0e17", gridcolor="#2a3050",
+        showbackground=True,
+        tickfont=dict(color="white", size=11),
+    )
+    _title_font = dict(color="white", size=13)
+    fig.update_layout(
+        title=dict(text=f"BVT — İki Kişi Kalp EM Isosurface (d={mesafe_m}m)",
+                   font=dict(size=17, color="white")),
+        scene=dict(
+            xaxis=dict(title=dict(text="x (m)", font=_title_font), **_ax_style),
+            yaxis=dict(title=dict(text="y (m)", font=_title_font), **_ax_style),
+            zaxis=dict(title=dict(text="z (m)", font=_title_font), **_ax_style),
+            bgcolor="#0a0e17",
+            camera=dict(eye=dict(x=1.8, y=1.2, z=0.8)),
+        ),
+        width=W_SQ, height=W_SQ,
+        template=TMPL,
+        paper_bgcolor="#0a0e17",
+        font=dict(color="white"),
+    )
+    if output_path:
+        _html_kaydet(fig, output_path)
+    return fig
+
+
+def sekil_3d_em_alan_volumetrik(output_path: Optional[str] = None) -> Optional[Any]:
+    """
+    Kalp EM alanı go.Volume hacimsel görselleştirmesi (3m kube).
+
+    go.Volume: her hücrenin opaklığı değerle orantılı → doluluk hissi verir.
+    """
+    if not PLOTLY_OK:
+        return None
+
+    n = 22  # go.Volume için daha küçük ızgara yeterli
+    extent = 1.5  # m
+    ax_lin = np.linspace(-extent, extent, n)
+    X, Y, Z = np.meshgrid(ax_lin, ax_lin, ax_lin, indexing="ij")
+
+    mu0_4pi = 1e-7
+    mu_heart = MU_HEART
+    R = np.sqrt(X**2 + Y**2 + Z**2) + 1e-4
+    m_r = Z / R
+    Bz = mu0_4pi * mu_heart / R**3 * (3*m_r*Z/R - 1)
+    B_mag_log = np.log10(
+        np.clip(np.sqrt(
+            (mu0_4pi*mu_heart/R**3*(3*m_r*X/R))**2 +
+            (mu0_4pi*mu_heart/R**3*(3*m_r*Y/R))**2 +
+            Bz**2
+        ) / 1e-12 + 1e-6, 1e-6, None)
+    )
+
+    fig = go.Figure(go.Volume(
+        x=X.flatten().tolist(),
+        y=Y.flatten().tolist(),
+        z=Z.flatten().tolist(),
+        value=B_mag_log.flatten().tolist(),
+        isomin=float(B_mag_log.min()),
+        isomax=float(B_mag_log.max()),
+        opacity=0.12,
+        surface_count=18,
+        colorscale="Hot",
+        colorbar=dict(
+            title=dict(text="log₁₀|B| (pT)", font=dict(color="white")),
+            tickfont=dict(color="white"),
+        ),
+        name="Hacimsel |B|",
+    ))
+    fig.add_trace(go.Scatter3d(
+        x=[0], y=[0], z=[0],
+        mode="markers+text",
+        marker=dict(size=12, color="red"),
+        text=["Kalp"], textposition="top center",
+        textfont=dict(color="white"),
+    ))
+    _ax_style = dict(
+        backgroundcolor="#0a0e17", gridcolor="#2a3050",
+        showbackground=True,
+        tickfont=dict(color="white", size=11),
+    )
+    _title_font = dict(color="white", size=13)
+    fig.update_layout(
+        title=dict(
+            text="BVT — Kalp EM Alanı Hacimsel (go.Volume, 3m kube)",
+            font=dict(size=17, color="white"),
+        ),
+        scene=dict(
+            xaxis=dict(title=dict(text="x (m)", font=_title_font), **_ax_style),
+            yaxis=dict(title=dict(text="y (m)", font=_title_font), **_ax_style),
+            zaxis=dict(title=dict(text="z (m)", font=_title_font), **_ax_style),
+            bgcolor="#0a0e17",
+            camera=dict(eye=dict(x=1.5, y=1.5, z=1.0)),
+        ),
+        width=W_SQ, height=W_SQ,
+        template=TMPL,
+        paper_bgcolor="#0a0e17",
+        font=dict(color="white"),
+    )
+    if output_path:
+        _html_kaydet(fig, output_path)
+    return fig
+
+
+# ============================================================
 # ANA FONKSİYON: TÜM ŞEKİLLERİ KAYDET
 # ============================================================
 
-def tum_sekilleri_kaydet(output_dir: str = "output/html") -> Dict[str, str]:
+def tum_sekilleri_kaydet(output_dir: str = "output/html", full_dim: bool = False) -> Dict[str, str]:
     """
     Tüm HTML şekillerini output_dir'e kaydeder.
 
@@ -1460,7 +2031,7 @@ def tum_sekilleri_kaydet(output_dir: str = "output/html") -> Dict[str, str]:
         ("3d_cevre_koherans",       sekil_3d_cevre_koherans_eta),
         ("sigma_f_heartmath",       sekil_sigma_f_heartmath),
         ("em_koherans_pil",         sekil_em_koherans_karsilastirma),
-        ("lindblad_animasyon",      sekil_lindblad_animasyon),
+        ("lindblad_animasyon",      lambda output_path=None: sekil_lindblad_animasyon(output_path=output_path, full_dim=full_dim)),
         ("rabi_animasyon",          sekil_rabi_animasyon),
         ("domino_3d",               sekil_domino_3d),
         ("overlap_evrimi",          sekil_overlap_evrimi),
@@ -1469,6 +2040,13 @@ def tum_sekilleri_kaydet(output_dir: str = "output/html") -> Dict[str, str]:
         ("berry_faz",               sekil_berry_faz),
         ("entropi",                 sekil_entropi_dinamigi),
         ("em_alan",                 sekil_3d_em_alan),
+        ("topoloji_karsilastirma",  sekil_topoloji_karsilastirma),
+        ("seri_paralel_em",         sekil_seri_paralel_em),
+        ("3d_kalp_isosurface",      sekil_3d_kalp_isosurface),
+        ("3d_iki_kisi_03m",         lambda output_path=None: sekil_3d_iki_kisi_isosurface(0.3, output_path=output_path)),
+        ("3d_iki_kisi_09m",         lambda output_path=None: sekil_3d_iki_kisi_isosurface(0.9, output_path=output_path)),
+        ("3d_iki_kisi_3m",          lambda output_path=None: sekil_3d_iki_kisi_isosurface(3.0, output_path=output_path)),
+        ("em_alan_volumetrik",      sekil_3d_em_alan_volumetrik),
     ]
 
     print(f"HTML sekilleri {output_dir} dizinine kaydediliyor...")

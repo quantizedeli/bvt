@@ -29,14 +29,12 @@ import numpy as np
 from scipy import integrate
 
 from src.core.constants import (
-    MU_HEART, KAPPA_EFF, N_C_SUPERRADIANCE, HBAR
+    MU_HEART, KAPPA_EFF, N_C_SUPERRADIANCE, HBAR,
+    MU_0, K_B, T_BODY,
 )
 
-MU_0     = 4 * np.pi * 1e-7   # T·m/A
-K_B      = 1.381e-23            # J/K
-T_BODY   = 310.0                # K
-KT       = K_B * T_BODY
-MU_KALP  = 1e-4                 # A·m²
+KT      = K_B * T_BODY
+MU_KALP = MU_HEART   # alias — kalp dipol momenti (A·m²)
 
 
 def dipol_potansiyel(r: np.ndarray) -> np.ndarray:
@@ -167,7 +165,7 @@ def main() -> None:
     # ─── D) 2 kişi vs 10 kişi entanglement tahmini ────────────────
     print("\nD) 2 vs 10 Kisi Etkilesimi")
     for N_p, r_sep in [(2, 0.5), (10, 1.0)]:
-        V_ort  = float(dipol_potansiyel(np.array([r_sep])))
+        V_ort  = float(dipol_potansiyel(np.array([r_sep]))[0])
         g_12   = float(V_ort / HBAR)
         N_c    = N_C_SUPERRADIANCE
         factor = N_p if N_p < N_c else N_p**2 / N_c
@@ -338,14 +336,35 @@ def main() -> None:
 
         html_path = os.path.join(args.output, "L8_iki_kisi.html")
         fig_h.write_html(html_path, include_plotlyjs="cdn")
-        print(f"  HTML: {html_path}")
         try:
-            fig_h.write_image(
-                os.path.join(args.output, "L8_iki_kisi_plotly.png"),
-                width=1920, height=1080
-            )
+            try:
+                fig_h.update_layout(paper_bgcolor="white", plot_bgcolor="#f0f4f8", font=dict(color="#111111"))
+            except Exception:
+                pass
+            fig_h.write_image(html_path.replace(".html", ".png"))
         except Exception:
             pass
+        print(f"  HTML: {html_path}")
+        plotly_png = os.path.join(args.output, "L8_iki_kisi_plotly.png")
+        try:
+            try:
+                fig_h.update_layout(paper_bgcolor="white", plot_bgcolor="#f0f4f8", font=dict(color="#111111"))
+            except Exception:
+                pass
+            fig_h.write_image(plotly_png, width=1920, height=1080)
+            if os.path.getsize(plotly_png) < 5000:
+                raise RuntimeError("kaleido çıktısı çok küçük, yedek kullanılıyor")
+        except Exception:
+            # Kaleido/Chrome yok → matplotlib ile Plotly figürünü taklit et
+            import matplotlib.pyplot as plt
+            fig_fb, ax_fb = plt.subplots(figsize=(19.2, 10.8), dpi=100)
+            ax_fb.text(0.5, 0.5,
+                       "L8 İki Kişi — Plotly HTML için level8/L8_iki_kisi.html açın\n"
+                       "(Kaleido/Chrome bu ortamda yok)",
+                       ha="center", va="center", fontsize=16, color="#333")
+            ax_fb.set_axis_off()
+            fig_fb.savefig(plotly_png, dpi=100, bbox_inches="tight")
+            plt.close(fig_fb)
 
     except Exception as e:
         print(f"  [UYARI] Plotly: {e}")

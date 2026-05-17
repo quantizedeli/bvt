@@ -1,0 +1,738 @@
+PS C:\Users\Hakan Yakut\Desktop\ahmet\bvt simu\bvt_claude_code_4> marimo run bvt_studio/bvt_dashboard.py
+[W 260423 21:07:52 sandbox:115] Failed to read dependencies from bvt_studio/bvt_dashboard.py
+
+        Running bvt_dashboard.py ⚡
+
+        URL: http://127.0.0.1:2718
+
+        Are you sure you want to quit? (y/n): y
+
+        Thanks for using marimo! 🌊🍃
+
+PS C:\Users\Hakan Yakut\Desktop\ahmet\bvt simu\bvt_claude_code_4> marimo edit bvt_studio/nb04_uclu_rezonans.py
+[W 260423 21:12:00 sandbox:115] Failed to read dependencies from bvt_studio/nb04_uclu_rezonans.py
+
+        Edit nb04_uclu_rezonans.py in your browser 📝
+
+        URL: http://127.0.0.1:2718?access_token=VWy78oKaDPSzKk1Lf3APTg
+
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\uvicorn\protocols\websockets\websockets_impl.py", line 244, in run_asgi
+    result = await self.app(self.scope, self.asgi_receive, self.asgi_send)  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\errors.py", line 151, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_server\api\auth.py", line 216, in __call__
+    return await super().__call__(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\sessions.py", line 85, in __call__
+    await self.app(scope, receive, send_wrapper)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\base.py", line 103, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\authentication.py", line 48, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\cors.py", line 77, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_server\api\middleware.py", line 72, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 462, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 364, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 97, in app
+    await wrap_app_handling_exceptions(app, session)(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 95, in app
+    await func(session)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_server\api\endpoints\ws.py", line 88, in websocket_endpoint
+    await WebsocketHandler(
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_server\api\endpoints\ws.py", line 459, in start
+    get_session()
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_server\api\endpoints\ws.py", line 441, in get_session
+    new_session = mgr.create_session(
+                  ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_server\sessions.py", line 731, in create_session
+    self.sessions[session_id] = Session.create(
+                                ^^^^^^^^^^^^^^^
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_server\sessions.py", line 435, in create
+    return cls(
+           ^^^^
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_server\sessions.py", line 482, in __init__
+    self.message_distributor.start()
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_utils\distributor.py", line 76, in start
+    asyncio.get_event_loop().add_reader(
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\asyncio\events.py", line 534, in add_reader
+    raise NotImplementedError
+NotImplementedError
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\uvicorn\protocols\websockets\websockets_impl.py", line 244, in run_asgi
+    result = await self.app(self.scope, self.asgi_receive, self.asgi_send)  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\errors.py", line 151, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_server\api\auth.py", line 216, in __call__
+    return await super().__call__(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\sessions.py", line 85, in __call__
+    await self.app(scope, receive, send_wrapper)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\base.py", line 103, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\authentication.py", line 48, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\cors.py", line 77, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_server\api\middleware.py", line 72, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 462, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 364, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 97, in app
+    await wrap_app_handling_exceptions(app, session)(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 95, in app
+    await func(session)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_server\api\endpoints\ws.py", line 88, in websocket_endpoint
+    await WebsocketHandler(
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_server\api\endpoints\ws.py", line 459, in start
+    get_session()
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_server\api\endpoints\ws.py", line 441, in get_session
+    new_session = mgr.create_session(
+                  ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_server\sessions.py", line 731, in create_session
+    self.sessions[session_id] = Session.create(
+                                ^^^^^^^^^^^^^^^
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_server\sessions.py", line 435, in create
+    return cls(
+           ^^^^
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_server\sessions.py", line 482, in __init__
+    self.message_distributor.start()
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_utils\distributor.py", line 76, in start
+    asyncio.get_event_loop().add_reader(
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\asyncio\events.py", line 534, in add_reader
+    raise NotImplementedError
+NotImplementedError
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\uvicorn\protocols\websockets\websockets_impl.py", line 244, in run_asgi
+    result = await self.app(self.scope, self.asgi_receive, self.asgi_send)  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\errors.py", line 151, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_server\api\auth.py", line 216, in __call__
+    return await super().__call__(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\sessions.py", line 85, in __call__
+    await self.app(scope, receive, send_wrapper)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\base.py", line 103, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\authentication.py", line 48, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\cors.py", line 77, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_server\api\middleware.py", line 72, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 462, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 364, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 97, in app
+    await wrap_app_handling_exceptions(app, session)(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 95, in app
+    await func(session)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_server\api\endpoints\ws.py", line 88, in websocket_endpoint
+    await WebsocketHandler(
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_server\api\endpoints\ws.py", line 459, in start
+    get_session()
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_server\api\endpoints\ws.py", line 441, in get_session
+    new_session = mgr.create_session(
+                  ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_server\sessions.py", line 731, in create_session
+    self.sessions[session_id] = Session.create(
+                                ^^^^^^^^^^^^^^^
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_server\sessions.py", line 435, in create
+    return cls(
+           ^^^^
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_server\sessions.py", line 482, in __init__
+    self.message_distributor.start()
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_utils\distributor.py", line 76, in start
+    asyncio.get_event_loop().add_reader(
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\asyncio\events.py", line 534, in add_reader
+    raise NotImplementedError
+NotImplementedError
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\uvicorn\protocols\websockets\websockets_impl.py", line 244, in run_asgi
+    result = await self.app(self.scope, self.asgi_receive, self.asgi_send)  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\errors.py", line 151, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_server\api\auth.py", line 216, in __call__
+    return await super().__call__(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\sessions.py", line 85, in __call__
+    await self.app(scope, receive, send_wrapper)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\base.py", line 103, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\authentication.py", line 48, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\cors.py", line 77, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_server\api\middleware.py", line 72, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 462, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 364, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 97, in app
+    await wrap_app_handling_exceptions(app, session)(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 95, in app
+    await func(session)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_server\api\endpoints\ws.py", line 88, in websocket_endpoint
+    await WebsocketHandler(
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_server\api\endpoints\ws.py", line 459, in start
+    get_session()
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_server\api\endpoints\ws.py", line 441, in get_session
+    new_session = mgr.create_session(
+                  ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_server\sessions.py", line 731, in create_session
+    self.sessions[session_id] = Session.create(
+                                ^^^^^^^^^^^^^^^
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_server\sessions.py", line 435, in create
+    return cls(
+           ^^^^
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_server\sessions.py", line 482, in __init__
+    self.message_distributor.start()
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_utils\distributor.py", line 76, in start
+    asyncio.get_event_loop().add_reader(
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\asyncio\events.py", line 534, in add_reader
+    raise NotImplementedError
+NotImplementedError
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\uvicorn\protocols\websockets\websockets_impl.py", line 244, in run_asgi
+    result = await self.app(self.scope, self.asgi_receive, self.asgi_send)  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\errors.py", line 151, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_server\api\auth.py", line 216, in __call__
+    return await super().__call__(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\sessions.py", line 85, in __call__
+    await self.app(scope, receive, send_wrapper)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\base.py", line 103, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\authentication.py", line 48, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\cors.py", line 77, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_server\api\middleware.py", line 72, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 462, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 364, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 97, in app
+    await wrap_app_handling_exceptions(app, session)(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 95, in app
+    await func(session)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_server\api\endpoints\ws.py", line 88, in websocket_endpoint
+    await WebsocketHandler(
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_server\api\endpoints\ws.py", line 459, in start
+    get_session()
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_server\api\endpoints\ws.py", line 441, in get_session
+    new_session = mgr.create_session(
+                  ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_server\sessions.py", line 731, in create_session
+    self.sessions[session_id] = Session.create(
+                                ^^^^^^^^^^^^^^^
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_server\sessions.py", line 435, in create
+    return cls(
+           ^^^^
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_server\sessions.py", line 482, in __init__
+    self.message_distributor.start()
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_utils\distributor.py", line 76, in start
+    asyncio.get_event_loop().add_reader(
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\asyncio\events.py", line 534, in add_reader
+    raise NotImplementedError
+NotImplementedError
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\uvicorn\protocols\websockets\websockets_impl.py", line 244, in run_asgi
+    result = await self.app(self.scope, self.asgi_receive, self.asgi_send)  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\errors.py", line 151, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_server\api\auth.py", line 216, in __call__
+    return await super().__call__(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\sessions.py", line 85, in __call__
+    await self.app(scope, receive, send_wrapper)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\base.py", line 103, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\authentication.py", line 48, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\cors.py", line 77, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_server\api\middleware.py", line 72, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 462, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 364, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 97, in app
+    await wrap_app_handling_exceptions(app, session)(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 95, in app
+    await func(session)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_server\api\endpoints\ws.py", line 88, in websocket_endpoint
+    await WebsocketHandler(
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_server\api\endpoints\ws.py", line 459, in start
+    get_session()
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_server\api\endpoints\ws.py", line 441, in get_session
+    new_session = mgr.create_session(
+                  ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_server\sessions.py", line 731, in create_session
+    self.sessions[session_id] = Session.create(
+                                ^^^^^^^^^^^^^^^
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_server\sessions.py", line 435, in create
+    return cls(
+           ^^^^
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_server\sessions.py", line 482, in __init__
+    self.message_distributor.start()
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_utils\distributor.py", line 76, in start
+    asyncio.get_event_loop().add_reader(
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\asyncio\events.py", line 534, in add_reader
+    raise NotImplementedError
+NotImplementedError
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\uvicorn\protocols\websockets\websockets_impl.py", line 244, in run_asgi
+    result = await self.app(self.scope, self.asgi_receive, self.asgi_send)  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\errors.py", line 151, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_server\api\auth.py", line 216, in __call__
+    return await super().__call__(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\sessions.py", line 85, in __call__
+    await self.app(scope, receive, send_wrapper)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\base.py", line 103, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\authentication.py", line 48, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\cors.py", line 77, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_server\api\middleware.py", line 72, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 462, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 364, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 97, in app
+    await wrap_app_handling_exceptions(app, session)(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 95, in app
+    await func(session)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_server\api\endpoints\ws.py", line 88, in websocket_endpoint
+    await WebsocketHandler(
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_server\api\endpoints\ws.py", line 459, in start
+    get_session()
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_server\api\endpoints\ws.py", line 441, in get_session
+    new_session = mgr.create_session(
+                  ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_server\sessions.py", line 731, in create_session
+    self.sessions[session_id] = Session.create(
+                                ^^^^^^^^^^^^^^^
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_server\sessions.py", line 435, in create
+    return cls(
+           ^^^^
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_server\sessions.py", line 482, in __init__
+    self.message_distributor.start()
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_utils\distributor.py", line 76, in start
+    asyncio.get_event_loop().add_reader(
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\asyncio\events.py", line 534, in add_reader
+    raise NotImplementedError
+NotImplementedError
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\uvicorn\protocols\websockets\websockets_impl.py", line 244, in run_asgi
+    result = await self.app(self.scope, self.asgi_receive, self.asgi_send)  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\errors.py", line 151, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_server\api\auth.py", line 216, in __call__
+    return await super().__call__(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\sessions.py", line 85, in __call__
+    await self.app(scope, receive, send_wrapper)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\base.py", line 103, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\authentication.py", line 48, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\cors.py", line 77, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_server\api\middleware.py", line 72, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 462, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 364, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 97, in app
+    await wrap_app_handling_exceptions(app, session)(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 95, in app
+    await func(session)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_server\api\endpoints\ws.py", line 88, in websocket_endpoint
+    await WebsocketHandler(
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_server\api\endpoints\ws.py", line 459, in start
+    get_session()
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_server\api\endpoints\ws.py", line 441, in get_session
+    new_session = mgr.create_session(
+                  ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_server\sessions.py", line 731, in create_session
+    self.sessions[session_id] = Session.create(
+                                ^^^^^^^^^^^^^^^
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_server\sessions.py", line 435, in create
+    return cls(
+           ^^^^
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_server\sessions.py", line 482, in __init__
+    self.message_distributor.start()
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_utils\distributor.py", line 76, in start
+    asyncio.get_event_loop().add_reader(
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\asyncio\events.py", line 534, in add_reader
+    raise NotImplementedError
+NotImplementedError
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\uvicorn\protocols\websockets\websockets_impl.py", line 244, in run_asgi
+    result = await self.app(self.scope, self.asgi_receive, self.asgi_send)  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\errors.py", line 151, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_server\api\auth.py", line 216, in __call__
+    return await super().__call__(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\sessions.py", line 85, in __call__
+    await self.app(scope, receive, send_wrapper)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\base.py", line 103, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\authentication.py", line 48, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\cors.py", line 77, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_server\api\middleware.py", line 72, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 462, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 364, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 97, in app
+    await wrap_app_handling_exceptions(app, session)(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 95, in app
+    await func(session)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_server\api\endpoints\ws.py", line 88, in websocket_endpoint
+    await WebsocketHandler(
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_server\api\endpoints\ws.py", line 459, in start
+    get_session()
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_server\api\endpoints\ws.py", line 441, in get_session
+    new_session = mgr.create_session(
+                  ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_server\sessions.py", line 731, in create_session
+    self.sessions[session_id] = Session.create(
+                                ^^^^^^^^^^^^^^^
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_server\sessions.py", line 435, in create
+    return cls(
+           ^^^^
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_server\sessions.py", line 482, in __init__
+    self.message_distributor.start()
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_utils\distributor.py", line 76, in start
+    asyncio.get_event_loop().add_reader(
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\asyncio\events.py", line 534, in add_reader
+    raise NotImplementedError
+NotImplementedError
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\uvicorn\protocols\websockets\websockets_impl.py", line 244, in run_asgi
+    result = await self.app(self.scope, self.asgi_receive, self.asgi_send)  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\errors.py", line 151, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_server\api\auth.py", line 216, in __call__
+    return await super().__call__(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\sessions.py", line 85, in __call__
+    await self.app(scope, receive, send_wrapper)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\base.py", line 103, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\authentication.py", line 48, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\cors.py", line 77, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_server\api\middleware.py", line 72, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 462, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 364, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 97, in app
+    await wrap_app_handling_exceptions(app, session)(scope, receive, send)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 95, in app
+    await func(session)
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_server\api\endpoints\ws.py", line 88, in websocket_endpoint
+    await WebsocketHandler(
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_server\api\endpoints\ws.py", line 459, in start
+    get_session()
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_server\api\endpoints\ws.py", line 441, in get_session
+    new_session = mgr.create_session(
+                  ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_server\sessions.py", line 731, in create_session
+    self.sessions[session_id] = Session.create(
+                                ^^^^^^^^^^^^^^^
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_server\sessions.py", line 435, in create
+    return cls(
+           ^^^^
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_server\sessions.py", line 482, in __init__
+    self.message_distributor.start()
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\site-packages\marimo\_utils\distributor.py", line 76, in start
+    asyncio.get_event_loop().add_reader(
+  File "C:\Users\Hakan Yakut\AppData\Local\Programs\Python\Python311\Lib\asyncio\events.py", line 534, in add_reader
+    raise NotImplementedError
+NotImplementedError
