@@ -1,8 +1,29 @@
+# Core scientific stack
 numpy>=1.24
 scipy>=1.11
 matplotlib>=3.5
 plotly>=5.0
 qutip>=5.0
+
+# Dashboard / interactive presentation
+dash>=2.18
+dash-bootstrap-components>=1.6
+
+# Export / cinematic / media pipeline
+imageio>=2.34
+imageio-ffmpeg>=0.5
+pillow>=10.0
+kaleido>=0.2.1
+pyvista>=0.48
+
+# Analysis / QA helpers used by simulations and scripts
+PyWavelets>=1.5
+scikit-image>=0.22
+
+# Test stack
 pytest>=7.0
 pytest-cov>=4.0
-# Optional 3D backend: pyvista>=0.48
+
+# FAZ G: Volumetric Acoustic Simulation
+# NOTE: kwave-python not available on PyPI — fallback to NumPy FDTD or alternative needed
+mne>=1.5
