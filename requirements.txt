@@ -24,6 +24,7 @@ scikit-image>=0.22
 pytest>=7.0
 pytest-cov>=4.0
 
-# FAZ G: Volumetric Acoustic Simulation
-# NOTE: kwave-python not available on PyPI — fallback to NumPy FDTD or alternative needed
+# FAZ G: Volumetric Acoustic Simulation (Sprint 06, v9.4)
+# NOT: doğru PyPI ismi "k-Wave-python" (büyük W, tire ile) — değil "kwave-python"
+k-Wave-python>=0.6
 mne>=1.5
