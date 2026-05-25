@@ -257,6 +257,53 @@ INSAN_I_KAMIL: Final[float] = ETA_SS_HIGH  # = 0.999 (pratik maksimum)
 LATIFE_RABBANI: Final[float] = Q_HEART  # = 21.7
 
 
+
+# ============================================================
+# FAZ G — VOLUMETRIC ACOUSTIC (v9.4)
+# ============================================================
+# Akustoelektrik kuplaj sabitleri (Pa^-1)
+K_AE_BRAIN: Final[float]  = 1.0e-9   # Olafsson 2008
+K_AE_HEART: Final[float]  = 0.8e-9   # kalp kası, beynin altı
+
+# Piezoelektrik kemik tensoru (skaler yaklaşım)
+E33_BONE:   Final[float]  = 0.027    # C/m^2, Fukada-Yasuda 1957
+EPS_S_BONE: Final[float]  = 8.0e-11  # F/m, sabit gerinim dielektrik
+
+# Kafa geometrisi
+HEAD_VOXEL_SIZE_M: Final[float] = 2.0e-3
+HEAD_GRID_DEFAULT: Final[tuple]  = (80, 80, 100)
+HEAD_AXES_CM: Final[tuple]       = (8.0, 8.0, 10.0)
+
+# Doku özellikleri — (rho kg/m^3, c m/s, sigma S/m)
+TISSUE_PROPERTIES: Final[dict] = {
+    "hava":    {"rho": 1.2,    "c": 343.0,  "sigma": 0.0},
+    "deri":    {"rho": 1100.0, "c": 1540.0, "sigma": 0.43},
+    "kemik":   {"rho": 1900.0, "c": 2800.0, "sigma": 0.04},
+    "bos":     {"rho": 1000.0, "c": 1500.0, "sigma": 1.79},
+    "beyin":   {"rho": 1040.0, "c": 1560.0, "sigma": 0.33},
+}
+
+# Jansen-Rit NMM parametreleri (1995)
+JR_AE_MV: Final[float]      = 3.25
+JR_AI_MV: Final[float]      = 22.0
+JR_BE_PER_S: Final[float]   = 100.0
+JR_BI_PER_S: Final[float]   = 50.0
+JR_A1: Final[float]         = 135.0
+JR_A2: Final[float]         = 108.0
+JR_A3: Final[float]         = 33.6
+JR_A4: Final[float]         = 33.6
+JR_E0_PER_S: Final[float]   = 2.5     # max firing/2
+JR_V0_MV: Final[float]      = 6.0
+JR_R_PER_MV: Final[float]   = 0.56
+
+# Kalp pozisyonu voxel uzayında (cm ofset, beyin merkezi referans)
+KALP_VOXEL_OFFSET_CM: Final[tuple] = (0.0, -3.0, -8.0)
+
+# Forward EEG
+EEG_SAMPLE_RATE_HZ: Final[float] = 300.0
+EEG_KANAL_SAYISI: Final[int]     = 21    # standart 10-20
+
+
 if __name__ == "__main__":
     print("=" * 60)
     print("BVT Sabitler Self-Test (v2)")
