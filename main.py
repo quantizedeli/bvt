@@ -39,10 +39,12 @@ Kullanım:
     output/level{N}/       ← Her fazın PNG+HTML çıktıları
     output/html/           ← İnteraktif HTML şekilleri (plots_interactive.py)
     output/animations/     ← Plotly HTML animasyonları + GIF + MP4
-    output/RESULTS_LOG.md  ← Otomatik güncellenen çalıştırma logu
+    docs/generated_reports/RESULTS_LOG.md  ← Otomatik güncellenen çalıştırma logu
 """
 import argparse
+import importlib.util
 import os
+import subprocess
 import sys
 import time
 import traceback
@@ -205,7 +207,7 @@ FAZ_BİLGİ = {
         "isim": "EM Dalga Girişim Deseni",
         "açıklama": "Yapıcı/yıkıcı/inkoherant girişim, mesafe=0.9m, frekans spektrumu",
         "betik": "simulations/level16_girisim_deseni.py",
-        "tahmini_süre": "~1 dk",
+        "tahmini_süre": "~1 dk (PNG snapshot kapalı)",
         "hizli_args": ["--grid-n", "40", "--n-frames", "20"],
         "tam_args": ["--grid-n", "80", "--n-frames", "40"],
         "html": False,  # --html argümanı yok
@@ -227,6 +229,15 @@ FAZ_BİLGİ = {
         "hizli_args": ["--trials", "200"],
         "tam_args": ["--trials", "1000"],
         "html": False,  # --html argümanı yok
+    },
+    19: {
+        "isim": "Volumetric Acoustic (FAZ G)",
+        "açıklama": "Akustik PDE + AE + NMM + kalp dipol + forward EEG (8 modül, v9.4)",
+        "betik": "simulations/level19_volumetric_acoustic.py",
+        "tahmini_süre": "~3 dk (top5), ~15 dk (tum)",
+        "hizli_args": ["--frekanslar", "Schumann_f1", "--sure-dakika", "0.005"],
+        "tam_args": ["--frekanslar", "top5", "--anim"],
+        "html": False,
     },
 }
 
@@ -263,26 +274,70 @@ def faz_listele() -> None:
         print(f"    Betik: {bilgi['betik']}")
 
 
-def çevre_kontrol() -> dict:
+REQUIRED_DEPENDENCIES = [
+    ("numpy", "numpy", "numpy>=1.24"),
+    ("scipy", "scipy", "scipy>=1.11"),
+    ("matplotlib", "matplotlib", "matplotlib>=3.5"),
+    ("plotly", "plotly", "plotly>=5.0"),
+    ("qutip", "qutip", "qutip>=5.0"),
+    ("dash", "dash", "dash>=2.18"),
+    ("dash-bootstrap-components", "dash_bootstrap_components", "dash-bootstrap-components>=1.6"),
+    ("imageio", "imageio", "imageio>=2.34"),
+    ("imageio-ffmpeg", "imageio_ffmpeg", "imageio-ffmpeg>=0.5"),
+    ("pillow", "PIL", "pillow>=10.0"),
+    ("PyWavelets", "pywt", "PyWavelets>=1.5"),
+]
+
+OPTIONAL_DEPENDENCIES = [
+    ("kaleido", "kaleido", "kaleido>=0.2.1"),
+    ("pyvista", "pyvista", "pyvista>=0.48"),
+    ("scikit-image", "skimage", "scikit-image>=0.22"),
+]
+
+
+def eksik_bağımlılıkları_yükle() -> list[str]:
+    """requirements.txt kapsamındaki eksik paketleri pip ile otomatik yükler."""
+    eksikler = [
+        spec for _paket, import_ismi, spec in (REQUIRED_DEPENDENCIES + OPTIONAL_DEPENDENCIES)
+        if importlib.util.find_spec(import_ismi) is None
+    ]
+    if not eksikler:
+        return []
+
+    print("\n  Eksik bağımlılıklar bulundu:")
+    for spec in eksikler:
+        print(f"    - {spec}")
+    print("  Otomatik kurulum başlıyor...")
+    subprocess.run(
+        [sys.executable, "-m", "pip", "install", *eksikler],
+        check=True,
+    )
+    return eksikler
+
+
+def çevre_kontrol(otomatik_yükle: bool = True) -> dict:
     """Python bağımlılıklarını ve BVT fiziksel sabitlerini kontrol eder."""
     durum = {}
-    bağımlılıklar = [
-        ("numpy",      "numpy"),
-        ("scipy",      "scipy"),
-        ("matplotlib", "matplotlib"),
-        ("plotly",     "plotly"),
-        ("qutip",      "qutip"),
-    ]
+    if otomatik_yükle:
+        try:
+            eksik_bağımlılıkları_yükle()
+        except subprocess.CalledProcessError as exc:
+            print(f"    {renk('!', 'sarı')} otomatik kurulum başarısız: {exc}")
+
+    bağımlılıklar = REQUIRED_DEPENDENCIES + OPTIONAL_DEPENDENCIES
 
     print("\n  Bağımlılık kontrolü:")
-    for paket, import_ismi in bağımlılıklar:
+    for paket, import_ismi, _spec in bağımlılıklar:
         try:
             m = __import__(import_ismi)
             ver = getattr(m, "__version__", "?")
             print(f"    {renk('✓', 'yeşil')} {paket} {ver}")
             durum[paket] = True
         except ImportError:
-            print(f"    {renk('✗', 'kırmızı')} {paket} — YÜKLÜ DEĞİL")
+            simge = "!" if (paket, import_ismi, _spec) in OPTIONAL_DEPENDENCIES else "✗"
+            renk_adi = "sarı" if simge == "!" else "kırmızı"
+            etiket = "opsiyonel, yüklü değil" if simge == "!" else "YÜKLÜ DEĞİL"
+            print(f"    {renk(simge, renk_adi)} {paket} — {etiket}")
             durum[paket] = False
 
     # FFmpeg (Python MP4 için — MATLAB artık kullanılmıyor)
@@ -353,7 +408,11 @@ def faz_çalıştır(
     if not os.path.exists(betik):
         return {"başarı": False, "süre_s": 0, "hata": f"Betik bulunamadı: {betik}"}
 
-    args_ek = bilgi["hizli_args"] if hizli else bilgi["tam_args"]
+    # FAZ G (Level 19) her zaman tam_args ile koşar — kullanıcı tercihi (v9.4 brainstorm)
+    if faz_no == 19:
+        args_ek = bilgi["tam_args"]
+    else:
+        args_ek = bilgi["hizli_args"] if hizli else bilgi["tam_args"]
     faz_output = os.path.join(output_dir, f"level{faz_no}")
 
     cmd = [sys.executable, betik, "--output", faz_output] + args_ek
@@ -642,13 +701,56 @@ def interaktif_görselleştirme(output_dir: str) -> None:
         print(f"  [UYARI] HTML şekil hatası: {exc}")
 
 
+def deneyim_uret(output_dir: str, hizli: bool = False) -> list[str]:
+    """Cinematic + sonic vitrin artefaktlarını üretir."""
+    print("\n  Cinematic + sonic deneyim hattı üretiliyor...")
+    komutlar = [
+        [sys.executable, "scripts/generate_v95_artifacts.py"],
+        [sys.executable, "scripts/render_pyvista_prototypes.py"],
+        [sys.executable, "scripts/render_audio_demo.py"],
+        [sys.executable, "scripts/render_audio_catalog.py"],
+        [sys.executable, "scripts/render_room_audio_demo.py"],
+        [sys.executable, "scripts/mux_hero05_room_audio.py"],
+        [sys.executable, "scripts/render_final_experience.py"],
+        [sys.executable, "scripts/build_experience_gallery.py"],
+        [sys.executable, "scripts/build_poster_gallery.py"],
+        [sys.executable, "scripts/organize_paper_outputs.py"],
+        [sys.executable, "scripts/experience_audit.py"],
+        [sys.executable, "scripts/generate_output_catalog.py"],
+    ]
+    if not hizli:
+        komutlar.extend([
+            [sys.executable, "scripts/render_cinematic.py", "--scene", "hero01", "--quality", "preview"],
+            [sys.executable, "scripts/render_cinematic.py", "--scene", "hero05", "--quality", "preview"],
+            [sys.executable, "scripts/mux_hero05_audio.py"],
+        ])
+
+    uretilen = []
+    for cmd in komutlar:
+        print(f"  -> {' '.join(cmd)}")
+        proc = subprocess.run(cmd, cwd=ROOT)
+        if proc.returncode != 0:
+            print(f"  {renk('!', 'sarı')} deneyim adımı hata verdi: {' '.join(cmd)}")
+        else:
+            uretilen.append(" ".join(cmd[1:]))
+
+    # Dashboard vitrinini de güncel tut
+    sync_cmd = [sys.executable, "scripts/sync_dashboard_assets.py"]
+    proc = subprocess.run(sync_cmd, cwd=ROOT)
+    if proc.returncode == 0:
+        uretilen.append("scripts/sync_dashboard_assets.py")
+    return uretilen
+
+
 def sonuç_log_güncelle(
     sonuçlar: dict,
     output_dir: str,
     parametreler: dict
 ) -> None:
-    """RESULTS_LOG.md dosyasını günceller."""
-    log_yolu = os.path.join(ROOT, output_dir, "RESULTS_LOG.md")
+    """RESULTS_LOG.md dosyasını output dışında günceller."""
+    log_dir = os.path.join(ROOT, "docs", "generated_reports")
+    output_name = os.path.basename(os.path.abspath(output_dir)) or "output"
+    log_yolu = os.path.join(log_dir, f"{output_name}_RESULTS_LOG.md")
     os.makedirs(os.path.dirname(log_yolu), exist_ok=True)
 
     şimdi = datetime.now().strftime("%Y-%m-%d %H:%M")
@@ -684,6 +786,57 @@ def sonuç_log_güncelle(
 # ANA PROGRAM
 # ============================================================
 
+def _interaktif_menu() -> dict | None:
+    """Argümansız çağrıda gösterilen 8-seçenekli menü. None → çıkış."""
+    print()
+    print("═" * 67)
+    print("  BVT — Birliğin Varlığı Teoremi v9.4")
+    print("  19 faz, son güncelleme: Mayıs 2026")
+    print("═" * 67)
+    print()
+    print("Hangi fazları çalıştırmak istersiniz?")
+    print()
+    print("  [1]  Tüm fazlar (1-19)")
+    print("  [2]  Sadece FAZ G — Volumetric Acoustic (Level 19)")
+    print("  [3]  Top-5 hero (1, 11, 17, 19)")
+    print("  [4]  Tek faz seç (1-19)")
+    print("  [5]  Aralık seç (örn 11-17)")
+    print("  [6]  Hızlı test (--hizli, FAZ G yine full)")
+    print("  [7]  Sadece animasyonlar (mevcut veriden)")
+    print("  [8]  Çıkış")
+    print()
+    try:
+        secim = input("Seçiminiz [1-8]: ").strip()
+    except (EOFError, KeyboardInterrupt):
+        return None
+    if secim == "8" or not secim:
+        return None
+    if secim == "1":
+        return {"phases": list(range(1, 20)), "hizli": False}
+    if secim == "2":
+        return {"phases": [19], "hizli": False}
+    if secim == "3":
+        return {"phases": [1, 11, 17, 19], "hizli": False}
+    if secim == "4":
+        try:
+            n = int(input("Hangi faz (1-19): ").strip())
+            return {"phases": [n], "hizli": False}
+        except (ValueError, EOFError):
+            print("Geçersiz."); return None
+    if secim == "5":
+        try:
+            r = input("Aralık (örn 11-17): ").strip()
+            a, b = r.split("-")
+            return {"phases": list(range(int(a), int(b) + 1)), "hizli": False}
+        except (ValueError, IndexError, EOFError):
+            print("Geçersiz."); return None
+    if secim == "6":
+        return {"phases": list(range(1, 20)), "hizli": True}
+    if secim == "7":
+        return {"phases": [], "hizli": False, "sadece_anim": True}
+    print("Geçersiz seçim."); return None
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="BVT — Birliğin Varlığı Teoremi Simülasyon Yöneticisi",
@@ -718,6 +871,8 @@ def main():
                         help="Faz listesini göster ve çık")
     parser.add_argument("--kontrol", action="store_true",
                         help="Bağımlılık kontrolü yap ve çık")
+    parser.add_argument("--no-auto-install", action="store_true",
+                        help="Eksik Python paketlerini otomatik kurma")
     parser.add_argument("--interaktif", action="store_true",
                         help="Yalnızca etkileşimli HTML şekillerini üret")
     parser.add_argument("--animasyon", action="store_true",
@@ -728,6 +883,10 @@ def main():
                         help="[KALDIRILDI] Marimo yerine: python bvt_dashboard/app.py")
     parser.add_argument("--mp4", action="store_true",
                         help="MP4 animasyonları üret (output/animations/*.mp4)")
+    parser.add_argument("--deneyim", action="store_true",
+                        help="Yalnızca cinematic + sonic deneyim artefaktlarını üret")
+    parser.add_argument("--no-experience", action="store_true",
+                        help="Tam çalıştırmada cinematic + sonic deneyim hattını atla")
     args = parser.parse_args()
 
     # ---- Özel modlar ----
@@ -737,7 +896,7 @@ def main():
 
     if args.kontrol:
         başlık_yazdır("BVT Bağımlılık Kontrolü")
-        çevre_kontrol()
+        çevre_kontrol(otomatik_yükle=not args.no_auto_install)
         return 0
 
     if args.interaktif:
@@ -764,6 +923,11 @@ def main():
             cwd=ROOT,
         )
         return proc.returncode
+
+    if args.deneyim:
+        başlık_yazdır("BVT Cinematic + Sonic Deneyim Hattı")
+        deneyim_uret(args.output, hizli=args.hizli)
+        return 0
 
     if getattr(args, "zaman_em_dalga", False):
         import subprocess
@@ -803,7 +967,7 @@ def main():
 
     # Bağımlılık kontrolü
     başlık_yazdır("Bağımlılık Kontrolü", "-")
-    bağımlılık_durumu = çevre_kontrol()
+    bağımlılık_durumu = çevre_kontrol(otomatik_yükle=not args.no_auto_install)
 
     # Dizin hazırlığı
     os.makedirs(args.output, exist_ok=True)
@@ -854,6 +1018,14 @@ def main():
         print(f"\n  {renk('ℹ Animasyonlar atlandı', 'sarı')} (--animasyon ile üret)")
         anim_dosyalar = []
 
+    # ---- DENEYİM HATTI (tam ana koşuda varsayılan) ----
+    üret_deneyim = (not args.no_experience) and (not args.faz and not args.phases)
+    if üret_deneyim:
+        başlık_yazdır("Cinematic + Sonic Deneyim Hattı", "-")
+        deneyim_dosyalar = deneyim_uret(args.output, hizli=args.hizli)
+    else:
+        deneyim_dosyalar = []
+
     # ---- ÖZET ----
     toplam_süre = time.time() - toplam_t0
     başarılı = [no for no, s in sonuçlar.items() if s.get("başarı")]
@@ -897,4 +1069,14 @@ def main():
 
 
 if __name__ == "__main__":
+    # Interactive menu when no CLI args (and stdin is TTY for safety)
+    if len(sys.argv) == 1 and sys.stdin.isatty():
+        secim = _interaktif_menu()
+        if secim is None:
+            sys.exit(0)
+        sys.argv = [sys.argv[0]]
+        if secim.get("hizli"):
+            sys.argv.append("--hizli")
+        if secim.get("phases"):
+            sys.argv.extend(["--phases"] + [str(p) for p in secim["phases"]])
     sys.exit(main())
