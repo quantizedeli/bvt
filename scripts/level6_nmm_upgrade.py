@@ -1,20 +1,22 @@
 """
-BVT Sprint 08 S2 — L6 NMM Upgrade
-====================================
-M6 Jansen-Rit NMM modülü kullanılarak L6 pre-stimulus
-α-band gücünün NREM/REM/Uyanık üç durumda hesaplanması.
+BVT Sprint 09 S1 D-013 — L6 NMM Upgrade (Sleep-State Kalibrasyon)
+==================================================================
+M6 Jansen-Rit NMM modülü kullanılarak L6 pre-stimulus α-band gücünün
+NREM/REM/Uyanık üç durumda hesaplanması.
 
-Mevcut L6 (`simulations/level6_hkv_montecarlo.py`) C-ES istatistiği üretir.
-Bu script ona ek bilim katmanı sağlar: kortikal NMM ile gerçek α-band
-modülasyonu, BVT pre-stimulus tahmininin nörodinamik temeli.
+Sprint 08 S2 PoC bug fix: I_p_mean üzerinden sleep state ayırt etme
+sigmoid satürasyonda α-band'ı kollapse ediyordu (Uyanik=2.82e-18).
+Sprint 09 D-013 fix: A_e/A_i gain modülasyonu (David-Friston 2003
+sleep state hipotezi) + I_p_std broadband transmission sürücüsü.
+`constants.JR_PARAM_SETS` 4 hazır set: default/uyanik/rem/nrem.
 
-Yaklaşım: yan script — L6 dosyası bozulmaz, M6'yı bağımsız olarak L6
-senaryosunda kullanır. Tam --nmm jansen_rit bayrağı entegrasyonu için
-ileri seviye (Sprint 09).
+Not: Bu broadband sigmoid transmission rejimi; tam Hopf limit-cycle
+10 Hz α emergence için D-016 (Grimbert-Faugeras bifurcation
+kalibrasyonu + band-limited input) gerekir.
 
 Çıktı:
   - output/level6/L6_NMM_alfa_band.png (3 senaryo karşılaştırma)
-  - Sayısal özet: NREM<REM<Uyanık α-band güç beklenir
+  - Sayısal özet: Uyanık > REM > NREM α-band güç (min 2× kabul kriteri)
 """
 from __future__ import annotations
 import os
@@ -31,6 +33,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
+from src.core.constants import JR_PARAM_SETS
 from src.models.acoustic.noral_kutle import jansen_rit_koz
 
 
@@ -38,25 +41,23 @@ OUT_DIR = "output/level6"
 os.makedirs(OUT_DIR, exist_ok=True)
 
 
-# Üç durum için BVT pre-stimulus parametre dağılımları
-# (literatür: L6 / src/models/pre_stimulus.py ile uyumlu)
+# Sprint 09 D-013: JR_PARAM_SETS sözlüğünden 3 sleep state çek.
+# A_e/A_i gradient + I_p_std broadband transmission ile ayırt edilir.
 SENARYOLAR = {
-    # JR-NMM sigmoid_jr(v_0=6 mV) — input doyum'undan kaçınmak için
-    # 130-150 aralığında dengelenmiş I_p_mean (literatür kalibrasyon TBI)
     "Uyanik": {
-        "I_p_mean": 150.0, "I_p_std": 30.0,
+        **JR_PARAM_SETS["uyanik"],
         "C_mean": 0.35, "renk": "#cc4444",
-        "literatür_alfa_beklenti": "yüksek (8-13 Hz baskın)",
+        "literatür_alfa_beklenti": "yüksek (broadband transmission baskın)",
     },
     "REM": {
-        "I_p_mean": 135.0, "I_p_std": 40.0,
+        **JR_PARAM_SETS["rem"],
         "C_mean": 0.40, "renk": "#4488cc",
-        "literatür_alfa_beklenti": "orta (theta-alpha karışım)",
+        "literatür_alfa_beklenti": "orta (azaltılmış inhibisyon, theta-alpha)",
     },
     "NREM": {
-        "I_p_mean": 110.0, "I_p_std": 20.0,
+        **JR_PARAM_SETS["nrem"],
         "C_mean": 0.55, "renk": "#44aa66",
-        "literatür_alfa_beklenti": "düşük (delta baskın <4 Hz)",
+        "literatür_alfa_beklenti": "düşük (yüksek inhibisyon, delta dominant)",
     },
 }
 
@@ -81,13 +82,17 @@ def koş_senaryolar() -> dict:
              for ad in SENARYOLAR}
 
     for ad, cfg in SENARYOLAR.items():
-        print(f"\n[{ad}] {N_TRIALS} trial JR-NMM koşumu...")
+        print(f"\n[{ad}] {N_TRIALS} trial JR-NMM koşumu (A_e={cfg['A_e']}, A_i={cfg['A_i']})...")
         for trial in range(N_TRIALS):
             seed = int(rng_master.integers(0, 2**31))
             rng = np.random.default_rng(seed)
             nt = int(T_END_S * FS)
             I_p = cfg["I_p_mean"] + cfg["I_p_std"] * rng.standard_normal(nt)
-            jr = jansen_rit_koz(I_p, FS)
+            jr = jansen_rit_koz(
+                I_p, FS,
+                A_e=cfg["A_e"], A_i=cfg["A_i"],
+                b_e=cfg["b_e"], b_i=cfg["b_i"],
+            )
             eeg = jr["eeg"][int(FS):]   # ilk 1 sn transient at
             sonuc[ad]["alfa"].append(_bant_gucu(eeg, FS, 8.0, 13.0))
             sonuc[ad]["teta"].append(_bant_gucu(eeg, FS, 4.0, 8.0))

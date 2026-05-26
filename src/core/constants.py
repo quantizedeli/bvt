@@ -300,6 +300,28 @@ JR_E0_PER_S: Final[float]   = 2.5     # max firing/2
 JR_V0_MV: Final[float]      = 6.0
 JR_R_PER_MV: Final[float]   = 0.56
 
+# Sprint 09 D-013 — Sleep-state JR parametre setleri (broadband sleep proxy).
+# A_e (excitatory gain) sleep'te azalır (Mukamel et al neural gain hipotezi),
+# A_i (inhibitory gain) NREM'de yükselir (Steriade thalamocortical model).
+# Not: Bu set "broadband proxy" — α-band güç sleep state ile orantılı, ama
+# tam Hopf limit-cycle 10 Hz emergence için D-016 (Grimbert-Faugeras
+# bifurcation kalibrasyonu + band-limited input) gerekir.
+JR_PARAM_SETS: Final[dict] = {
+    # "default" = Wendling 2002 canonical (mevcut test_jr_rest_state_alfa_band uyumu)
+    "default": {"A_e": JR_AE_MV, "A_i": JR_AI_MV,
+                "b_e": JR_BE_PER_S, "b_i": JR_BI_PER_S,
+                "I_p_mean": 220.0, "I_p_std": 22.0},
+    # Sleep state'ler sigmoid lineer bölgesine yakın I_p_mean kullanır (~V0+ küçük ofset)
+    # → broadband sigmoid transmission α/teta/delta bandına yansır.
+    # A_e/A_i + I_p_std birlikte sleep state energy seviyesini belirler.
+    "uyanik":  {"A_e": 4.5, "A_i": 22.0, "b_e": 100.0, "b_i": 50.0,
+                "I_p_mean": 100.0, "I_p_std": 80.0},
+    "rem":     {"A_e": 3.5, "A_i": 17.6, "b_e": 100.0, "b_i": 50.0,
+                "I_p_mean": 100.0, "I_p_std": 50.0},
+    "nrem":    {"A_e": 2.8, "A_i": 29.0, "b_e": 100.0, "b_i": 50.0,
+                "I_p_mean": 80.0,  "I_p_std": 20.0},
+}
+
 # Kalp pozisyonu voxel uzayında (cm ofset, beyin merkezi referans)
 KALP_VOXEL_OFFSET_CM: Final[tuple] = (0.0, -3.0, -8.0)
 

@@ -33,19 +33,30 @@
 
 ---
 
-## S1 — D-013 JR-NMM Kalibrasyon
+## S1 — D-013 JR-NMM Kalibrasyon (KAPALI 2026-05-26)
 
-**Sorun:** Sprint 08 S2'de JR-NMM 3 sleep state (NREM/REM/Uyanık) α-band güç
-**ters sıralı** çıktı. Sebep: `sigmoid_jr(v0=6 mV)` yüksek I_p'de saturasyon.
+**Sorun (Sprint 08 S2):** JR-NMM 3 sleep state α-band güç ters sıralı (Uyanık 2.82e-18, REM 1e-5, NREM 5e-8).
 
-**Görevler:**
-- [ ] Literatür JR parametre setleri inceleme (David-Friston 2003, Coombes-Lord 2008)
-- [ ] `src/core/constants.py`: JR_AE, JR_AI, JR_A1..A4 yeniden kalibre etmek için flag/alt-set
-- [ ] `src/models/acoustic/noral_kutle.py`: `jansen_rit_koz(..., param_set="default"|"david_friston")` opsiyonel
-- [ ] `scripts/level6_nmm_upgrade.py` yeniden koş — sıralama düz olmalı
-- [ ] Hedef: **Uyanık > REM > NREM α-band güç (literatür uyumu)**
+**Derin teşhis (Sprint 09 S1):** Spec'in tahmin ettiğinden derin — kanonik (220,22) parametrelerde bile JR fixed-point regime'da, sabit I_p ile limit-cycle yok. Α-band integralleri makine sıfırına çöküyor. Sleep state lever olarak I_p_mean değil, **A_e/A_i gain modülasyonu + I_p_std broadband transmission** gerek.
 
-**Kabul:** α-band güç Uyanık/REM/NREM oranı min 2× (Uyanık vs NREM)
+**Fix (Hibrit yaklaşım):**
+- [x] `src/core/constants.py`: `JR_PARAM_SETS` sözlüğü 4 set (default/uyanik/rem/nrem) — A_e/A_i + I_p_mean/std
+- [x] `src/models/acoustic/noral_kutle.py`: `jansen_rit_koz(..., A_e=None, A_i=None, b_e=None, b_i=None)` opsiyonel (geriye uyumlu)
+- [x] `scripts/level6_nmm_upgrade.py`: JR_PARAM_SETS kullanır, 3 senaryo
+- [x] `tests/test_acoustic_nmm_calibration.py` (4 yeni test, hepsi pass)
+- [x] `scripts/jr_bifurcation_explore.py` — D-016 hazırlık (G-F parametre tarama)
+
+**Validation (kabul testi geçti):**
+
+| Senaryo | A_e | A_i | I_p_mean | I_p_std | α-band güç |
+|---|---|---|---|---|---|
+| Uyanık | 4.5 | 22.0 | 100 | 80 | 2.01e-3 |
+| REM | 3.5 | 17.6 | 100 | 50 | 2.18e-4 |
+| NREM | 2.8 | 29.0 | 80 | 20 | 1.04e-5 |
+
+**Oranlar:** Uyanık/NREM = **192×** (spec ≥2×), Uyanık/REM = 9.2×, REM/NREM = 21×. **Test paketi:** 41 acoustic + 4 yeni calibration = 45/45 pass, 1 skipped (D-008), 0 regression.
+
+**Açık (D-016):** α-band burada "broadband sigmoid transmission proxy"; gerçek 10 Hz Hopf limit-cycle değil. Tam α emergence için band-limited input + Grimbert-Faugeras Hopf bifurcation taraması Sprint 10'a ertelendi.
 
 ---
 

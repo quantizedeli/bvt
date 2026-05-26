@@ -33,25 +33,39 @@ def jansen_rit_koz(
     I_p_t: np.ndarray,
     fs: float,
     I_i: float = 0.0,
+    A_e: float | None = None,
+    A_i: float | None = None,
+    b_e: float | None = None,
+    b_i: float | None = None,
 ) -> dict:
-    """Jansen-Rit 6 ODE'yi solve_ivp ile çöz."""
+    """Jansen-Rit 6 ODE'yi solve_ivp ile çöz.
+
+    Sprint 09 D-013: A_e / A_i / b_e / b_i opsiyonel olarak sleep-state
+    modülasyonu için override edilebilir (None = constants.py varsayılan).
+    Hazır param_set'ler için `JR_PARAM_SETS` (constants.py).
+    """
     nt = len(I_p_t)
     t = np.arange(nt) / fs
     t_eval = t.copy()
+
+    Ae = JR_AE_MV if A_e is None else float(A_e)
+    Ai = JR_AI_MV if A_i is None else float(A_i)
+    be = JR_BE_PER_S if b_e is None else float(b_e)
+    bi = JR_BI_PER_S if b_i is None else float(b_i)
 
     def rhs(t_now, y):
         y0, y1, y2, y3, y4, y5 = y
         idx = int(min(t_now * fs, nt - 1))
         Ip = I_p_t[idx]
         dy0 = y1
-        dy1 = (JR_AE_MV * JR_BE_PER_S * sigmoid_jr(Ip + JR_A2 * y2 - JR_A4 * y4)
-               - 2 * JR_BE_PER_S * y1 - JR_BE_PER_S ** 2 * y0)
+        dy1 = (Ae * be * sigmoid_jr(Ip + JR_A2 * y2 - JR_A4 * y4)
+               - 2 * be * y1 - be ** 2 * y0)
         dy2 = y3
-        dy3 = (JR_AE_MV * JR_BE_PER_S * sigmoid_jr(JR_A1 * y0)
-               - 2 * JR_BE_PER_S * y3 - JR_BE_PER_S ** 2 * y2)
+        dy3 = (Ae * be * sigmoid_jr(JR_A1 * y0)
+               - 2 * be * y3 - be ** 2 * y2)
         dy4 = y5
-        dy5 = (JR_AI_MV * JR_BI_PER_S * sigmoid_jr(I_i + JR_A3 * y0)
-               - 2 * JR_BI_PER_S * y5 - JR_BI_PER_S ** 2 * y4)
+        dy5 = (Ai * bi * sigmoid_jr(I_i + JR_A3 * y0)
+               - 2 * bi * y5 - bi ** 2 * y4)
         return [dy0, dy1, dy2, dy3, dy4, dy5]
 
     y0_init = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0])

@@ -152,16 +152,26 @@
 | **Geri-dönüş tetikleyici** | Sprint 08 S1 (plateau bug fix) — Sprint 07 S0'ın follow-up'ı; tam 5-farklı-değer hedefi için |
 | **Riski azaltan** | Mevcut %21.6 varyasyon Sprint 07 hedefini karşılıyor; D-012 fine-tuning, blocking değil |
 
-### D-013 — Sprint 08 S2 L6 NMM α-band kalibrasyon (sıralama ters)
+### D-013 — Sprint 08 S2 L6 NMM α-band kalibrasyon (KAPALI 2026-05-26 Sprint 09 S1)
 
 | | |
 |---|---|
 | **Karar başlığı** | JR-NMM ile NREM/REM/Uyanık α-band güç ters sıralı |
-| **Seçilen (Sprint 08 S2 PoC)** | `scripts/level6_nmm_upgrade.py` — JR-NMM 3 senaryo demo. Mevcut JR parametre seti (`JR_AE=3.25, JR_AI=22.0`) ve I_p kalibrasyonu ile Uyanık < REM > NREM (beklenen Uyanık > REM > NREM). |
-| **Kök neden** | JR-NMM sigmoid_jr(v_0=6 mV) lineer-olmayan davranış: yüksek I_p (Uyanık 150-220) saturasyona gidiyor → AC çıkışı sönümleniyor. REM (135) sigmoid'in yarı doğrusal kısmında — en duyarlı. Literatür JR parametre setleri (David-Friston, Coombes-Lord) farklı kalibrasyon yapar. |
-| **Ertelenen (Sprint 09'a)** | (a) JR parametre seti revizyonu: David-Friston veya Coombes-Lord uyumu; (b) Alternatif: 2-popülasyon Wendling NMM (alpha-tuned); (c) Veya literatür I_p aralığı 110-150 üzerinde ek tarama (varyans değişimi α gücünü değiştirir) |
-| **Geri-dönüş tetikleyici** | L6 makale §6 revizyonu için BVT'nin pre-stimulus α-band tahmini fiziksel temele oturtulmalıysa |
-| **Riski azaltan** | S2 sadece PoC — mevcut L6 (level6_hkv_montecarlo.py) DOKUNULMADI, C-ES istatistiği korunuyor. Bug sadece scripts/level6_nmm_upgrade.py demo'sunda. |
+| **Bulgular (Sprint 09 S1 derin teşhis)** | Sorun spec'in tahmin ettiğinden derin: (1) Mevcut I_p_mean (110-150) sigmoid satürasyonunda → tüm scenarios DC + white-noise transmission. (2) Kanonik (220, 22) bile JR'ı limit-cycle'a sokmuyor — fixed-point regime. (3) Α-band integralleri makine sıfırına (1e-66) düşüyor. |
+| **Fix (Hibrit yaklaşım, Sprint 09 S1)** | `constants.JR_PARAM_SETS` sözlüğü 4 set (default/uyanik/rem/nrem). A_e/A_i gain modülasyonu (David-Friston 2003 sleep state) + I_p_mean sigmoid lineer bölgesine yakın (100 mV) + I_p_std broadband transmission sürücüsü. `jansen_rit_koz()` imzasına opsiyonel A_e/A_i/b_e/b_i parametreleri eklendi (geriye uyumlu). |
+| **Validation** | 10-trial Monte Carlo: Uyanık=2.01e-3, REM=2.18e-4, NREM=1.04e-5. Uyanık/NREM = **192×** (spec kriteri 2×). Test paketi: `tests/test_acoustic_nmm_calibration.py` (4 yeni test) + mevcut 41 acoustic test bozulmadı. PNG: `output/level6/L6_NMM_alfa_band.png`. |
+| **Açık (D-016'ya devredilen)** | α "broadband proxy"dir — gerçek 10 Hz Hopf limit-cycle değil. Tam α emergence için band-limited input + Grimbert-Faugeras bifurcation taraması gerek. |
+
+### D-016 — JR canonical α emergence (Hopf bifurcation + band-limited input)
+
+| | |
+|---|---|
+| **Karar başlığı** | Jansen-Rit gerçek 10 Hz limit-cycle α osilasyonu (Grimbert-Faugeras Hopf rejimi) |
+| **Mevcut durum (Sprint 09 S1)** | JR motoru fixed-point regime'da; kanonik params (A_e=3.25, A_i=22) sabit I_p ile peak hep 1 Hz, power 1e-65 (limit-cycle yok). White-noise input → DC + broadband sigmoid transmission. Α-band güç broadband proxy. |
+| **Ertelenen (Sprint 10'a)** | (a) Band-limited noise input (Wendling 2002 std + 1-30 Hz BP filter), (b) Grimbert-Faugeras 2006 bifurcation diagram'da I_p ∈ [125, 175] limit-cycle bölge taraması, (c) Hopf detection algoritması (Jacobian eigenvalue → Im part), (d) A_e/A_i parameter region map (10 Hz peak emergence). |
+| **Hazırlık çıktısı** | `scripts/jr_bifurcation_explore.py` (Sprint 09 S1 hibrit follow-up) — sabit I_p × parametre 2D tarama, peak frekans haritası. PNG: `output/level6/JR_bifurcation_map.png`. |
+| **Geri-dönüş tetikleyici** | L6 makale §6 fiziksel temel ihtiyacı; veya BVT pre-stimulus α öngörüsünün limit-cycle (gerçek osilatör) gerektirdiği bir validasyon |
+| **Riski azaltan** | D-013 broadband proxy spec kabul kriterini (2× ratio) karşıladı; D-016 blocking değil, bilim derinleştirici |
 
 ### D-014 — Sprint 08 S5 HRV C_kalp_t → mu_kalp_t fix (KISMEN kapandı)
 

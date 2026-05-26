@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Proje:** Birliğin Varlığı Teoremi (BVT) / Theorem of the Unity of Existence  
 **Yazar:** Ahmet Kemal Acar | **Güncelleme:** Mayıs 2026  
-**Durum:** v9.6 — Sprint 08 Deep Integration KAPALI (S1 D-012 %60 varyasyon + S2/S5 bilim bulguları); Sprint 09 hedefleri: D-013/D-014/D-015
+**Durum:** v9.7-sprint09-S1 — Sprint 09 S1 D-013 KAPALI (JR-NMM sleep-state kalibrasyon, Uyanık/NREM α 192× ratio); kalan Sprint 09 hedefleri: S2 D-015 (RR-interval HRV), S3-S6.
 
 **Bu CLAUDE.md ile birlikte oku:**
 1. **`sprint_docs/`** — 9 sprint dökümanı (analiz raporu + Sprint 00-04 + 4 checklist)
@@ -82,6 +82,24 @@ kavramlarının kuantum mekaniksel karşılığını kurar.
   **D-015** Sprint 09'a (RR-interval series, multi-band HRV).
 - S3 (L7 HEP), S4 (L8 K_t), S6 (TRUBA) → Sprint 09 (D-011b, D-011c, D-009)
 - DEFERRED: D-001..D-015 yeni D-013/D-014/D-015 Sprint 09'a
+
+**v9.7 — Sprint 09 S1 (2026-05-26, S1 KAPALI; S2-S6 açık):**
+- **S1 D-013 JR-NMM kalibrasyon (Hibrit yaklaşım):** Sprint 08 PoC bug'ı
+  spec'in tahmin ettiğinden derindi — kanonik (220,22) parametrelerde bile JR
+  fixed-point regime'da (limit-cycle yok), α-band integralleri makine
+  sıfırına çöküyordu. Sleep state lever olarak A_e/A_i gain modülasyonu
+  (David-Friston 2003) + I_p_mean sigmoid lineer bölgesi + I_p_std broadband
+  transmission. `constants.JR_PARAM_SETS` (default/uyanik/rem/nrem),
+  `jansen_rit_koz(..., A_e=None, A_i=None, b_e=None, b_i=None)` opsiyonel
+  override (geriye uyumlu). 10-trial Monte Carlo: Uyanık α=2.01e-3,
+  REM=2.18e-4, NREM=1.04e-5. **Uyanık/NREM = 192×** (spec ≥2×).
+- **S1 yeni dosyalar:** `tests/test_acoustic_nmm_calibration.py` (4 yeni test),
+  `scripts/jr_bifurcation_explore.py` (D-016 hazırlık), güncellenen PoC
+  `scripts/level6_nmm_upgrade.py`. Test paketi: 45/45 pass, 1 skipped, 0 regression.
+- **D-016 yeni DEFERRED:** Gerçek 10 Hz Hopf limit-cycle α emergence (band-limited
+  input + Grimbert-Faugeras bifurcation taraması) Sprint 10'a ertelendi.
+  Mevcut α "broadband sigmoid transmission proxy"; spec kabul kriterini karşıladı.
+- Kalan Sprint 09: S2 D-015 (RR-interval HRV), S3 D-011b (L7 HEP), S4 D-011c (L8 K_t), S5 D-009 (TRUBA), S6 (opt).
 
 **v9.4 plan (Mayıs 2026 — sprint dökümanları aktif):**
 - QA raporu (`output/QA_REPORT_2026-05-15.md`): 7 fail test, 5/13 replikasyon, görsel anomali
