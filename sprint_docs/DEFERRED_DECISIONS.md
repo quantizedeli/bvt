@@ -162,6 +162,17 @@
 | **Validation** | 10-trial Monte Carlo: Uyanık=2.01e-3, REM=2.18e-4, NREM=1.04e-5. Uyanık/NREM = **192×** (spec kriteri 2×). Test paketi: `tests/test_acoustic_nmm_calibration.py` (4 yeni test) + mevcut 41 acoustic test bozulmadı. PNG: `output/level6/L6_NMM_alfa_band.png`. |
 | **Açık (D-016'ya devredilen)** | α "broadband proxy"dir — gerçek 10 Hz Hopf limit-cycle değil. Tam α emergence için band-limited input + Grimbert-Faugeras bifurcation taraması gerek. |
 
+### D-017 — L7 fiziksel HEP elektrod ayırt etmesi (Sprint 09 S3 PoC sınırlaması)
+
+| | |
+|---|---|
+| **Karar başlığı** | L7 fiziksel HEP topografik elektrod-spesifik ayırt etme |
+| **Mevcut (Sprint 09 S3)** | `simulate_HEP_fiziksel` tek z-eksenli kalp dipolü kullanır (q = [0, 0, mu_kalp]). Her elektrodun zaman serisi `v_t[:, k] = K_0[k, 2] · mu_kalp_t` — tüm elektrodlar `mu_kalp_t`'nin sabit skaler katı. Sonuç: `(att_mean[k] - dis_mean[k]) / pooled_std[k]` tüm k için aynı çıkar; Montoya'nın Cz/C3/C4 spesifikliği bu PoC ile **kanıtlanamaz**. |
+| **Ertelenen (Sprint 10 veya sonrasına)** | (a) 3-axis kalp dipolü (qx + qy + qz, kardiyak vektör kardiografi), (b) Çoklu kortikal dipol (talamokortikal, vagal afferent projeksiyon noktaları), (c) Lead field matrisi'ne anatomik distance ağırlıkları (M8 + MRI atlas) |
+| **Erteleme nedeni** | Sprint 09 S3 spec'i "fiziksel temele oturt" diyordu — single-dipole multi-channel forward EEG bu kriteri karşılıyor (`fiziksel-modu` flag çalışır, regresyon yok, opt-in). Tam topografik ayırt etme bilim olarak daha derin scope (D-001 anatomik mesh ile bağlantılı). |
+| **Geri-dönüş tetikleyici** | (1) D-001 (MRI atlas) açılırsa beraber; (2) BVT makale §11.3 Montoya öngörüsünün tam fiziksel kanıtı istenirse; (3) HEP makale revizyonu |
+| **Riski azaltan** | PoC limitasyonu `simulate_HEP_fiziksel` docstring'inde **açık not** olarak ekli; heuristic default davranış korunuyor (Montoya eslesme: Cz/C3/C4 hâlâ geçerli) |
+
 ### D-016 — JR canonical α emergence (Hopf bifurcation + band-limited input)
 
 | | |
