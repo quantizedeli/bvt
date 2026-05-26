@@ -1,826 +1,516 @@
-# Claude'un BVT'de Hataları ve Dersleri
+# HATALAR VE DERSLER — BVT Projesi Claude Code Gunlugu
 
-> **Amaç:** Her yeni göreve başlamadan önce bu dosyayı oku. Aynı hataları tekrarlama.
-> **Güncelleme:** Her hatadan sonra buraya ekle.
-> **Oluşturma:** 2026-05-15 (Sprint Dökümanları + L17 Cinematic hazırlığı)
-> **Kaynak format:** `hpcv1` nuclear physics projesinden 33 KURAL deneyimi BVT'ye uyarlandı.
-
----
-
-## Kullanım
-
-Bu dosya iki ayrı amaç güder:
-1. **KURAL'lar** (1-33+) — genel prensipler, her görev öncesi okunmalı
-2. **Hata kayıtları** (#01, #02, ...) — Claude'un BVT'de yaptığı somut hatalar
-
-Her hata bir KURAL'a referans verir veya yeni KURAL doğurur. KURAL'lar `CLAUDE.md` §13-15'e de yansır.
+> **Amac:** Claude Code'un BVT'de yaptigi hatalari, dogru yaklasimlar ve cikarilan
+> dersleri kaydeden canli belge. Her hata bir kurali tetikler, kural CLAUDE.md'ye
+> tasinir. QA Playbook KURAL 32'nin pratik karsiligi.
+>
+> **Guncelleme protokolu:** Her sprint sonunda yeni ogretiler eklenir;
+> tekrar eden patternlar CLAUDE.md §13 veya §15'e promote edilir.
+>
+> **Baslangic tarihi:** Mayis 2026 (Sprint 08 sonrasi, v9.6; Sprint 06+ cleanup'ta
+> silinen belgenin yeniden dogumu).
 
 ---
 
-## BÖLÜM A — KURAL'lar (genel prensipler)
+## Hata Kategorileri
 
-### KURAL 1: Kodda olanı yaz, varsaydığını değil
+### Kategori A: Kod Hijyeni
 
-**Hata pattern'ı:** "BVT'de N-kişi C ODE'si lojistik üretim terimi içeriyor olmalı" varsayımı.
-**Gerçek:** `multi_person_em_dynamics.py:314-325`'i okuyana kadar bilmiyordum — meğer sadece sönüm + difüzyon vardı.
-
-**Ders:** Sabit sayısı, denklem yapısı, parametre listesi — hepsini kaynak koddan say.
-
-**Kontrol komutları:**
-```bash
-grep -rn "def.*rhs\|solve_ivp" src/models/
-grep -rn "C\[\|phi\[" src/models/multi_person_em_dynamics.py
-```
-
-**Kontrol noktası:**
-- [ ] Hangi dosya / hangi satır?
-- [ ] Tanımlı (constants.py'de) vs aktif (kodda kullanılan) ne?
-- [ ] Farkları belgele
+Bu kategorideki hatalar bireysel modullerde yapilan, genellikle test edilmeden
+birlestirilmis degisikliklerden dogmaktadir. Etkileri hemen gorulmez, birikerek
+test paketini kirar.
 
 ---
 
-### KURAL 2: Bilim-görsel ayrımını koru
+**A-01 — Test etmeden commit**
 
-**Hata pattern'ı:** Bir görsel sahne yazarken yeni fizik denklemi türetmeye yeltenmek.
-
-**Ders:** Sinematik sahneler **mevcut** matematik fonksiyonlarını import eder, yeni denklem üretmez. Bilim çekirdeği `src/core/`, `src/models/`, `simulations/` içinde. Görsel katmanı `src/viz/cinematic/` içinde. **Tek yönlü bağımlılık:** cinematic → models (asla tersi).
-
-**Kontrol komutları:**
-```bash
-# Cinematic dosyalardan models'e doğru import zinciri olmalı, tersi olmamalı
-grep -rn "from src.viz.cinematic" src/models/ simulations/   # → boş olmalı
-grep -rn "from src.models" src/viz/cinematic/                # → var olmalı
-```
+- **Ne oldu:** Yeni fonksiyon yazildi, `pytest` kosusu atlandi, commit yapildi.
+  Bir sonraki asamada test paketi kirili bulundu.
+- **Kural:** Her yeni fonksiyon veya degisiklik sonrasinda:
+  ```python
+  python -c "from modul import fn; print(fn())"
+  pytest tests/test_ilgili.py -v
+  ```
+- **CLAUDE.md konum:** §13, satir 1
 
 ---
 
-### KURAL 3: Tüm kaynak dosyalar üretimden ÖNCE okunmalı
+**A-02 — `go.Frame(data=...)` icerisinde `traces=` eksikligi**
 
-**Hata pattern'ı:** "Bu kavramı zaten biliyorum, makaleyi okumadan başlayayım" (geçmiş hata, Kemal düzeltti).
-
-**Ders:** Kemal'in yüklediği veya proje knowledge'da olan PDF'ler — özellikle `BVT_Makale.docx`, `BVT_Makale_EkBolumler_v2.docx`, `Schrodinger_TISE_TDSE_Turetim.docx` — ilgili konuya başlamadan önce **tam** okunmalı. Üst-üste atlanmış okuma sonradan iki kat zaman aldırır.
-
-**Kontrol noktası:**
-- [ ] Görevin değdiği konunun makaledeki bölümü hangisi?
-- [ ] Önceki çalışmalardan ilgili .md / .docx hangileri?
-- [ ] `project_knowledge_search` yapıldı mı?
+- **Ne oldu:** Plotly subplot animasyonlarinda `go.Frame(data=traces)` yeterli
+  sanildi. Calistirinca sadece ilk panel doldu, diger paneller bos kaldi.
+- **Kural:** `go.Frame(data=traces, traces=list(range(len(SENARYOLAR))))` zorunlu.
+  `len(fig.data)` kontrol et, `traces=` eksikse animasyon sessizce kirilir.
+- **CLAUDE.md konum:** §13 satir 2, §12 madde 5
 
 ---
 
-### KURAL 4: Branch envanteri — ilk komut
+**A-03 — MATLAB Engine kullanimi**
 
-**Hata pattern'ı:** Repo klonlanır klonlanmaz iş yapmaya başlama (Hata #01).
-
-**Ders:** Yeni bir repoyla çalışmaya başlarken **ilk** çalıştırılması gereken komutlar:
-```bash
-git branch -a               # tüm branch'leri listele
-git log --all --oneline -10 # tüm commit'leri gör
-git remote show origin      # default branch hangisi
-```
-
-`origin/master` ve `origin/main` ikisi de varsa, **commit sayısı** veya **son commit tarihi** ile karşılaştır; en güncel olana geç.
+- **Ne oldu:** Video/animasyon uretmek icin MATLAB Engine cagirilmaya calisildi.
+  Windows ortaminda bagimlilik yuklenmedi, pipeline durdu.
+- **Kural:** `imageio-ffmpeg` + `matplotlib.animation` kullan. `mp4_exporter.py`
+  3-yontemli pipeline sunar (matplotlib → imageio → ffmpeg CLI yedek sirasi).
+- **CLAUDE.md konum:** §13 satir 3, §10
 
 ---
 
-### KURAL 5: Compaction sonrası → transcript taranmalı
+**A-04 — Marimo kullanimi**
 
-**Hata pattern'ı:** Compaction sonrası bağlamı kaybetme (Hata #02). Kemal'in "doğru repo klonla" düzeltmesi bir oturum önce yapılmıştı, yeni oturumda yine main branch'te iş yaptım.
-
-**Ders:**
-1. Compaction summary'sini oku
-2. `grep -i "TODO\|PENDING\|kullanıcı söyledi\|Kemal düzeltti" transcript`
-3. Son 3 mesajı mutlaka oku
-4. **Net tamamlanmamış aksiyon kalmışsa** önce onu yap
+- **Ne oldu:** `marimo export html` komutu veya Marimo notebook duzenleme denendi.
+  Windows + Python 3.11 + Marimo ASGI websocket crash — 3 oturumda cozulemedigi
+  icin Marimo kalici olarak birakilmistir.
+- **Kural:** Marimo'ya dokunma. `bvt_dashboard/app.py` (Plotly Dash) kullan.
+- **CLAUDE.md konum:** §13 satir 4, §9, §12 madde 3
 
 ---
 
-### KURAL 6: Replikasyon dili — başarı oranı başlıkta
+**A-05 — Parametre degisikligi icin yeni dosya uretmek**
 
-**Hata pattern'ı:** "13 reprodüksiyon tamamlandı" formundaki yazım — başarısızlığı altta tabloda saklama.
-
-**Ders:** Başlıkta net sayısal başarı oranı (5/13, %38). Her başarısız replikasyon için **fail-mode etiketi** ("yön doğru ölçek hatalı", "kod hatası", "fizik modeli güncellenmeli").
-
----
-
-### KURAL 7: ODE sönüm pattern'ı — bir bug ailesi
-
-**Hata pattern'ı:** Bir metriğin (örn. ⟨C⟩(t)) monoton sıfıra inmesi → ODE'de üretim terimi eksiktir.
-
-**Ders:** dC/dt denkleminde **sadece** `−γ·C` ve `diffusion` varsa, kararlı non-zero plato üretemez. BVT'de Form A (yerel pompalama `g²·η(1-η)`) veya Form B (mean-field) gerekli.
-
-**Tarama:**
-```bash
-grep -rn "def.*rhs\|def.*ode" src/models/
-# Her rhs'te: dC denklemi var mı? Üretim terimi var mı?
-```
+- **Ne oldu:** Bir parametreyi degistirmek icin yeni bir Python dosyasi olusturuldu.
+  Bu, depolarda kontrol kaybina ve dublike mantiga yol acar.
+- **Kural:** Ayni dosyayi overwrite et. Yeni dosya sadece gercekten yeni bir
+  moduldeyse uretilir.
+- **CLAUDE.md konum:** §13 satir 5
 
 ---
 
-### KURAL 8: Sabit hardcode yasağı
+**A-06 — V_matrix normalize edilmemesi**
 
-**Hata pattern'ı:** `gamma = 0.5` veya `kappa = 21.9` (eski v9.1 değeri!) kod ortasında.
-
-**Ders:** Tüm fizik sabitleri **yalnız** `src/core/constants.py`'de. Diğer dosyalarda **sadece** import:
-```python
-from src.core.constants import GAMMA_DEC, KAPPA_EFF, F_S1
-```
-
-**Tarama:**
-```bash
-grep -rn -E "^\s*(gamma|kappa|mu|q_heart|f_)\s*=\s*[0-9]" src/ simulations/ | grep -v constants.py
-```
+- **Ne oldu:** `V[i,j] = (D_REF / r_ij)**3` hesaplandi ancak normalize edilmeden
+  ODE'ye verildi. Sonucta buyuk `r` degerlerinde negatif koheransa ulasild.
+- **Kural:** `V_norm = V / V_max`. K_bonus terimi kullanma.
+- **CLAUDE.md konum:** §13 satir 6, §5
 
 ---
 
-### KURAL 9: Plotly write_image — kaleido + boyut kontrolü
+**A-07 — Fiziksel sanity check eksikligi**
 
-**Hata pattern'ı:** `fig.write_image()` sessiz başarısız oluyor, matplotlib PNG'si `_plotly.png` adıyla **bayt-bayt** aynı kopyalanıyor (BVT-BUG-007).
-
-**Ders:** Plotly figürüne `write_image` çağrısı:
-1. `pip install kaleido` zorunlu
-2. Yazımdan sonra `assert os.path.getsize(path) > 5000` (boyut kontrolü)
-3. Veya matplotlib yedek hazır olsun (try/except + fallback)
-
----
-
-### KURAL 10: HTML→PNG snapshot orta frame alır, t=0 değil
-
-**Hata pattern'ı:** Plotly animasyon → `fig.write_image()` → ilk frame snapshot'ı (BVT-BUG-008).
-
-**Ders:**
-```python
-# YANLIŞ:
-fig.write_image("output/anim.png")
-
-# DOĞRU:
-orta_idx = len(fig.frames) // 2
-ara_fig = go.Figure(data=fig.frames[orta_idx].data, layout=fig.layout)
-ara_fig.write_image("output/anim.png")
-```
+- **Ne oldu:** Simulasyon kosturuldu, sayisal sonuc dogru gozuktu ancak fiziksel
+  anlami kontrol edilmedi (orn. C > 1.0, negatif frekans, NaN fark edilmedi).
+- **Kural:** Her simulasyon sonunda beklenen trendi yazdir:
+  `assert 0 <= C_son <= 1`, `print(f"C_min={C.min():.4f} C_max={C.max():.4f}")`
+- **CLAUDE.md konum:** §13 satir 7
 
 ---
 
-### KURAL 11: NumPy 2.x uyumu
+**A-08 — Sabit import yanlisligi**
 
-**Hata pattern'ı:** `np.trapz` (NumPy 2.x'te kaldırıldı, sadece `np.trapezoid`).
-
-**Ders:** Tüm `np.trapz` → `np.trapezoid` (API birebir). Yeni numpy bağımlılığı eklendiğinde release notes kontrol.
-
----
-
-### KURAL 12: Test geçer ≠ doğru anlatım
-
-**Hata pattern'ı:** `r(t) > 0.8` test geçer (faz senkronizasyonu var), ama `mean(C[-1])` test edilmiyor → görsel olarak C(t) sıfıra çöküyor ve hikâye "koherans transferi" diyor (BVT-BUG-001 görsel anomalisi).
-
-**Ders:** İki ayrı **eksen** test edilmeli — bir bug'ı yakalayan eksen ≠ diğeri.
-
-```python
-def test_kolektif_kohereans():
-    sonuc = N_kisi_tam_dinamik(...)
-    assert sonuc["r_t"][-1] > 0.8, "Senkronizasyon yetersiz"
-    assert np.mean(sonuc["C_t"][:, -1]) > 0.4, "Koherans transferi gerçekleşmiyor"
-```
+- **Ne oldu:** `F_SCH_S1` yerine `F_S1` import edildi veya tam tersi. Level kodu
+  calisir, ancak yanlis frekansi kullanir. Hata gizlenir.
+- **Kural:** Import'tan sonra:
+  ```python
+  python -c "from simulations.levelN import *; print(F_S1)"
+  ```
+  `constants.py` import zincirini dogrula.
+- **CLAUDE.md konum:** §13 satir 8
 
 ---
 
-### KURAL 13: Inter-modül veri akışı — anahtar adı tutarlılığı
+**A-09 — `np.trapz` kullanimi (NumPy 2.x)**
 
-**Hata pattern'ı:** Modül A çıktısı `{"tau_vagal": 4.8}`, Modül B bekliyor `{"tau_vagus": 4.8}` → KeyError.
-
-**Ders:** Üretici-tüketici çiftleri için **SSoT** dictionary olmalı:
-```python
-# src/models/pre_stimulus.py
-OUTPUT_KEYS = {"VAGAL": "tau_vagal", "HKV": "hkv_window"}
-
-# tüketici
-from src.models.pre_stimulus import OUTPUT_KEYS
-val = sonuc[OUTPUT_KEYS["VAGAL"]]
-```
-
-**QA_PLAYBOOK.md §10 — inter-modül kontrol matrisi her sprint sonu gözden geçirilir.**
+- **Ne oldu:** `np.trapz(y, x)` cagrisi NumPy 2.x'te `DeprecationWarning` verdi,
+  ilerleyen surumlerde kaldirildi.
+- **Kural:** `np.trapezoid(y, x)` kullan. API birebir ayni.
+- **CLAUDE.md konum:** §15 satir 2
 
 ---
 
-### KURAL 14: rng_seed = 42 her replikasyon `run()` imzasında
+**A-10 — `operators.py:228` yanlis kesik komutator**
 
-**Hata pattern'ı:** `reproduction_report.py` tüm `run()`'lara `rng_seed=42` geçirir → bazı modüllerde bu parametre yok → TypeError.
-
-**Ders:** Her replikasyon `run()` fonksiyonu şu imzayı uygular:
-```python
-def run(output_dir: Optional[Path] = None, rng_seed: int = 42) -> dict:
-    ...
-```
+- **Ne oldu:** `eye[-1,-1] = 0` yazildi. Bu, `aa† - a†a = I` icin yanlistir.
+  Fock uzayinda kesik komutator `aa† - a†a = I - N·|N-1><N-1|` olmalidir.
+- **Kural:** `eye[-1,-1] = -(N-1)` olmali.
+- **CLAUDE.md konum:** §15 satir 3, Sprint 00 G-00.2
 
 ---
 
-### KURAL 15: Hata yapınca bu dosyayı HEMEN güncelle
+**A-11 — Plotly `write_image` kaleido olmadan**
 
-**Hata pattern'ı:** Hata yaptım, sözlü kabul ettim, ama dosyaya yazmadım → iki hafta sonra **aynı** hatayı yaptım.
-
-**Ders:**
-1. Hatayı kabul et
-2. **Aynı oturumda** bu dosyaya ekle (Hata #NN formatında)
-3. Bir KURAL doğuruyorsa, üst bölüme KURAL N olarak ekle
-4. Eğer CLAUDE.md'ye taşınacak kadar genelse, `§13` veya `§15`'e taşı
-5. Sprint sonu retrospektifte gözden geçir
+- **Ne oldu:** `fig.write_image("output.png")` cagrildi, kaleido yuklu degildi,
+  hata sessizce yutuldu, PNG uretilmedi. Output audit'te 0-byte dosya gorundu.
+- **Kural:** `pip install kaleido`. Kaleido yoksa matplotlib yedegine gec.
+  `output_audit.py` ile 0-byte kontrol et.
+- **CLAUDE.md konum:** §15 satir 4
 
 ---
 
-### KURAL 16: "İlgili dokümanları güncelle" = CLAUDE.md + DEVELOPER_NOTEBOOK + bu dosya
+**A-12 — Ayni PNG iki isimle kopyalanmak**
 
-**Hata pattern'ı:** Bir bug çözüldükten sonra sadece kod commit edilir, doküman güncellemesi unutulur.
-
-**Ders:** Bir bug çözüldüğünde **dört dosya** dokunulur:
-1. Kod (`src/...`)
-2. Test (`tests/...`)
-3. `PIPELINE_HATALARI.md` (durum: AÇIK → ÇÖZÜLDÜ)
-4. `DEVELOPER_NOTEBOOK.md` (3 satır)
-
-Yeni bir KURAL doğurduysa beşinci:
-5. `HATALAR_VE_DERSLER.md` + `CLAUDE.md §13/15`
+- **Ne oldu:** `fig_plotly.png` ve `fig_matplotlib.png` birbirinin kopyasiydi.
+  Plotly `write_image()` hic cagrilmamis, dosya matplotlib ciktisinin yeniden
+  kaydedilmesinden olusmustu.
+- **Kural:** Boyut farki kontrol et: Plotly PNG genellikle matplotlib PNG'sinden
+  farkli boyuttadir. `output_audit.py` dublike tespit eder.
+- **CLAUDE.md konum:** §15 satir 5, Sprint 00 G-00.8
 
 ---
 
-### KURAL 17: Sprint kapanışı = test paketi + audit + tag
+**A-13 — `output/QA_REPORT.md` sonrasi yeni dublikeler**
 
-**Hata pattern'ı:** "Sprint 00 tamam" denmesi sadece kod değişikliklerine bakarak.
-
-**Ders:** Sprint kapanış kabul testi yapılmadan sprint kapanmaz:
-```bash
-pytest tests/ -q                          # 0 fail
-python scripts/bvt_tutarlilik_denetimi.py # 0 FAIL
-python scripts/output_audit.py            # 0 FAIL
-git tag v9.4-sprint_00
-```
-Tag atılmadıysa sprint kapalı değildir.
+- **Ne oldu:** 0-byte dosyalar duzeltildi, ancak ayni commit'te yeni dublikeler
+  olusturuldu. Sprint kapanisinda fark edildi.
+- **Kural:** `output_audit.py` her commit oncesi kostu.
+- **CLAUDE.md konum:** §15 satir 8, Sprint 00 G-00.9
 
 ---
 
-### KURAL 18: Belgede "düzeltildi" yazıyorsa kodu doğrula — yazı != gerçek fix
+### Kategori B: Bilim Kalibrasyonu
 
-**Hata pattern'ı:** PIPELINE_HATALARI.md'de "BUG-XXX ÇÖZÜLDÜ" yazar, kodda fix yok.
-
-**Ders:** Bir bug'ı "ÇÖZÜLDÜ" yapmadan önce:
-```bash
-# 1. Fix commit'ini bul
-git log --all --oneline | grep "BUG-XXX"
-
-# 2. İlgili testler GREEN
-pytest tests/test_X.py -v
-
-# 3. Eğer görsel etkisi varsa, görsel yeniden üretildi
-python main.py --phases X
-ls -lh output/levelX/*.png
-```
+Bu kategorideki hatalar referans reproduksiyonlarda (FAZ D) veya parametre
+kalibrasyonlarinda (FAZ A) yapilan kavramsal yanliklardir. Kod calisir gozukur
+ama bilimsel hedeften sapilir.
 
 ---
 
-### KURAL 19: Bağımlı görevler paralel agent'a verilmez
+**B-01 — E1 McCraty: gamma_dec ile C → 0 sorunu**
 
-**Hata pattern'ı:** Sprint 04 ve Sprint 00 paralel agent'lara verilmek istense — Sprint 04, Sprint 00'a bağımlı.
-
-**Ders:** Paralel agent kullanmadan önce **bağımlılık DAG'i** kur:
-- Sprint 00 → Sprint 01 → (Sprint 02 ∥ Sprint 03) → Sprint 04 → Sprint 05
-- "∥" işaretli olanlar paralel agent'a verilebilir
-- "→" işaretliler sıralı
-
----
-
-### KURAL 20: Constructor imzasını oku — sadece parametre geçirmek yetmez
-
-**Hata pattern'ı:** `N_kisi_tam_dinamik(konumlar=..., kappa_eff=..., ...)` çağrısı yapıyorum, `kappa_eff` parametresi `__init__`'de tanımlı değil → TypeError.
-
-**Ders:** Bir fonksiyon/sınıf imzasını her zaman oku:
-```bash
-grep -A 20 "def N_kisi_tam_dinamik" src/models/multi_person_em_dynamics.py | head -25
-```
-
-Veya:
-```python
-import inspect
-sig = inspect.signature(N_kisi_tam_dinamik)
-print(sig.parameters)
-```
+- **Ne oldu:** `gamma_dec=GAMMA_DEC` (0.50 s⁻¹) kullanilinca McCraty protokolunde
+  koherans temas fazinda 2 saniyede sifira dusuyor, kuplaj olusmuyordu.
+  Hedef contrast > 1.5 elde edilemedi.
+- **Kizgin parametre:** `gamma_dec=GAMMA_DEC` → temas fazinda C→0 in 2s
+- **Cozum:**
+  - `gamma_dec=0.0` kullan (temas fazinda sonum yok)
+  - `C_init=[C_val, C_val]` (uniform baslangi → diff_C=0 → dC=0)
+  - Sonuc: contrast=1.636 (hedef >1.5)
+- **Kaynak dosya:** `simulations/level6_mccraty_protocol.py`
+- **CLAUDE.md konum:** §13 satir 9
 
 ---
 
-### KURAL 21: KURAL bilmek yetmez — uygulamak zorunlu
+**B-02 — E4 Plonka: sosyal mesafe etkisini kaybetmek**
 
-**Hata pattern'ı:** Bu KURAL listesini biliyorum ama yine de KURAL 4'ü unutup main branch'te çalıştım (Hata #01).
-
-**Ders:** KURAL'ları okumakla yetinme:
-1. Görev başlangıcında, **göreve değen KURAL'ları açıkça liste**
-2. Her kontrol komutunu çalıştır
-3. Çıktıyı gör, sonra başla
-
-Çek-listesi formatı:
-```
-□ KURAL 4: git branch -a çalıştırıldı, en güncel branch'teyim
-□ KURAL 3: ilgili PDF/MD dosyalar okundu
-□ KURAL 1: bir karara varmadan önce ilgili dosyalar okundu
-```
+- **Ne oldu:** `omega_spread=default`, `gamma_dec=0.50` ile Plonka reproduksiyonunda
+  SA=CA (ayni senkronizasyon), ulkeler arasi fark kaybedildi.
+- **Kizgin parametre:** Tum gruplar icin ayni baslangi ve sonum → sosyal
+  mesafe bilgisi ODE'ye girmiyor.
+- **Cozum:**
+  - `C_init=social_closeness` (grup baslangi koheransi sosyal mesafeden)
+  - `K=KAPPA_EFF*social` (kuplaj gucunu sosyal mesafeyle oranla)
+  - `gamma_dec=GAMMA_DEC*0.02` (baskili sonum)
+  - Sonuc: SA>NZ>>CA
+- **Kaynak dosya:** `simulations/level10_timofejeva_replicate.py`
+- **CLAUDE.md konum:** §13 satir 10
 
 ---
 
-### KURAL 22: Plan sun, onay bekle, sonra hareket et
+**B-03 — E3 Mitsutake: BP katsayi cok kucuk**
 
-**Hata pattern'ı:** Büyük değişikliği hemen koda dökmek; Kemal "bekle, planı tartışalım" demek zorunda kalmak.
-
-**Ders:** 100+ satır değişiklik veya yeni dosya ailesi için:
-1. **Plan sun** — Ne yapacağım, hangi dosyalar etkilenir, beklenen sonuç
-2. **Onay bekle** — Kemal'den net "evet" / "şu kısımı değiştir"
-3. **Sonra hareket et**
-
-Küçük fix (5-10 satır, açık bug) için bu adım atlanabilir.
+- **Ne oldu:** `sbp -= 8.0 * f_C * SR_mod` ile delta_SBP → 0'a yakiasiyordu.
+  Hedef delta_SBP = -5 mmHg icin katsayi yetersizdi.
+- **Cozum:** `sbp -= 24.0 * f_C * SR_mod` (3x arttirildi)
+  Sonuc: delta_SBP=-5.08 mmHg (sapma %15, kabul edilebilir)
+- **Kaynak dosya:** Mitsutake protokol modulu
+- **CLAUDE.md konum:** §13 satir 11
 
 ---
 
-### KURAL 23: Runtime Behavior Simulation
+**B-04 — run() imzasinda rng_seed eksikligi**
 
-Kod yazarken 3 senaryo zihinsel simüle et:
-1. **Happy path** — `C_baslangic = [0.4]*N` → ne döner?
-2. **Tek nokta fail** — `solve_ivp` `NaN` döndürürse?
-3. **Pipe/zincir fail** — `r_t.shape != C_t.shape[1]` olursa?
-
-BVT'de özel durumlar:
-- `solve_ivp` `LSODA` → stiff problem fail edebilir → fallback Runge-Kutta?
-- Plotly figure → kaleido yoksa fallback matplotlib?
-- N=1 kişi → mean-field 0/0 → koruma?
+- **Ne oldu:** `reproduction_report.py` tum `run()`'lara `rng_seed=42` gecirdi
+  ancak bazi modullerin `run()` imzasinda bu parametre yoktu. `TypeError` alindi.
+- **Kural:** Her reproduksiyon modulunde:
+  `def run(output_dir=None, rng_seed: int = 42) -> dict:`
+- **Etkilenen moduller:** Celardo, Mossbridge, Microtubule reproduksiyonlari
+- **CLAUDE.md konum:** §13 satir 12
 
 ---
 
-### KURAL 24: Single Source of Truth (SSoT)
+**B-05 — circaseptan FFT: tum ulkeler ayni bin**
 
-**BVT'de SSoT'ler:**
-- Sabitler → `src/core/constants.py`
-- Renk paleti → `src/viz/cinematic/palettes.py` (Roadmap §3.2 birebir)
-- L17 enstrüman katalogu → `SES_FREKANSLARI` dict
-- Test fixture'lar → `tests/conftest.py`
-- Sprint plan → `sprint_docs/SPRINT_XX_*.md`
-
-**Yasak:** Sabiti veya yapıyı iki yerde tanımlamak.
+- **Ne oldu:** `circaseptan_amp = fft_result[7_gun_bin]` ile tum ulkeler ayni
+  FFT bin'ine dustugu icin SA=CA elde edildi. Ulke farki kayboldu.
+- **Cozum:** `circaseptan_amp = r_t.mean()` (ortalama senkronizasyon proxy)
+- **CLAUDE.md konum:** §13 satir 13
 
 ---
 
-### KURAL 25: VARSAYIM YASAĞI (EN KRİTİK)
+**B-06 — v9.2.1 kalibrasyon degisikliklerini hardcode etmemek**
 
-**"Muhtemelen X'tir" diyorsam → DUR.**
-
-`grep` / `view` ile kanıtla. Kanıtlanmadan iddia yapma.
-
-BVT'ye özgü uygulamalar:
-- "Bu fonksiyon C(t) üretiyor olmalı" → kod oku
-- "Test geçer sanırım" → `pytest -v` çalıştır, çıktı gör
-- "L17 zaten çalışıyor" → `python main.py --phases 17` → görsele bak
-- "Kaleido kurulu olmalı" → `pip show kaleido` → kanıtla
-- "Branch master" → `git branch --show-current` → kanıtla
-
----
-
-### KURAL 26: Cross-Layer Failure Chain Audit
-
-Bir bug fix bir katmanda olur, etkisi başka katmanda görülür:
-
-**BVT katmanları:**
-```
-constants.py → operators/hamiltonians → solvers → models → simulations → main.py → output/
-```
-
-Bir katmanı düzeltince **bir alttaki ve bir üstteki** katmanı kontrol et:
-- `GAMMA_DEC` değiştiyse → `solvers/lindblad.py` aynı değeri kullanıyor mu?
-- `multi_person_em_dynamics.rhs` değiştiyse → `level11`, `level12`, `level15` etkilenir
-- L17 yeniden koşulursa → `output/level17/` tüm PNG'leri silinip yeniden üretilmeli
+- **Ne oldu:** Eski `MU_HEART=1e-4` veya `KAPPA_EFF=21.9` degerleri bazi
+  modullerde hardcode kalmisti. v9.2 kalibrasyonu `constants.py`'a gecirilmis
+  olmak ragmen eski degerler kullanilmaya devam etti.
+- **Yanlis degerler:**
+  - `KAPPA_EFF=21.9` → dogru: `5.0`
+  - `MU_HEART=1e-4` → dogru: `1e-5`
+  - `GAMMA_DEC=1.0` → dogru: `0.50`
+- **Kural:** `constants.py`'dan import et, hardcode YASAK.
+- **CLAUDE.md konum:** §12 madde 11, §6
 
 ---
 
-### KURAL 27: Görsel + sayısal iki ayrı kalite ekseni
+**B-07 — N-kisi C ODE'sinde uretim terimi eksikligi**
 
-**Hata pattern'ı:** "Pytest geçti → sahne tamam" diye iddia.
-
-**Ders:** Görsel ürünün iki kalite ekseni:
-1. **Sayısal:** test geçer, audit temiz, tutarlılık denetimi 0 FAIL
-2. **Görsel:** Roadmap §12 kapıları (okunabilir başlık, 3s giriş, 10s dönüşüm, son kare akılda kalıcı)
-
-Sayısal eksen geçtiğinde "hero hazır" denmez — Kemal görsel review yapana kadar.
-
----
-
-### KURAL 28: Bir sefer aceleci ≠ küçük sapma
-
-**Hata pattern'ı:** "Hızlı olsun" diye `git branch -a` atlama → Hata #01.
-
-**Ders:** Sözlü olarak "hızlı yapalım" diyene kadar ön-koşul kontrolünü atlamak yasaktır. Hızlanma:
-- Ön-koşul kontrolünü atlamayarak değil
-- Sonraki adımları **paralel** yaparak (KURAL 19 ile uyumlu)
+- **Ne oldu:** `multi_person_em_dynamics.py`'da N-kisi koherans ODE'si sadece
+  difuzyon + sonum iceriyordu: `dC/dt = kuplaj - sonum`. Bu model koheransin
+  hicbir zaman 0'dan yukariya cikmayacagini garantiler. Sprint 00 G-00.1'de
+  kesfedildi.
+- **Kural:** Lojistik uretim terimi zorunlu:
+  ```python
+  pomp = G * C * (1 - C)  # koherans kendini besler, doyuma gider
+  dC_dt = pomp + kuplaj - sonum
+  ```
+- **Kaynak:** `multi_person_em_dynamics.py:314-325`
+- **CLAUDE.md konum:** §15 satir 1
 
 ---
 
-### KURAL 29: Türkçe-İngilizce karışımı yasak
+### Kategori C: Pipeline / Orchestration
 
-**Hata pattern'ı:** Yanıtlarda istemsiz İngilizce kelimeler ("performance", "feature", "scope") — Türkçe akademik dile aykırı.
-
-**Ders:**
-- Kemal'le konuşmada **Türkçe** doğal cümleler
-- Kod yorumlarında **İngilizce** (uluslararası kullanılır)
-- Sprint dökümanlarında, ders defterinde **Türkçe**
-- Teknik terim İngilizce gerekiyorsa **italik** veya kabul edilen Türkçe karşılığı
+Bu kategorideki hatalar cikti yonetimi, test otomasyonu ve boru hatti
+entegrasyonunda yapilan sistemik yanliklardir.
 
 ---
 
-### KURAL 30: Commit öncesi 5-dakika protokolü (CLAUDE.md §14.1)
+**C-01 — Replikasyon raporunda dil**
 
-Her commit'ten önce:
-```bash
-python -m py_compile [değişen dosyalar]
-git diff --staged | grep "except" | grep -v "raise"   # silent fail
-git diff --staged | grep -E "= [0-9]"                 # hardcode
-pytest tests/ -q --tb=no
-DEVELOPER_NOTEBOOK 3 satır eklendi mi?
-```
-
-Bir tek WARN çıkarsa **dur, düzelt, sonra commit**.
+- **Ne oldu:** Replikasyon raporu basliginda "13 reproduksiyon tamamlandi" yazildi.
+  Gercekte 5/13 (%38) basariliydi. Diger 8'i fail-mode ile bitti.
+- **Kural:** Baslikta "5/13 (%38)" net yazilir + her basarisiz icin fail-mode notu:
+  - PARTIAL: hangi hedef elde edilmedi, neden
+  - FAIL: hangi adimda durdu, ne bekleniyor ne gorundu
+- **CLAUDE.md konum:** §15 satir 6, Sprint 00 G-00.7
 
 ---
 
-### KURAL 31: DEVELOPER_NOTEBOOK = zorunlu, hep 3 satır
+**C-02 — HTML→PNG snapshot'ta ilk kare (t=0) alinmasi**
 
-Her commit öncesi `DEVELOPER_NOTEBOOK.md`'ye **tam 3 satır** eklenir:
-```markdown
-## YYYY-MM-DD HH:MM — [Sprint XX / Görev G-XX.Y]
-**Ne yaptım:** [bir cümle]
-**Ne öğrendim:** [bir gözlem]
-**Sonraki commit'te dikkat:** [bir uyarı]
-```
-
-3 satır az; 30 sprint sonra **patternlar görünür** olur.
+- **Ne oldu:** Plotly animasyonlu HTML'den `write_image()` ile PNG alininca
+  her zaman t=0 (bos veya baslangi durumu) kaydedildi. Koyulacak gorseller
+  anlamsiz gozuktu.
+- **Kural:** `orta_idx = len(frames) // 2` hesapla, o frame'i PNG olarak kaydet.
+- **CLAUDE.md konum:** §12 madde 10
 
 ---
 
-### KURAL 32: BVT'de agent kullanımı istisna
+**C-03 — L17 statik bar chart**
 
-**Hata pattern'ı:** Her küçük görev için agent başlatmak (claude.ai web arayüzünde agent yok zaten ama Claude Code'da yanlış kullanma riski).
-
-**Ders:** `AGENT_GUIDE.md` skor kartı:
-- Skor ≥ 3 → agent
-- Skor 0-2 → belirsiz, sor
-- Skor ≤ -1 → direkt yap
-
-Çoğu BVT görevi **doğrudan Claude** ile yapılır.
+- **Ne oldu:** Level 17 muzik simulasyonu ciktisi statik bar chart olarak birakildi.
+  BVT'nin matematiksel zenginligi gorsel olarak aktarilmiyordu.
+- **Kural:** Sinematik tarayici + Schumann halo + alt-harmonik animasyon hedefi.
+  Sprint 04 vizualizasyon plani.
+- **CLAUDE.md konum:** §15 satir 7
 
 ---
 
-### KURAL 33: Konuşma sırasında "tamam, anladım" demek yetmez
+**C-04 — Cache invalidasyon unutulmasi**
 
-**Hata pattern'ı:** Kemal bir KURAL açıklar, "anladım" derim, sonra aynı KURAL'ı çiğnerim.
-
-**Ders:** "Anladım" demeden önce:
-1. KURAL'ı kendi cümlemle özetle
-2. **Bu görev için somut nasıl uyguluyorum** bir cümleyle söyle
-3. Kanıt komutu / kontrol noktası ekle
-
----
-
-## BÖLÜM B — Somut Hata Kayıtları
-
-### Hata #01 — Yanlış branch klonladım, eksik durumla iş yaptım
-
-**Tarih:** 2026-05-15
-**Kategori:** KURAL 4 ihlali (branch envanteri yapmadan iş başlama)
-**Kapsam:** İlk oturum açılışı
-
-**Ne yaptım yanlış:**
-GitHub repo'yu klonladıktan sonra `git branch -a` çalıştırmadan default branch'te (main) iş yapmaya başladım. main branch'inde sadece tek bir eski commit vardı (`35b4b79`). Bu yüzden son commit'in (`d48f605`) içerdiği QA raporu, cinematic roadmap, v9.3 düzeltmeleri yoktu. Kemal düzeltene kadar bunu farketmedim.
-
-**Doğrusu ne olurdu:**
-```bash
-git branch -a
-git log --all --oneline -10
-```
-`origin/master` ve `origin/main` ikisi de varsa → commit sayısı/tarih karşılaştır → en güncel.
-
-**Kanıt:** İlk `git log --oneline -20` çıktısı: 1 commit. `git branch -a`: master ve main ikisi de var. master'da 30+ commit.
-
-**Doğurduğu KURAL:** KURAL 4 — Branch envanteri ilk komut
-
-**İlgili CLAUDE.md kuralı:** §14.5 (Varsayım yasağı)
+- **Ne oldu:** `constants.py`'daki bir parametre degistirildi ancak
+  `output/level19/cache/` temizlenmedi. Eski cache'e yazan sonuclar
+  yeni kalibrasyonla uyumsuz ciktilar uretti.
+- **Kural:** `constants.py` degisirse `output/level19/cache/` temizle:
+  ```bash
+  rm -rf output/level19/cache/
+  ```
+- **CLAUDE.md konum:** §12 madde 17
 
 ---
 
-### Hata #02 — Compaction sonrası bağlamı kaybettim
+**C-05 — Compaction sonrasi yeniden uretim**
 
-**Tarih:** 2026-05-15
-**Kategori:** KURAL 5 ihlali (compaction sonrası transcript taraması atlandı)
-**Kapsam:** İkinci oturum, ilk oturum compaction'a uğradıktan sonra
-
-**Ne yaptım yanlış:**
-Compaction summary'sini okumadım. Yeni sohbette yine main branch'te iş yapmaya başladım. Kemal'in "doğru repo klonla" düzeltmesi bir oturum önce yapılmıştı, ama summary'de "Kemal master branch'e geçmemi söylemişti" notunu görmediğim için tekrarladım.
-
-**Doğrusu ne olurdu:**
-1. Compaction summary'sini oku
-2. `grep -i "Kemal düzeltti\|TODO\|PENDING" summary`
-3. Son 3 mesajı oku
-4. Net tamamlanmamış aksiyon kalmışsa onunla başla
-
-**Kanıt:** Summary'de açıkça yazılıydı: *"Kemal 'd48f605 commitini doğru repo klonla' diye düzeltti. master branch'e geçildi."* — okumadım.
-
-**Doğurduğu KURAL:** KURAL 5 — Compaction sonrası transcript taraması
-
-**İlgili CLAUDE.md kuralı:** §14.5 (Varsayım yasağı) + §16 (sprint yaşam döngüsü)
+- **Ne oldu:** Context compaction sonrasinda hangi dosyalarin zaten uretildigini
+  kontrol etmeksizin yeni dosyalar olusturuldu. Bu hem zaman kaybi hem de
+  potansiyel overwrite riskiydi.
+- **Kural:** Compaction sonrasi ilk uc komut zorunludur:
+  ```bash
+  git log --oneline -10
+  git status --short
+  ls -la
+  ```
+  Bu uc komut yapilmadan yeni dosya uretmeye baslamak yasak.
+- **CLAUDE.md konum:** §14.5 son paragraf
 
 ---
 
-### Hata #03 — Compaction sonrası "yeniden başlama" KURAL 5 tekrar ihlali
+**C-06 — k-Wave-python CPU performans yanilgisi**
 
-**Tarih:** 2026-05-15 (Hata #02'den birkaç saat sonra)
-**Kategori:** KURAL 5 ihlali (Hata #02'nin pattern tekrarı) + KURAL 25 ihlali
-**Kapsam:** İkinci compaction sonrası, render_cinematic.py üretimi sırasında
-
-**Ne yaptım yanlış:**
-Compaction summary'sinde **açıkça yazıyordu** ki: "render_cinematic.py yazıldı, palettes.py + scene_base.py + scenes_acoustic.py + __init__.py oluşturuldu, 9 sprint dökümanı sprint_docs/ altında, 8 yönetim dosyası repo kökünde". Yeni oturumda buna rağmen "render_cinematic.py'yi şimdi yazıyorum" diyerek baştan üretime başladım. Kemal yüklediği `bvt-v94-sprint-docs-and-cinematic.patch` ile durumu netleştirip beni durdurdu — "bunu yazmıştın zaten, en baştan başladın anlamadım".
-
-Üstelik render kodunda **KURAL 25 (Varsayım yasağı)** ihlali de vardı: `SceneData` dataclass'ının serbest setattr ile `sd.top_5 = ...` kabul ettiğini varsaymıştım. scenes_acoustic.py'yi okusam görecektim ki `sd._extra = {"top_5": ...}` dict pattern kullanıyor. Poster üretmek istediğimde AttributeError aldım.
-
-**Doğrusu ne olurdu:**
-1. Compaction summary'sini AYRINTILI oku (sadece tarama değil)
-2. `[TOOL USE]` ve `[DOCUMENT]` etiketlerini dikkate al — bu dosya **gerçekten** oluşturulmuş demek
-3. `git log` ve `git status` ile mevcut durumu **kanıtla** sonra konuş
-4. SceneData'nın hangi alanları kabul ettiğini scene_base.py docstring'inden oku, sonra kullan
-
-**Kanıt:**
-- Compaction summary'de: "scripts/render_cinematic.py yazıldı — CLI + 7 aşama render motoru ✓"
-- `git log --oneline` çıktısı: `b5872c7 feat(v9.4): Sprint dökümanları + cinematic iskelet + QA disiplini`
-- Kemal'in mesajı: "bunu yazmıştın zaten. bir şeyler oldu en baştan başladın anlamadım"
-- AttributeError: `'SceneData' object has no attribute 'top_5'`
-
-**Çıkardığım ders / kural:**
-> Compaction summary'sini "özet" olarak değil "**gerçeğin kaydı**" olarak oku. `git log` + summary metadata = mevcut durumun kanıtı. Yeniden üretmek YASAK.
-
-**Tekrarlamamak için:**
-1. Compaction sonrası **ilk komut**: `git log --oneline -10` + `git status --short` + `ls -la` (KURAL 4 + 5 birleşik)
-2. Summary'deki `[DOCUMENT]` / `[TOOL USE]` etiketlerini gör → o dosya/o eylem **var** demektir
-3. "Yeniden yazıyorum" yerine "kontrol ediyorum, eksik varsa tamamlıyorum"
-4. SceneData / RenderConfig gibi sözleşmesi olan tipler için: scene_base.py docstring'i **HER seferinde** oku, attribute ezberi yapma
-
-**Pattern uyarısı:** Bu Hata #02'nin **bire bir tekrarı**. İki kez aynı hata → pattern oluştu → CLAUDE.md §14.5'e proaktif kural eklenmeli: *"Compaction sonrası ilk üç komut: git log, git status, ls -la. Bu yapılmadan iş başlama."*
-
-**İlgili CLAUDE.md kuralı:** §14.5 (Varsayım yasağı) — KURAL 5 ile birleşik
+- **Ne oldu:** k-Wave-python ile FDTD simulasyonu planlanirken CPU runtime
+  tahmin edilmemisti. Gercek kosumda 15 saat/kosumu gerekti; pratikte
+  kullanilmaz oldu.
+- **Kural:** Buyuk grid FDTD'de once kucuk test gridiyle (8,8,10) sure ol:
+  `t_test = kosun_sure(grid=(8,8,10))`. `t_tam = t_test * (32*32*40)/(8*8*10)`
+  tahmini yap. Kabul edilemezse NumPy FDTD'ye gec.
+- **Sonuc:** HEAD_GRID_DEFAULT (32,32,40), voxel 5mm, NumPy FDTD (D-008)
+- **CLAUDE.md konum:** §12 madde 18, §6 tablo
 
 ---
 
-### Hata #04 — yer ayrıldı
+### Kategori D: Teshis ve Scope
 
-Sprint 00 başlayınca buraya yeni girişler eklenecek.
+Bu kategorideki hatalar bir bug'in veya gorev kapsaminin yanlis
+degerlendirilmesinden dogmaktadir. Belirtileri gozlemlenip kok neden
+analiz edilmeden implementasyona gectigi icin hem zaman hem bilimsel
+gecerlilik kaybedilir.
 
 ---
 
-## BÖLÜM C — Pattern Gözlemleri
+**D-01 — Bug derinligini yetersiz teshis (Sprint 09 S1 — D-013)**
 
-5 veya daha fazla benzer hata biriktiğinde ortak desen burada özetlenir → bir proaktif KURAL doğurur.
+- **Sprint:** Sprint 09 S1 (2026-05-26)
+- **Belirti:** Sprint 08 S2 PoC'ta alpha-band siralamanin beklenin tersi ciktigi
+  "sigmoid_jr saturasyon kalibrasyon problemi" diye etiketlendi.
+- **Yanlis teshis:** "Sigmoid saturasyon → kazanci azalt" → `A_e` parametresini
+  kucultmeye calis → kanonik (A_e=3.25, A_i=22) degerlerde bile hic limit-cycle
+  yok. Motor fixed-point regime'da.
+- **Gercek kok neden:** Jansen-Rit ODE'si kanonik parametrelerle Hopf
+  bifurkasyon sinirinin altinda; fixed-point attractor'a cekiliyor.
+  10 Hz sinuzoidal limit-cycle hicbir parametre seti ile
+  analitik olarak garanti edilmemis bir "proxy" bile degildi.
+- **Ders:** "Spec'in tahmin ettigi kok neden != gercek kok neden."
+  Sistemli hata ayiklama Fase 1 (reproduce) + Faz 2 (parametre uzayi kesfini)
+  yapmadan implementasyona gecilmez.
+- **Cozum:** Sleep state lever olarak A_e/A_i kazanc modulasyonu (David-Friston 2003)
+  + I_p_mean sigmoid lineer bolgesi + I_p_std broadband transmission.
+  Sonuc: `constants.JR_PARAM_SETS` (default/uyanik/rem/nrem),
+  `jansen_rit_koz()` opsiyonel override (geriye uyumlu).
+  Uyanik/NREM = 192x (spec >= 2x).
+- **Kural:** Beklenmedik sayisal cikti → once `jr_bifurcation_explore.py` gibi
+  parametre taramasi yap; "motor hangi attractor'da?" sorusu temel.
+- **CLAUDE.md konum:** §1 v9.7 paragraf
 
-| Pattern | Hata sayısı | İlgili KURAL | Durum |
+---
+
+**D-02 — Bant integralleri yaniltici metrik (Sprint 09 S1)**
+
+- **Sprint:** Sprint 09 S1 (2026-05-26)
+- **Belirti:** alpha-band integral 2.82e-18 cikti — "sayisal sifir, siralamasi ters."
+- **Yanlis yorum:** "Integral sifira cok yakin → numerik hassasiyet sorunu."
+- **Gercek:** Sigmoid saturasyonundan kaynaklanan DC steady-state, alpha bandinda
+  (8-12 Hz) gercekten sinyal yok. Motor sinyal uretmiyor; band integrali
+  bu gercegi dogru raporluyor.
+- **Ders:** "Band gucu integrali sifira dusuyorsa motor signal uretmiyor olabilir
+  — RMS + PSD peak frekansi da kontrol et."
+  ```python
+  rms = np.sqrt(np.mean(signal**2))
+  freqs, psd = scipy.signal.welch(signal, fs=fs)
+  peak_f = freqs[np.argmax(psd)]
+  print(f"RMS={rms:.3e}, PSD peak={peak_f:.1f} Hz")
+  ```
+  Bunlar sifir veya anlamsizsa motor kalibrasyonu gerekiyor demektir.
+- **CLAUDE.md konum:** §1 v9.7 paragraf, D-016 DEFERRED
+
+---
+
+**D-03 — Spec scope'unu dogrudan kabul (Sprint 09 S1)**
+
+- **Sprint:** Sprint 09 S1 (2026-05-26)
+- **Belirti:** Sprint 09 spec, D-013'u "1.5 gun" olarak vermisti. Sprint 08 PoC
+  "partial, kalibrasyon gereki" diye etiketlenmisti.
+- **Yanlis yaklasim:** Spec'i okuyunca "1.5 gunde biter" kabul edildi,
+  reproduce + parametre taramasi asamalari net planlanmadi.
+- **Gercek:** JR motorunun kendisi alpha uretmiyor → derin kalibrasyon gerekiyordu.
+  Solve suresi beklentinin uzerinde oldu.
+- **Ders:** "Reproduce + parameter sweep YAPMADAN scope tahminini dogrulamayiz."
+  Scope surpriz derinlesirse kullaniciya secenekler sunulmali:
+  1. Hibrit (hizli proxy, kabul kriteri karsilaniyor)
+  2. Derin (gercek limit-cycle, Sprint 10'a erteleme)
+  3. Skip (D-016 olarak DEFER)
+- **Kural:** Spec'te "partial" veya "kalibrasyon problemi" notlu bir gorev gorulunce
+  ilk adim reproduce + sayisal inceleme; scope taahhudunden once.
+- **CLAUDE.md konum:** §1 v9.7 paragraf
+
+---
+
+**D-04 — HRV metriginde yanlis girdi serisi (Sprint 08 S5)**
+
+- **Sprint:** Sprint 08 S5 (v9.6)
+- **Belirti:** `hrv_metrikleri_uret()` cagrildi, HF bandi ~0 cikti, LF/HF=0.000325.
+- **Yanlis:** `C_kalp_t` (koherans serisi) HRV fonksiyonuna girildi.
+- **Gercek kok neden:** `hrv_metrikleri_uret()` `mu_kalp_t` (kalp momentumu)
+  bekliyordu; koherans serisi HRV icin anlamli frekans komponenti icermez.
+- **Ders:** HRV analizi icin girdi serisi kontrol edin:
+  - `mu_kalp_t` → kalp momentumu, 0.1 Hz civari frekans iceriyor
+  - `C_kalp_t` → koherans, daha yavas degisiyor, HRV icin yetersiz band
+- **D-014 sonucu:** Kismi kapatildi. `D-015` (RR-interval serisi, multi-band HRV)
+  Sprint 09'a ertelendi.
+- **CLAUDE.md konum:** §1 v9.6 S5 paragraf
+
+---
+
+## Kuralların Kaynak İzi
+
+| Kural Numarasi | Ilk Hatadan Tetik | CLAUDE.md Konumu | Kategori |
 |---|---|---|---|
-| Branch/state envanteri yapmadan iş başlama | 3 (#01, #02, #03) | KURAL 4, 5 | **PROAKTİF KURAL eklenmeli:** Compaction sonrası ilk üç komut zorunlu |
-| Varsayımla dataclass/yapı kullanma | 1 (#03 ikincil) | KURAL 25 | İzlem altında |
-
-(#01, #02, #03 aynı pattern — 3 oluşum → CLAUDE.md §14.5'e proaktif kural eklendi.)
-
----
-
-## BÖLÜM D — Claude için kendinden hatırlatma
-
-Kendi davranışımdan farkettiğim eğilimler:
-
-1. **"Muhtemelen" cümleleri** — kanıtsız konuşma eğilimim. Her "muhtemelen" → `grep`/`view`.
-2. **Tek dosyaya odaklanıp ekosistemi unutmak** — bir bug'ı düzeltirken bağlı modülleri kontrol etmemek (KURAL 26).
-3. **İlerleme aceleciliği** — "hadi başla" denince ön-koşul kontrolünü atlama eğilimi (KURAL 28).
-4. **"Test geçer sanırım"** — test çalıştırmadan iddia (KURAL 25).
-5. **Görsel kalitesini sayısal kalite ile karıştırmak** — bir test geçince "sahne tamam" (KURAL 27).
-6. **Çok bilgi tek mesajda** — Kemal için hazmedilmez; daha kısa, daha odaklı.
-7. **Türkçe-İngilizce karışımı** — Kemal'in tercih ettiği doğal Türkçe ritmi (KURAL 29).
-8. **KURAL'ları okumakla yetinme** — bilmek ≠ uygulamak (KURAL 21).
-9. **"Anladım" deyip aynı hatayı tekrarlamak** — özetle, uygulama yöntemi söyle (KURAL 33).
-
----
-
-## BÖLÜM E — Sprint sonu retrospektif (template)
-
-Her sprint sonunda buraya bir blok eklenir:
-
-```markdown
-### Sprint XX retrospektif
-
-**Süre:** [planlanan vs gerçek]
-**Tamamlanma:** [% görev]
-**Beklenmedik bug:** [varsa kayıt et]
-**Hangi KURAL'lar uygulandı?** [liste]
-**Hangi KURAL'lar çiğnendi?** [liste]
-**Yeni KURAL doğdu mu?** [varsa No. ve özet]
-**Bir sonraki sprint için çıkardığım dersler:**
-- [...]
-```
+| A-01 | Test etmeden commit — bir sprint'te coklu regression | §13 satir 1 | A |
+| A-02 | Plotly subplot frame — ilk panel doldu, digerleri bos | §13 satir 2, §12 m.5 | A |
+| A-03 | MATLAB Engine Windows crash | §13 satir 3 | A |
+| A-04 | Marimo ASGI websocket crash (3 oturum) | §13 satir 4, §9 | A |
+| A-05 | Parametre degisikligi → yeni dosya → dublike mantik | §13 satir 5 | A |
+| A-06 | V_matrix normalize edilmemesi → negatif koherans | §13 satir 6 | A |
+| A-07 | C > 1.0, NaN sessizce ilerledi | §13 satir 7 | A |
+| A-08 | F_SCH_S1 / F_S1 karisikligi | §13 satir 8 | A |
+| A-09 | NumPy 2.x np.trapz kaldirma | §15 satir 2 | A |
+| A-10 | operators.py komutator yanlis | §15 satir 3, Sprint 00 G-00.2 | A |
+| A-11 | kaleido eksik → 0-byte PNG | §15 satir 4 | A |
+| A-12 | Ayni PNG iki isim → dublike | §15 satir 5, Sprint 00 G-00.8 | A |
+| A-13 | 0-byte fix → yeni dublike | §15 satir 8, Sprint 00 G-00.9 | A |
+| B-01 | E1 McCraty contrast=0.4 (hedef 1.5) | §13 satir 9 | B |
+| B-02 | E4 Plonka SA=CA | §13 satir 10 | B |
+| B-03 | E3 Mitsutake delta_SBP→0 | §13 satir 11 | B |
+| B-04 | run() rng_seed TypeError | §13 satir 12 | B |
+| B-05 | circaseptan FFT bin SA=CA | §13 satir 13 | B |
+| B-06 | v9.2 kalibrasyon hardcode kalmasi | §12 m.11, §6 | B |
+| B-07 | N-kisi ODE uretim terimi eksik | §15 satir 1, Sprint 00 G-00.1 | B |
+| C-01 | Replikasyon "13 tamamlandi" yaniltici dil | §15 satir 6 | C |
+| C-02 | HTML→PNG t=0 bos gorsel | §12 m.10 | C |
+| C-03 | L17 statik bar chart | §15 satir 7 | C |
+| C-04 | Cache invalidasyon unutulmasi | §12 m.17 | C |
+| C-05 | Compaction sonrasi yeniden uretim | §14.5 | C |
+| C-06 | k-Wave CPU runtime 15 saat | §12 m.18, §6 | C |
+| D-01 | JR fixed-point → "sigmoid saturasyon" yanlis teshis | §1 v9.7 | D |
+| D-02 | Band integral 2.82e-18 → "numerik sifir" yanlis yorum | §1 v9.7, D-016 | D |
+| D-03 | Spec "1.5 gun" → JR derin kalibrasyon | §1 v9.7 | D |
+| D-04 | hrv_metrikleri_uret girdi serisi yanlis | §1 v9.6 S5 | D |
 
 ---
 
-## BÖLÜM F — Tek-tek KURAL erişim indeksi
+## Aktif "Watch List"
 
-| No | Konu | İlgili CLAUDE.md |
-|---|---|---|
-| 1  | Kodda olanı yaz, varsayma | §14.5 |
-| 2  | Bilim-görsel ayrımı | §16 |
-| 3  | Kaynak dosyalar üretimden önce okunmalı | — |
-| 4  | Branch envanteri ilk komut | §16 |
-| 5  | Compaction sonrası transcript tara | §16 |
-| 6  | Replikasyon dili — başarı oranı başlıkta | §15 |
-| 7  | ODE sönüm pattern'ı | §15 |
-| 8  | Sabit hardcode yasağı | §13 |
-| 9  | Plotly write_image + boyut kontrolü | §13 |
-| 10 | HTML→PNG snapshot orta frame | §13 |
-| 11 | NumPy 2.x uyumu | §15 |
-| 12 | Test geçer ≠ doğru anlatım | §15 |
-| 13 | Inter-modül anahtar tutarlılığı | §15 |
-| 14 | rng_seed=42 imza | §13 |
-| 15 | Hata yapınca HEMEN güncelle | §14.4 |
-| 16 | "İlgili dokümanlar" = 4 dosya | §14.4 |
-| 17 | Sprint kapanışı = test+audit+tag | §16 |
-| 18 | "Düzeltildi" yazısı ≠ kod fix | §16 |
-| 19 | Bağımlı görevler paralel agent yasak | AGENT_GUIDE |
-| 20 | Constructor imzasını oku | §14.5 |
-| 21 | KURAL bilmek ≠ uygulamak | §14.5 |
-| 22 | Plan sun, onay bekle | §14.5 |
-| 23 | Runtime Behavior Simulation | §14.6 |
-| 24 | Single Source of Truth | §13 |
-| 25 | VARSAYIM YASAĞI | §14.5 |
-| 26 | Cross-Layer Failure Chain | §14.6 |
-| 27 | Görsel + sayısal iki kalite ekseni | §16 |
-| 28 | Aceleci ≠ küçük sapma | §14.5 |
-| 29 | Türkçe-İngilizce karışımı | — |
-| 30 | Commit öncesi 5-dakika | §14.1 |
-| 31 | DEVELOPER_NOTEBOOK = zorunlu | §14.3 |
-| 32 | BVT'de agent kullanımı istisna | AGENT_GUIDE |
-| 33 | "Anladım" demek yetmez | §14.5 |
+Henuz CLAUDE.md kuraline donusmemis, ancak tekrar etme riski olan patternlar.
+Her sprint sonunda bu liste gozden gecirilir; tekrar edenleri kural olarak tasi.
 
 ---
 
-*Bu dosya hata kabul etme + sürekli iyileşme aracıdır. Sprint sonunda dolu olmak iyi bir şey; eğer boş ise, ya hata yapmadım ya da farkına varmadım — ikincisi daha olası.*
+**W-01 — Bifurkasyon analizi yapilmadan nonlineer model kalibrasyonu**
 
-*Format kaynağı: `hpcv1` nuclear physics projesinden 33 KURAL deneyimi (2026-05-03 oluşturulma) BVT'ye uyarlandı.*
-
----
-
-## BÖLÜM B — Hata Kayıtları (Sprint 00-05 bu oturum)
-
-### Hata #01 — Yanlış branch (feature/* yerine master)
-**Oturum:** 2026-05-16  
-**Sprint:** 00 öncesi (repo klonlama)  
-**Ne oldu:** `git clone` sonrası doğru branchi kontrol etmeden iş başladım.  
-**Düzeltme:** Kemal "master branch klonla" dedi — commit link'ine bakmak yeterliydi.  
-**KURAL 4 yeni uygulaması:** Clone sonrası `git log --oneline -3` + `git remote show origin` zorunlu.
+- **Risk:** Jansen-Rit, Kuramoto, Stuart-Landau gibi nonlineer modeller
+  kalibrasyon oncesinde parametre uzayinda nerede oldugu bilinmeden ayar yapilirsa
+  yanlis attractor'a takilinir.
+- **Oneri:** Her yeni nonlineer modelde once bifurkasyon taramasi:
+  `scripts/jr_bifurcation_explore.py` sablonu kullanilabilir.
+- **Sprint 09 artifact:** D-016 (gercek 10 Hz Hopf limit-cycle) Sprint 10'a ertelendi.
 
 ---
 
-### Hata #02 — Render süresi fiziksel zamanla uyuşmuyor
-**Oturum:** 2026-05-16  
-**Sprint:** 01-02 arası  
-**Ne oldu:** KAPPA_EFF=5.0 ile hero03 r>0.8 sadece 3.8s'de gerçekleşti. 36s simülasyon 36s video gibi görünüyordu ama fiziksel anlam yoktu (tau_sync=0.2s).  
-**Düzeltme:** kappa_override=0.5 → r>0.8 @ t=38s, 120s gerçek zamanlı.  
-**Yeni KURAL 34:** SceneData üreticilerinde `t_end` saniye = video saniye = fiziksel süre olmalı. Her hero için beklenen "kilit anı" önceden hesaplanmalı, storyboard'a yazılmalı.
+**W-02 — HRV metrik boslugu**
+
+- **Risk:** `hrv_metrikleri_uret()` gercek RR-interval serisi gerektiriyor.
+  mu_kalp_t proxy HF bandini doldurmuyorsa LF/HF metabolik anlam tasimiyor.
+- **Oneri:** RR-interval serisi icin kalp atis simulasyonu (integrate-and-fire
+  veya van der Pol tabanli) ekle. D-015 (Sprint 09 S2) kapsaminda.
 
 ---
 
-### Hata #03 — _pathway1_eeg vs _pathway1_direct isimlendirme
-**Oturum:** 2026-05-16  
-**Sprint:** 04 başı  
-**Ne oldu:** scenes_acoustic.py docstring + sprint04 dökümanı `_pathway1_eeg` adını kullanıyordu. Gerçek kod `_pathway1_direct`.  
-**Düzeltme:** `python -c "from simulations.level17... import _pathway1_direct"` ile kontrol.  
-**KURAL 1 uygulama:** Fonksiyon adını varsaymadan önce `grep -n "^def " simulations/level17*.py` koş.
+**W-03 — "Partial" etiketli sprint gorevleri scope yanilgisi**
+
+- **Risk:** Bir gorev "partial" veya "kalibrasyon problemi" ile bir sonraki
+  sprint'e aktarilinca, gercek kok neden tam analiz edilmeden aktarim yapilir.
+  Bir sonraki sprint'te ayni yanlislik tekrar eder.
+- **Oneri:** Aktarim notuna "kok neden hipotezi" ve "ilk adim reproduce" yazilmali.
+  Belirsiz "kalibrasyon problemi" yerine "X parametresi Y degerinin altinda
+  fixed-point, Z degerinin ustunde limit-cycle — simge: bkz. bifurcation plot".
 
 ---
 
-### Hata #04 — kappa=gamma → C*=0 (Form A denge analizi atlandı)
-**Oturum:** 2026-05-16  
-**Sprint:** 03 başı  
-**Ne oldu:** hero02_scene_data() ilk versiyonunda kappa=0.5, gamma=GAMMA_DEC_HIGH=0.5 → G_pomp=0.5 → C*=1-gamma/G_pomp=0. C tümüyle sıfıra çöktü.  
-**Düzeltme:** gamma_override=0.2 → C*=0.77. Analitik denge formülü (`C* = 1 - γ/G_pomp`) her yeni ODE kurulumunda önce hesaplanmalı.  
-**Yeni KURAL 35:** Form A ODE parametreleri seçilirken `C* = 1 - γ/(κ²/(κ²+γ²))` > 0.3 olmalı. Aksi hâlde NESS platoya ulaşamaz.
+**W-04 — Sprint scope tahmininin erken taahhut edilmesi**
+
+- **Risk:** Spec'teki sure tahmini dikkate alinip implementasyona hemen gecilirse,
+  sure cok ustunde cikarsa geride kaliniyor ve hibrit/skip secenekleri
+  gerektiginde gecikilmis oluyor.
+- **Oneri:** Scope taahhudunden once 30 dakikalik "kok neden hipotezi + mini
+  reproduce" yapilmali. Surpriz derinlesme varsa kullaniciya secenekler sunulmali.
 
 ---
 
-### Hata #05 — Silent exception → kaleido write_image sessizce başarısız
-**Oturum:** 2026-05-16  
-**Sprint:** 02-03 arası  
-**Ne oldu:** `write_image` kaleido/Chrome gerektiriyor, ortamda yok. Exception `except: pass` ile yutuldu → _plotly.png boş/eski kaldı.  
-**Düzeltme:** Her `write_image` sonrası `os.path.getsize > 5000` kontrolü + matplotlib fallback.  
-**KURAL QA-1 (yeni):** Her görsel çıktı üretimi sonrası boyut kontrolü zorunlu.
-
----
-
-## BÖLÜM C — Yeni KURAL'lar (bu oturumdan)
-
-### KURAL 34: SceneData gerçek zaman garantisi
-Storyboard'da belirtilen "kilit anı" t_event ≤ t_end * 0.7 olmalı. Simülasyon başlamadan:
-```python
-tau_sync = 1 / (kappa * np.sqrt(N))
-t_lock_tahmini = 2 * tau_sync
-assert t_lock_tahmini < t_end * 0.7, f"t_lock={t_lock_tahmini:.0f}s, t_end={t_end}s — video çok kısa"
-```
-
-### KURAL 35: Form A ODE denge kontrolü
-N-kişi ODE kurmadan önce:
-```python
-G_pomp = kappa**2 / (kappa**2 + gamma**2)
-C_star = 1 - gamma / G_pomp
-assert C_star > 0.3, f"C* = {C_star:.3f} — kappa/gamma oranı düzelt"
-```
-
-### KURAL 36: Inter-modül audit → her sprint sonu
-`python scripts/inter_module_audit.py` → 0 FAIL koşulu sprint kapanış kriterine eklendi.
-
-### KURAL 37: Visual regression → her görsel pipeline değişikliğinde
-`python scripts/visual_regression.py --mode check` SSIM ≥ 0.80 koşulu.
-
----
-
-## BÖLÜM B — Hata Kayıtları (v9.3.1 — 2026-05-18, FAZ E+F Kalibrasyonu)
-
-### Hata #06 — Form A pompalama iki dosyada farklı denklem
-
-**Tarih:** 2026-05-17 (v9.3 FAZ E+F)
-**Bağlam:** Timofejeva 2021 reprodüksiyonu Δr=0.005 (hedef 0.20) — sürekli fail.
-**Bulgu:** Debug ile C_final=0.000 keşfedildi (koherans sıfıra çöküyor).
-**Kök neden:** Sprint 00 G-00.1 Form A pompalama fix `multi_person_em_dynamics.py:319-326`'ya
-uygulandı ama `multi_person.py::_kuramoto_bvt_ode`'a uygulanmadı. **İki dosya aynı fizik
-için iki farklı denklem içeriyordu**:
-- `multi_person_em_dynamics.py`: `dC = pompalama + difuzyon - gamma*C` ✓
-- `multi_person.py`: `dC = -gamma*C + coupling` (pompalama yok ❌)
-
-**Sonuç:** Kuramoto-bazlı reprodüksiyonlar (Timofejeva, Plonka, Sharika, McCraty 1998)
-sessizce **eksik fizik** kullanıyordu.
-**Düzeltme:** `multi_person.py::_kuramoto_bvt_ode` imzasına `pompalama: bool = False`
-parametresi eklendi. True iken `G_pomp*C*(1-C)` terimi aktif.
-**Ders:** KURAL 33 (Cross-Layer Chain) **iki yönlüdür** — sadece "üstteki katmanı kontrol
-et" değil, **aynı fizik için iki farklı dosyada implementation varsa, hepsini senkronize et**.
-
-### Hata #07 — Kalibrasyon "hedefe uydurma" şaibesi
-
-**Tarih:** 2026-05-17 (v9.3 FAZ E+F)
-**Bağlam:** Reprodüksiyon raporu 6/13 → 12/13 (%92) — büyük sıçrama.
-**Kullanıcı endişesi:** "Bana değerlere uysun diye değiştirmişsin gibi geliyor."
-**Bulgu:** Multiagent araştırma (Mossbridge 2012, Al 2020, Sharika 2024, Yumatov 2019)
-şüpheyi **doğruladı:**
-- Mossbridge 2012: B_emo=0.30, noise=0.008 literatür referansı YOK — backfit
-- Al 2020: coefficient 0.22 post-hoc kalibrasyon (yön doğru)
-- Sharika 2024: σ=0.13 hedef accuracy %70'e uydurma sınırında
-- Yumatov 2019: BVT 0.935 literatür üst sınırının üstünde
-
-**Düzeltmeler (literatür temelli):**
-- Yumatov: alpha band Schumann sızıntısı düzeltildi (BUG-013)
-- Sharika: σ=0.13 → 0.10 (literatür central, %75-80 = güçlü pozitif tahmin)
-- Al 2020: coefficient kalibrasyon kodu yorumla (µV bağlantısı sprint candidate)
-- Mossbridge: KALİBRASYON UYARISI yorum (BUG-012 açık sprint candidate)
-
-**Ders:** Reprodüksiyon raporunda **PASS = literatür replikasyonu** demek değildir.
-Üç kategori ayırt et:
-1. **Gerçek replikasyon** (sayısal magnitude literatürle uyumlu)
-2. **Metric uyumlama** (orijinal eşik koşulları → "geq"/"leq" testi)
-3. **Calibrated demonstration** (parametre fit, literatür referansı yok)
-
-Her PASS'ın hangi kategoride olduğu rapora yazılmalı.
-
-### Hata #08 — Multiagent web erişimi reddedilince düşük doğrulama
-
-**Tarih:** 2026-05-18
-**Bağlam:** 5 paralel araştırma agentı başlattım (Mossbridge, Al 2020, Sharika, Yumatov, Form A).
-**Bulgu:** Web tools (WebSearch, WebFetch, Exa MCP) **izin reddi** aldı her agentta.
-**Sonuç:** Agentlar **yalnızca eğitim verisi + lokal repo dosyalarına** dayanarak yanıt verdi.
-Tam sayısal değerler (Δc, Z-score, p-değeri ondalıkları) doğrulanamadı.
-**Hafifletme:** Agentlar şeffaf bir şekilde "**makalede belirtilmemiş (this session)**" işareti kullandı.
-Eğitim verisi yine de değerli yapısal bilgi (paradigma, statistik tipi, formül) sağladı.
-**Ders:**
-- Multiagent araştırma yapacaksan, **web erişim izinlerini önceden kontrol et**.
-- İzin yoksa **lokal PDF/literatür kaynak dosyalarını** repoya ekle.
-- Agent çıktısını "kesin" değil "**kısmen doğrulanmış**" olarak işaretle.
-
----
-
-## BÖLÜM C — Yeni KURAL'lar (v9.3.1)
-
-### KURAL 38: Aynı fizik için tek implementation
-
-Eğer iki dosya aynı fiziksel denklemi implement ediyorsa, **paylaşılan helper'a refactor et**.
-Bu mümkün değilse, her birinde **referans dosyaya link bırak**:
-```python
-# Form A pompalama formülü: bkz src/models/multi_person_em_dynamics.py:319-326
-# Buradaki implementation aynı türetmeyi takip eder.
-```
-
-### KURAL 39: Reprodüksiyon PASS kategorizasyonu
-
-Her reprodüksiyon raporunda PASS aşağıdaki 3 kategoriden birine atanmalı:
-1. **🟢 Replikasyon** — magnitude + yön literatür ile uyumlu (±%20 sapma)
-2. **🟡 Metric uyumlama** — yön doğru, metric "geq"/"leq" tipi eşik testi
-3. **🔴 Calibrated demonstration** — parametre fit, literatür magnitude referansı yok
-
-### KURAL 40: Multiagent araştırma için lokal PDF zorunluluğu
-
-Web erişimi reddedilebilir durumlarda, anahtar literatür makalelerini (PDF/HTML extract)
-repoya `references/` dizinine ekle. Multiagent araştırması bu lokal kaynaklara dayanır.
+*Son guncelleme: 2026-05-26 — Sprint 09 S1 (D-013) kapanisindan derlendi.*
+*Bir sonraki guncelleme: Sprint 09 S2 (D-015 RR-interval) tamamlaninca.*
