@@ -71,7 +71,15 @@ def kos_faz_g(
     harita = voxel_haritasi_uret()
 
     # M3 FDTD — D-008 sonrası NumPy
-    fdtd_sure_s = min(sure_s, 0.01)   # FDTD kısa, NMM uzun
+    # FDTD süresi: yüksek frekanslarda CFL küçük dt → çok adım → memory.
+    # Yüksek freq için sürayı daha da kısalt (yine 1-2 periyot kapsar).
+    freq_hz = SES_FREKANSLARI_TEMEL[isim]
+    if freq_hz > 100.0:
+        fdtd_sure_s = min(sure_s, 0.003)   # >100 Hz: çok kısa
+    elif freq_hz > 30.0:
+        fdtd_sure_s = min(sure_s, 0.005)
+    else:
+        fdtd_sure_s = min(sure_s, 0.01)
     pde = fdtd_kos(harita, p_src, fs_src, sure_s=fdtd_sure_s)
     fs_sim = pde["fs_sim"]
 
@@ -125,7 +133,8 @@ def kos_faz_g(
         p_kalp_resampled = np.pad(p_kalp_resampled, (0, nt_nmm - len(p_kalp_resampled)))
     else:
         p_kalp_resampled = p_kalp_resampled[:nt_nmm]
-    kalp_sonuc = kalp_kuplaj_hesapla(p_kalp_resampled, fs_nmm)
+    # D-012 fix: freq_hz iletiliyor — kalp_akustik frekans-bağımlı K_eff
+    kalp_sonuc = kalp_kuplaj_hesapla(p_kalp_resampled, fs_nmm, freq_hz=freq_hz)
 
     # M8 forward EEG
     n_dipol = 50

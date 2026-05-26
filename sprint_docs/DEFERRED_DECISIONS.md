@@ -111,7 +111,14 @@
 | **Tahmini TRUBA süresi** | Single node CPU 32 core × 22 enstrüman × ~1 saat = 22 saat. GPU node varsa ~2-4 saat. (Yerel NumPy CPU: aynı 22 enstrüman × 5 dk = 1.8 saat — yerel zaten makul, ama 80³ HIGH_RES çok büyük.) |
 | **Riski azaltan** | Mevcut 32×32×40 sonuçları bilim kanıtı için yeterli; TRUBA "uzun-vade gelecek" planı, blocking değil |
 
-### D-010 — Frekans-bağımsız metrikler bug'ı (2026-05-26 top5 koşum bulgusu)
+### D-010 — Frekans-bağımsız metrikler bug'ı (KAPALI 2026-05-26 v4 doğrulama)
+
+> **Status: RESOLVED — Sprint 07 S0'da 4 iterasyonla çözüldü.**
+> Final fix: C_baseline 0.35 + p_kalp DC offset removal + K_eff 0.1 + F_t 1.0 + ΔC peak-to-peak.
+> Doğrulama: 5/5 enstrüman, %21.6 varyasyon (≥%20 hedef).
+> Sonraki plateau problem'i D-012'de takip edilir.
+
+
 
 | | |
 |---|---|
@@ -133,6 +140,17 @@
 | **Erteleme nedeni** | (1) Mevcut level dosyaları büyük (1388 satır toplam) — tam entegrasyon regresyon riski yüksek, (2) S3-S5 PoC bilim doğruluğu sorunları gösterdi (S3 LF/HF=0, S4 α-band sıralaması beklenenin tersi) — tam entegrasyon öncesi tuning gerekli, (3) S0 + S1 + S2 + S6 Sprint 07'de zaten substantial iş yükü |
 | **Geri-dönüş tetikleyici** | (1) Sprint 08 başlangıcı, (2) Makale §6/§7/§8 revizyonu için L6/L7/L8 sonuçlarının fiziksel temele dayanması gerekirse, (3) Demo PoC'ları (output/spillover_demo/*.png) hakem değerlendirmesi olumlu çıkarsa |
 | **Riski azaltan** | PoC PNG'leri spillover'ın bilim açısından mümkün olduğunu gösteriyor — Sprint 08'de güvenle tam entegrasyona geçilebilir. Demo script de korunur (her modülü ayrı test için kullanılabilir). |
+
+### D-012 — Plateau bulgusu (2026-05-26 S0 v4 doğrulama)
+
+| | |
+|---|---|
+| **Karar başlığı** | FAZ G ΔC değerlerinin 0.10'da plateau (Tibet hariç) |
+| **Gözlem** | S0 v4 doğrulamada 5 enstrümandan 4'ü ΔC=0.10006-0.10014 dar aralıkta, sadece Tibet_Cani_73Hz=0.12270 unique. Saturation eşiğine yaklaşıyor (np.clip ±0.15). |
+| **Kök neden hipotezi** | (1) p_kalp_t mertebesi neredeyse aynı (FDTD damping tüm freq'ler için benzer azaltıyor), (2) np.clip aralığı dar (±0.15) → K_eff·p_norm ≈ 0.1 ile +0.05/-0.05 saturasyon başlangıcı, (3) F_HEART sin modülasyonu (0.1 Hz) tüm enstrümanlar için aynı zarf üretiyor |
+| **Ertelenen düzeltmeler (Sprint 08'e)** | (a) np.clip aralığı ±0.15 → ±0.30 (saturasyon eşiğinden uzaklaş), (b) K_eff'i frekans-bağımlı hale getir: yüksek freq daha güçlü kuplaj (Landry 73Hz, 110Hz mikrotübül gamma katsayısı), (c) HRV modülasyonu f_C ile non-lineer geri besleme |
+| **Geri-dönüş tetikleyici** | Sprint 08 S1 (plateau bug fix) — Sprint 07 S0'ın follow-up'ı; tam 5-farklı-değer hedefi için |
+| **Riski azaltan** | Mevcut %21.6 varyasyon Sprint 07 hedefini karşılıyor; D-012 fine-tuning, blocking değil |
 
 ---
 

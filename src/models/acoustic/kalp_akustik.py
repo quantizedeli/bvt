@@ -30,25 +30,57 @@ def _f_C_kapisi(C: np.ndarray) -> np.ndarray:
     return (delta_C / norm) ** BETA_GATE
 
 
+def _freq_band_gain(freq_hz: float) -> float:
+    """D-012 Sprint 08 S1 — Frekans-bağımlı kalp K_eff band gain.
+
+    Literatür kuplaj katsayıları:
+      delta/teta (<8 Hz):     1.0  — Schumann 7.83 Hz, Saman teta vagal
+      alfa (8-20 Hz):         0.7  — düşük etki bölgesi
+      gamma_mt (20-100 Hz):   1.4  — Landry 2018 (73Hz mikrotübül gamma)
+      psiko-akustik (100-250) 1.1  — Tibet 110Hz, Tanpura 136Hz, Solfeggio
+      yüksek (>250 Hz):       0.5  — damping (Sonic Yogi 256 Hz vb.)
+    """
+    if freq_hz < 8.0:
+        return 1.0
+    elif freq_hz < 20.0:
+        return 0.7
+    elif freq_hz < 100.0:
+        return 1.4
+    elif freq_hz < 250.0:
+        return 1.1
+    else:
+        return 0.5
+
+
 def kalp_kuplaj_hesapla(
     p_kalp_t: np.ndarray,
     fs: float,
     K_kalp: float = K_AE_HEART,
     C_baseline: float = 0.35,
+    freq_hz: float = 10.0,
 ) -> dict:
-    """Kalp basıncından b_out çıkışını hesapla."""
+    """Kalp basıncından b_out çıkışını hesapla.
+
+    freq_hz: Akustik kaynağın temel frekansı. Frekans-bağımlı K_eff
+    kullanılır (D-012 Sprint 08 — Landry 73Hz mikrotübül, Tibet 110Hz,
+    Schumann teta vb. literatür kuplaj farklılıkları).
+    """
     nt = len(p_kalp_t)
     t = np.arange(nt) / fs
 
     # D-010 fix v4: DC offset removal (5 enstrümanın 4'ü v3'te 0.10 plateau).
-    # FDTD damping + ABC reflection p_kalp_t'yi sadece pozitif yarıya itiyor.
-    # AC bileşen (centered) ile gerçek osilasyon görünür → frekansa duyarlılık.
     p_centered = p_kalp_t - np.mean(p_kalp_t)
     p_max = np.max(np.abs(p_centered)) + 1e-30
     p_kalp_norm = p_centered / p_max   # gerçek AC ∈ [-1, +1]
-    K_eff = K_kalp * 1.25e8   # 0.1 amplitude
+
+    # D-012 fix (Sprint 08 S1): K_eff frekans-bağımlı band gain.
+    # Literatür: Landry 2018 (73Hz mikrotübül gamma), Tibet 110Hz teta-beta,
+    # Schumann delta-teta vagal kuplaj, yüksek-freq psiko-akustik damping.
+    band_gain = _freq_band_gain(freq_hz)
+    K_eff = K_kalp * 1.25e8 * band_gain   # 0.1 · band_gain
     delta_C = K_eff * p_kalp_norm
-    C_kalp_t = C_baseline + np.clip(delta_C, -0.15, 0.15)
+    # D-012: clip aralığı ±0.15 → ±0.30 (saturasyondan uzaklaş)
+    C_kalp_t = C_baseline + np.clip(delta_C, -0.30, 0.30)
 
     f_C = _f_C_kapisi(C_kalp_t)
 

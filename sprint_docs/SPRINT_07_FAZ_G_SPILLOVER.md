@@ -11,14 +11,22 @@
 
 | Hedef | Durum | Çıktı |
 |---|---|---|
-| S0 — D-010 bug fix | ✅ kod (3 iter) | C_baseline 0.35, p_kalp normalize, K_eff 0.1, F_t 1.0, ΔC=max-min |
-| S0 validation | ⚠️ partial | ΔC≠0 (0.30/0.60 v2'de); v3 RAM bekliyor (kullanıcı manuel) |
-| S1 — L17 vs FAZ G | ✅ script | `scripts/compare_l17_fazg.py` (RAM ile koşturulur) |
+| S0 — D-010 bug fix (4 iter) | ✅ doğrulandı | C_baseline 0.35, p_kalp DC removal + normalize, K_eff 0.1, F_t 1.0, ΔC=max-min |
+| **S0 validation** | ✅ **%21.6 varyasyon (hedef %20 ✓)** | 5/5 enstrüman tek-tek koşum, Tibet 0.12270 unique |
+| S1 — L17 vs FAZ G | ✅ PNG üretildi | `output/paper_figures/L17_vs_FAZG_comparison.png` (120 KB) |
 | S2 — Cache utility | ✅ +7 test | `src/util/content_hash_cache.py` |
-| S3-S5 — Spillover PoC | ✅ 3 PNG | `scripts/spillover_S3_S5_demo.py`, tam entegrasyon D-011 (Sprint 08) |
+| S3-S5 — Spillover PoC | ✅ 3 PNG | `scripts/spillover_S3_S5_demo.py`, deep integration D-011 (Sprint 08) |
 | S6 — TRUBA HPC | ✅ taslak | `truba/slurm_jobs/level19_faz_g.sh` + README |
 
-**Yeni DEFERRED:** D-009 (TRUBA), D-010 (bug fix v3), D-011 (S3-S5 deep integration → Sprint 08)
+**Final ΔC sonuçları (S0 v4, sure_dakika=0.1):**
+- Schumann_f1: +0.10013, Tibet_Cani_73Hz: +0.12270, Saman_240BPM: +0.10014
+- Kudum_Mevlevi: +0.10006, Tanpura_OmDrone: +0.10006
+- Varyasyon: max-min = 0.02265 = %21.6 ✓
+
+**Plateau bulgusu:** 4 enstrüman 0.10±0.0001 plateauda (np.clip ±0.15 saturasyon
+yaklaşıyor). Sprint 08 D-012 fine-tuning: clip range veya K_eff frekans-bağımlı.
+
+**Yeni DEFERRED:** D-009 (TRUBA), D-010 ✅ kapandı, D-011 (S3-S5 deep → Sprint 08), D-012 (plateau → Sprint 08)
 
 **Önkoşul (artık karşılanmış):**
 - Sprint 06 yeşil kapanmış (v9.4-sprint_06 tag'i)

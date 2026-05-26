@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Proje:** Birliğin Varlığı Teoremi (BVT) / Theorem of the Unity of Existence  
 **Yazar:** Ahmet Kemal Acar | **Güncelleme:** Mayıs 2026  
-**Durum:** v9.5 — Sprint 07 FAZ G Spillover (S0 bug fix + S1 karşılaştırma + S2 cache + S3-S5 PoC + S6 TRUBA)
+**Durum:** v9.5 — Sprint 07 FAZ G Spillover KAPALI (D-010 v4 doğrulandı, %21.6 varyasyon); Sprint 08 başlıyor
 
 **Bu CLAUDE.md ile birlikte oku:**
 1. **`sprint_docs/`** — 9 sprint dökümanı (analiz raporu + Sprint 00-04 + 4 checklist)
@@ -51,12 +51,13 @@ kavramlarının kuantum mekaniksel karşılığını kurar.
 - Bağımlılık: k-Wave-python>=0.6, mne>=1.5
 - DEFERRED_DECISIONS.md: 8 ertelenen alternatif yol (D-001..D-008)
 
-**v9.5 — Sprint 07 FAZ G Spillover (Mayıs 2026):**
-- **S0 D-010 fix:** Frekans-bağımsız metrik bug'ı çözüldü (3 iterasyon).
-  C_baseline 0.20 → 0.35, p_kalp normalize, K_eff = 0.1 (saturation önlemi),
-  Stuart-Landau F_t 0.05 → 1.0, ΔC = max(C)-min(C). v3 RAM ile manuel doğrulama bekliyor.
-- **S1 L17 vs FAZ G karşılaştırma:** `scripts/compare_l17_fazg.py` — top5
-  heuristic vs fiziksel ΔC yan yana figürü + D-010 varyasyon kontrolü.
+**v9.5 — Sprint 07 FAZ G Spillover (Mayıs 2026, KAPALI doğrulanmış):**
+- **S0 D-010 fix (4 iterasyon, doğrulandı):** Frekans-bağımsız metrik bug'ı kapandı.
+  C_baseline 0.20 → 0.35, p_kalp DC offset removal + normalize, K_eff = 0.1
+  (saturation önlemi), Stuart-Landau F_t 0.05 → 1.0, ΔC = max(C)-min(C).
+  **5/5 doğrulama:** Tibet 0.12270 unique, diğer 4'ü 0.10±0.0001 — varyasyon %21.6 (hedef %20 ✓).
+- **S1 L17 vs FAZ G karşılaştırma figürü:** `output/paper_figures/L17_vs_FAZG_comparison.png` ✓
+  L17 heuristic 0.68-0.79 vs FAZ G fiziksel 0.10-0.12 (%85+ relative fark — farklı abstraksiyon).
 - **S2 Cache utility:** `src/util/content_hash_cache.py` — SHA-256 hash decorator,
   L11/L15/L18'e yaygınlaştırılabilir (Sprint 08). 7 test passed.
 - **S3-S5 Spillover PoC:** `scripts/spillover_S3_S5_demo.py` — M6 NMM, M7 kalp,
@@ -64,7 +65,9 @@ kavramlarının kuantum mekaniksel karşılığını kurar.
   Tam level entegrasyonu **D-011** Sprint 08'e ertelendi.
 - **S6 TRUBA HPC:** `truba/slurm_jobs/level19_faz_g.sh` + `truba/README.md` —
   SBATCH config, rsync rehberi, süre tahmin tablosu. D-009 implementation.
-- DEFERRED: D-001..D-011 (yeni: D-009 TRUBA, D-010 bug fix, D-011 deep integration)
+- **Plateau bulgusu (Sprint 08 fine-tuning):** 4 enstrüman 0.10'da plateau,
+  sadece Tibet unique → Sprint 08 D-012 (clip range veya K_eff frekans-bağımlı).
+- DEFERRED: D-001..D-012 (D-010 kapandı, D-009/D-011/D-012 Sprint 08'de)
 
 **v9.4 plan (Mayıs 2026 — sprint dökümanları aktif):**
 - QA raporu (`output/QA_REPORT_2026-05-15.md`): 7 fail test, 5/13 replikasyon, görsel anomali
