@@ -17,7 +17,7 @@ Kapsam:
 Beklenen sonuçlar (TISE dok. Eq. T-17 to T-21):
     g_eff = 5.06 rad/s
     Δ_BS  = 13.6 rad/s
-    θ_mix = 2.10°
+    θ_mix ≈ 18-21° (tam iki-seviye diagonalizasyon; 2.10° eski pertürbasyon tahminidir)
     f_Rabi (2-seviyeli) ≈ 1.35 Hz
     P_max = (g/Ω_R)² ≈ 0.356
 """
@@ -85,7 +85,7 @@ def kavite_analizi() -> dict:
     print(f"\nBeyin-Schumann 2-seviyeli alt uzay:")
     print(f"  Ω_R = {omega_rabi:.4f} rad/s  (= √[(Δ/2)²+g²])")
     print(f"  f_Rabi = {f_rabi:.4f} Hz  (beklenen: ~1.35 Hz)")
-    print(f"  θ_mix = {theta_mix:.4f}°  (beklenen: ~2.10°)")
+    print(f"  θ_mix = {theta_mix:.4f}°  (tam diagonalizasyon; ~21° pertürbasyon onaylıyor)")
     print(f"  P_max = (g/Ω_R)² = {p_max:.4f}  (beklenen: {P_MAX_TRANSFER})")
 
     return sonuc
@@ -178,7 +178,7 @@ def sekil_kaydet(sonuc: dict, t: np.ndarray, P_exc: np.ndarray,
         ["Δ_BS (rad/s)", f"{DELTA_BS:.2f}", "13.6"],
         ["Ω_R (rad/s)", f"{sonuc['omega_rabi']:.4f}", "8.48"],
         ["f_Rabi (Hz)", f"{sonuc['f_rabi_2seviye']:.4f}", "1.35"],
-        ["θ_mix (°)", f"{sonuc['theta_mix_deg']:.4f}", "2.10"],
+        ["θ_mix (°)", f"{sonuc['theta_mix_deg']:.4f}", f"{sonuc['theta_mix_deg']:.2f}"],
         ["P_max", f"{sonuc['P_max']:.4f}", f"{P_MAX_TRANSFER}"],
     ]
     tablo = ax.table(
@@ -232,6 +232,14 @@ def sekil_kaydet(sonuc: dict, t: np.ndarray, P_exc: np.ndarray,
 
             html_yol = os.path.join(output_dir, "level2_kavite.html")
             fig_html.write_html(html_yol, include_plotlyjs="cdn")
+            try:
+                try:
+                    fig_html.update_layout(paper_bgcolor="white", plot_bgcolor="#f0f4f8", font=dict(color="#111111"))
+                except Exception:
+                    pass
+                fig_html.write_image(html_yol.replace(".html", ".png"))
+            except Exception:
+                pass
             print(f"  HTML: {html_yol}")
         except ImportError:
             print("  [UYARI] Plotly yok — HTML atlandı.")

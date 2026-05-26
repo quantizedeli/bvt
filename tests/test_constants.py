@@ -62,22 +62,24 @@ class TestBiyofizikselParametreler:
         assert abs(OMEGA_HEART - 2 * np.pi * 0.1) < 1e-10
 
     def test_kalp_dipol_momenti(self):
-        assert abs(MU_HEART - 1e-4) / 1e-4 < 0.01
+        # v9.2: MU_HEART = 1e-5 (MCG literatür, B(5cm)≈16pT gerçekçi)
+        assert abs(MU_HEART - 1e-5) / 1e-5 < 0.01
 
     def test_beyin_dipol_momenti(self):
         assert abs(MU_BRAIN - 1e-7) / 1e-7 < 0.01
 
-    def test_kalp_beyin_oran_1000x(self):
-        """Kalp EM alanı beyin EM alanından ~1000× güçlü."""
+    def test_kalp_beyin_oran_100x(self):
+        """Kalp EM alanı beyin EM alanından ~100× güçlü (v9.2: MU_HEART=1e-5)."""
         ratio = MU_HEART / MU_BRAIN
-        assert 900 <= ratio <= 1100, f"Kalp/beyin oranı {ratio:.0f}, ~1000 bekleniyor"
+        assert 50 <= ratio <= 200, f"Kalp/beyin oranı {ratio:.0f}, ~100 bekleniyor"
 
 
 class TestHeartMathKalibrasyonu:
     """HeartMath kalibre parametreleri."""
 
     def test_kappa_eff(self):
-        assert abs(KAPPA_EFF - 21.9) / 21.9 < 0.01
+        # v9.2 kalibrasyonu: KAPPA_EFF=5.0 (eski 21.9 — HeartMath τ_sync tutarlı)
+        assert abs(KAPPA_EFF - 5.0) / 5.0 < 0.01
 
     def test_g_eff(self):
         assert abs(G_EFF - 5.06) / 5.06 < 0.01
@@ -86,8 +88,11 @@ class TestHeartMathKalibrasyonu:
         assert abs(Q_HEART - 21.7) / 21.7 < 0.01
 
     def test_g_eff_kappa_eff_zayif_baglasim(self):
-        """g_eff < κ_eff olmalı (zayıf bağlaşım)."""
-        assert G_EFF < KAPPA_EFF, "g_eff < κ_eff başarısız (zayıf bağlaşım bekleniyor)"
+        """v9.2: g_eff ve κ_eff aynı mertebede (orta bağlaşım rejimi)."""
+        # G_EFF=5.06, KAPPA_EFF=5.0 — orta bağlaşım, her ikisi de ~5 rad/s
+        assert 0.5 <= G_EFF / KAPPA_EFF <= 2.0, (
+            f"g_eff/κ_eff={G_EFF/KAPPA_EFF:.3f} beklenen aralık [0.5, 2.0] (orta bağlaşım)"
+        )
 
     def test_sureradyans_esigi(self):
         assert 10 <= N_C_SUPERRADIANCE <= 12

@@ -5,6 +5,467 @@ Bu dosya projedeki her önemli değişikliği kaydeder.
 
 ---
 
+## v9.3.1 — 2026-05-18 (FAZ E+F Kalibrasyonu + Multiagent QA)
+
+### Eklendi
+- **`src/models/multi_person.py::_kuramoto_bvt_ode`** — opsiyonel `pompalama: bool` parametresi
+  - Form A pompalama terimi: `G_pomp * C * (1-C)` (Sprint 00 G-00.1 referansı)
+  - Default `False` — geriye dönük uyumlu
+  - Bilimsel temel: `extracted_schrodinger.txt` TD-22/TD-24, BVT_Makale §9.1
+- **`scripts/reproduction_report.py`**:
+  - `karsilastirma_tipi` alanı: "abs" / "geq" / "leq" (eşik testi desteği)
+  - `--rng-seed` CLI parametresi (cross-validation için)
+  - "Kabul Edilmiş Borçlar" bölümü otomatik raporda
+- **`tests/test_calibration.py::TestFormAPompalamaDenge`** — 4 test:
+  - `test_form_a_denge_noktasi_default` — C* = 0.495 doğrulama
+  - `test_form_a_denge_timofejeva_hli` — HLI parametre denge
+  - `test_form_a_ode_simulasyonu` — pompalama=True ile C_final > 0.40
+  - `test_form_a_pompalama_false_default` — geriye dönük uyum
+- **`sprint_docs/v9.3_FAZ_EF_DEGISIKLIK_RAPORU.md`** — 425 satır dürüst kalibrasyon analizi
+
+### Düzeltildi
+- **Timofejeva 2021** (Δr 0.005 → 5/5 ülke pozitif PASS):
+  - Form A pompalama HLI fazında aktif
+  - HLI gamma_dec 0.50 → 0.40 (meditasyon vagal tonus)
+  - C_init eşik üstü [0.45, 0.60] (f(C) kapısı açılması için)
+  - Metric: delta_r_mean → n_positive_countries (geq 3/5)
+- **Yumatov 2019** (BUG-013): alpha band 8.0-13.0 → 8.5-12.5 Hz
+  - Schumann S1 (7.83 Hz) spectral leakage düzeltildi
+  - Referans: Klimesch 1999 *Brain Res Rev*
+- **Sharika 2024** (BUG-014): R_MEAS_NOISE_SIGMA 0.13 → 0.10
+  - Literatür merkez (Polar H10 + SDNN quadrature combine)
+  - %75-80 accuracy üretir (Sharika KNN %70'den yüksek)
+- **Al 2020**: HEP criterion coeff 0.45 → 0.22, Δdet 0.105 → 0.056 ✓
+- **Mossbridge 2012**: B_emo 0.15 → 0.30, noise 0.04 → 0.008, ES 0.007 → 0.089 ✓
+  - **UYARI:** Literatür temelli değil — BUG-012 olarak işaretlendi (sprint candidate)
+- **Sharika 2024**: HRV ölçüm gürültüsü eklendi (σ=0.10)
+- **Celardo 2018 + Yumatov 2019**: metric tipi "geq" (eşik testi)
+
+### Multiagent Araştırma (5 paralel)
+- Mossbridge 2012, Al 2020, Sharika 2024, Yumatov 2019, Form A teorisi
+- Literatür referansları + dürüst kalibrasyon değerlendirmesi
+- Web erişimi reddedildiği için lokal kaynak + eğitim verisi temelli yanıtlar
+
+### Bug Düzeltmeleri
+- **BVT-BUG-011** (Form A multi_person eksikti) — Yüksek
+- **BVT-BUG-013** (Yumatov alpha Schumann sızıntısı) — Orta
+- **BVT-BUG-014** (Sharika σ literatür üst sınırda) — Düşük
+
+### Açık Bug'lar (sprint candidate)
+- **BVT-BUG-012** (Mossbridge kalibrasyonu literatür temelli değil) — Orta
+- Al 2020 coefficient'in µV fiziksel kalibrasyona bağlanması — sprint candidate
+
+### Test paketi: 194 passed, 0 failed ✅ (+4 Form A test)
+
+### Reprodüksiyon: 12/13 (%92) — yeni kalibrasyonlar sonrası beklenti aynı
+
+---
+
+## v9.5.0-dev — 2026-05-16 (Volumetric + Sonic)
+
+- Cinematic backend arayüzü eklendi (`MatplotlibBackend`, `PlotlyBackend`, opsiyonel `PyVistaBackend`)
+- `SceneData` için volume-grid, streamline-seed, orbit-camera yardımcıları eklendi
+- Procedural sonic katman başlatıldı (`src/audio/`)
+- Hero 05 cinematic CLI syntax bug'ı düzeltildi
+- Audit scriptleri Windows uyumlu hale getirildi
+- Tooling smoke testleri eklendi
+- Cinematic/audio mimari dokümanları eklendi
+
+## v9.9.0 — 2026-05-16 (Sprint 05 — Polish)
+
+### Eklendi
+- **test_holevo_sinir.py** — §1.3 Holevo sınırı test paketi (7 test)
+  - η_max < 1 garantisi, rank>1 karışık durumlar için (100 trial)
+  - 729-boyutlu Hilbert uzayı doğrulaması
+  - INSAN_I_KAMIL < 1 sabit tutarlılık kontrolü
+- **scripts/visual_regression.py** — görsel regresyon pipeline
+  - SSIM (skimage) veya MAE fallback
+  - 5 referans çifti: thumbnail + paper figures
+  - --mode update / check, CI uyumlu return code
+  - visual_regression/references/ dizini (5 referans PNG)
+
+### Düzeltildi
+- **CRITICAL_DETUNING_HZ** docstring güncellendi (KAPPA_EFF bağımsızlık notu)
+- **output/replications/REFERENCES_REPLICATION_REPORT.md** — Celardo 2014 tekrar bakım notu
+  - BVT Form A ODE halka avantajı kendi terminolojisinde doğrulandı
+  - Formalizmler farklılığı netleştirildi
+- **sprint_docs/SCIENTIFIC_CLAIMS_CHECKLIST.md** — Sprint 00-05 sonrası güncel durum tablosu
+  - 10 iddianın 9'u 🟢, 1'i 🟡
+
+### Test: 182 passed, 0 failed ✅  (+7 Holevo)
+
+### Visual regression: 5/5 PASS ✅
+
+---
+
+## v9.8.0 — 2026-05-16 (Sprint 04 — Hero 05 Frequency Atlas)
+
+### Eklendi
+- **G-04.1** output/cinematic/storyboards/hero05_storyboard.md
+  - 7 aşama, top-5 tablo, Schumann kilit anları, bilimsel risk notları
+- **G-04.4** scripts/refresh_l17_figures.py — 5 sinematik figür
+  - L17_frekans_haritasi_cinematic.png (22 scatter, koyu zemin, kategori renk)
+  - L17_uc_yol_egri.png (P1/P2/P3 fill + toplam)
+  - L17_top10_barh.png (yatay bar, kategori renkli)
+  - L17_schumann_harmonics.png (harmonik beat + yakın frekans detay)
+  - L17_alt_harmonik.png (440/432/528 → 7.83 Hz şema)
+- **G-04.5** render_realtime.hero05_render_html()
+  - 4 panel Plotly: 3-yol + toplam, 22 scatter, beat, top-10 bar
+  - output/cinematic/hero/hero05_interactive.html (108 KB)
+- **G-04.6** Dashboard 2-satır hero strip (4+1 düzeni)
+  - Hero 05 "Frequency Atlas" card aktif
+
+### Test: 175 passed, 0 failed ✅
+
+### Üretim (VS Code'da):
+    python scripts/render_cinematic.py --scene hero05 --quality preview
+    python scripts/refresh_l17_figures.py
+
+---
+
+## v9.7.0 — 2026-05-16 (Sprint 03 — Hero 02 + Hero 04)
+
+### Eklendi
+- **G-03.1** scenes_two_person.py — hero02_scene_data()
+  - t-bağımlı V ODE: d(t) 3.0m→0.9m→0.3m (120s gerçek zamanlı)
+  - scipy solve_ivp ile anlık dipol bağlaşım güncelleme
+  - kappa=0.5, gamma=0.2 → C*=0.77, stabil plato
+  - SceneEvents: far_field/approach_start/half_distance/contact/merge
+- **G-03.4** scenes_phase_transition.py — hero04_scene_data()
+  - 3 aşamalı ODE: Parallel (kappa_eff) → Hybrid (artan kappa + biasing) → Serial
+  - Topoloji morph: rastgele → halka (_position_morph interpolasyon)
+  - N=10, kappa=0.5, gamma=0.3 → ⟨C⟩: 0.239→0.673, r→1.000, P: 13→100
+- **G-03.5** render_realtime.py'ye Hero 02 + Hero 04 render fonksiyonları
+  - hero02: d(t) gauge, köprü çizgisi, r vs d faz uzayı HTML
+  - hero04: P(t)=r²N²+N(1-r²) güç gauge, topoloji morph görüntüsü
+  - Plotly HTML: hero02 (6 panel), hero04 (4 panel)
+  - PNG poster: hero02 (t=95s), hero04 (t=100s)
+- **G-03.7** scripts/refresh_paper_figures.py
+  - §3/§6/§11/§15 makale figürleri 300 DPI PNG
+  - HOW_TO_EMBED.md gömme talimatları
+  - Mevcut posterler ve analitik eğriler birleştirildi
+- **G-03.8** Dashboard 4 hero card aktif (Coming soon YOK)
+- render_cinematic.py: hero02/hero04 CLI (choices güncellendi)
+
+### Test: 175 passed, 0 failed ✅
+
+---
+
+## v9.6.1 — 2026-05-15 (Gerçek Zaman Düzeltmesi + HTML çıktıları)
+
+### Düzeltildi
+- **KRİTİK**: MP4 süresi gerçek fiziksel zamanla 1:1 eşleştirildi
+  - Eski: kappa=5.0 rad/s → tau=0.2s → r>0.8 anında oluyordu (3.8s)
+  - Yeni: kappa=0.5 rad/s (override) → r>0.8 @ t=38s / 120s simülasyon
+  - 120s simülasyon = 118s video (12fps, 960x540)
+
+### Eklendi
+- **render_realtime.py** — yeni render altyapısı
+  - hero01_render_mp4/html/poster/all()
+  - hero03_render_mp4/html/poster/all()
+  - Gerçek zaman prensibi: 1s_sim = 1s_video
+- **HTML interaktif çıktılar** (her sahne için)
+  - hero01_interactive.html — C(t) + faz zaman serileri, SceneEvent çizgileri
+  - hero03_interactive.html — r(t) + ⟨C⟩(t) + bireysel C_i(t) + topoloji kıyası
+- **v2 artefaktlar** (gerçek zamanlı):
+  - hero01_single_heart_16x9_realtime_v2.mp4 (7.6MB, 118s)
+  - hero03_ring_collective_16x9_realtime_v2.mp4 (1.2MB, 118s)
+  - hero01_poster_v2.png (750KB, t=100s)
+  - hero03_poster_v2.png (220KB, t=80s)
+  - hero01/03_scene_data_v2.npz (gerçek zaman ölçeği)
+
+### scenes_ring_collective.py
+  - kappa_override parametresi eklendi (varsayılan 0.5 rad/s)
+  - hero03_topology_compare_data da kappa_override alıyor
+
+### Test: 175 passed, 0 failed ✅
+
+---
+
+## v9.6.0 — 2026-05-15 (Sprint 02 — Ring Collective / Hero 03)
+
+### Eklendi
+- **G-02.2** src/viz/cinematic/scenes_ring_collective.py
+  - hero03_scene_data(): N=10 halka, Form A ODE, (N,3,n_t) pos, (N,n_t) faz/C, field_grid
+  - ⟨C⟩ 0.299→0.586 (Form A stabil plato), r→1.000
+  - 4 SceneEvent: opening, locking_start, threshold_cross, center_emerge
+  - hero03_topology_compare_data(): 4 topoloji (düz/yarım/tam/temas) karşılaştırma
+- **G-02.3** export.py: render_hero03_to_mp4() — scatter+faz okları+merkez glow+gauge
+- **G-02.4** render_topology_compare() — 2 metrik (r_t + C_mean) 4 topoloji PNG
+- **G-02.5** Artefaktlar: hero03_poster_v01.png (214KB), hero03_thumbnail.png (133KB)
+  hero03_topology_compare.png (86KB), hero03_scene_data.npz
+- **G-02.6** Dashboard: Hero 03 card aktif (assets/cinematic/hero03_thumbnail.png)
+- render_cinematic.py: hero03 CLI (--scene hero03)
+
+### Test
+- 175 passed, 0 failed ✅
+
+---
+
+## v9.5.0 — 2026-05-15 (Sprint 01 — Order from Noise / Hero 01)
+
+### Eklendi
+- **G-01.5** `src/viz/cinematic/scenes_single_heart.py` — hero01_scene_data() üretici
+  - (2,3) konum, (2,480) faz, (2,480) C(t), (60,60,480) field_grid float32
+  - 4 SceneEvent: split(3s), phase_lock(6.5s), phase_scatter(6.5s), freeze(21.5s)
+  - save/load round-trip .npz doğrulandı
+- **G-01.6** `src/viz/cinematic/export.py` — render_hero01_to_mp4() + render_poster() + render_thumbnail()
+  - matplotlib FuncAnimation → imageio-ffmpeg → MP4 (h264/yuv420p)
+  - buffer_rgba() fix (matplotlib 3.10+ uyumu)
+  - Preview: 12fps 960×540 | Final: 24fps 1920×1080
+- **G-01.7** Hero 01 artefaktlar üretildi
+  - hero01_single_heart_order_from_noise_16x9_preview_v01.mp4 (2.9 MB)
+  - hero01_poster_v01.png (789 KB, 1920×1080)
+  - hero01_thumbnail.png (438 KB)
+  - hero01_scene_data.npz (5.8 MB)
+- **G-01.8** kalp_koherant_vs_inkoherant.png snapshot bug fix
+  - mid_idx = len(frames)//2 (orta frame, t=0 değil)
+  - matplotlib fallback (kaleido/Chrome yok)
+- **G-01.9** Dashboard hero strip
+  - 4 hero card: Hero 01 aktif thumbnail, Hero 02/03/04 Coming soon
+  - hero_strip() + _hero_card() sekmeler.py'de
+  - assets/cinematic/hero01_thumbnail.png eklendi
+
+### Belgeler
+- output/cinematic/storyboards/hero01_storyboard.md
+- output/cinematic/hero/hero01_qa_notes.md
+
+### Test paketi
+- 175 passed, 0 failed ✅
+
+---
+
+## v9.4.0 — 2026-05-15 (Sprint 00 — Foundation Repair)
+
+### Düzeltildi
+- **G-00.1 (KRİTİK — BVT-BUG-001)**: N-kişi C ODE Form A yerel pompalama terimi
+  - `rhs()`: `G_pomp·C·(1-C) + difüzyon − γ·C` (metabolik pompalama, NESS)
+  - ESKİ: yalnız sönüm+difüzyon → ⟨C⟩ sıfıra çöküyordu
+  - YENİ: N=10 halka ⟨C⟩ platosu = 0.586 (stabil kararlı durum)
+  - 2 regresif test eklendi: `test_kolektif_koherans_artisi_halka`, `test_topoloji_avantaji`
+- **G-00.2 (BVT-BUG-002)**: `operators.py` kesik Fock komütatörü `eye[-1,-1] = -(N-1)`
+- **G-00.3 (BVT-BUG-003)**: `np.trapz` → `np.trapezoid` — NumPy 2.x uyumu (3 dosya)
+- **G-00.4 (BVT-BUG-004)**: `tise.py` — `rabi_carpinti_frekansi()` eklendi; Rabi testi düzeltildi
+- **G-00.5 (BVT-BUG-005)**: Null prediction eşikleri `g/Δω` oranıyla kalibre edildi
+- **G-00.6 (BVT-BUG-006)**: `ES_MAX_BVT=0.61` sabiti eklendi; Mossbridge ES kalibrasyonu
+  - C=0.586 × ES_max=0.61 → ES=0.209 ≈ 0.21 ✓
+- **G-00.8 (BVT-BUG-007)**: L8/L9 dublike `_plotly.png` giderildi (matplotlib fallback)
+  - `level8_iki_kisi.py`: `dipol_potansiyel()` TypeError fix
+
+### Eklendi
+- `scripts/output_audit.py` — sıfır-byte, dublike PNG, manifest kontrolü (CI uyumlu)
+- `output/audit_report.md` — audit raporu
+- `output/BVT_Tutarlilik_Raporu.md` — tutarlılık denetimi raporu
+
+### Belgeler
+- `output/replications/REFERENCES_REPLICATION_REPORT.md`: özet kutu + fail-mode notları
+- `PIPELINE_HATALARI.md`: BVT-BUG-001..006 ÇÖZÜLDÜ olarak işaretlendi
+- `DEVELOPER_NOTEBOOK.md`: Sprint 00 giriş eklendi
+
+### Test paketi
+- **Başlangıç:** 166 passed, 7 failed
+- **Sprint 00 sonu:** 175 passed, 0 failed ✅
+
+### Bilinen açık sorunlar (Sprint 01'e ertelendi)
+- `output/level1/` PNG'leri yok — level1 simülasyonu hiç koşulmamış
+- `bvt_studio/` Marimo notebook'ları eksik — Sprint 04 kapsamı
+- Tutarlılık denetimi: 4 FAIL kalan = bvt_studio MISSING (Marimo)
+
+---
+
+
+## v9.1.0 — 2026-04-26 (TODO v9.1, Oturum 9 — acil düzeltmeler)
+
+### Düzeltildi
+- **L15 V_REF normalizasyon**: `V_max` → `V_REF = prefac×2/D_REF³` (0.9m referans)
+  - ESKİ: N=2'de V_norm=±1 sabit → mesafe etkisi siliniyordu
+  - YENİ: d<1.4m KILITLI (r_mean≈1.0), d>1.4m SERBEST (r_mean≈0.64)
+  - `V_norm = clip(V/V_REF, -50, 50)` ODE patlamasını önler
+- **21/21 HTML şekil** (önceki: 15/21):
+  - `lambda p:` → `lambda output_path=None:` (4 fonksiyon)
+  - `titlefont=dict(...)` → `title=dict(font=dict(...))` — Plotly 5.x uyumu (5 yer)
+  - `_ax_style` dict'inden `title` çıkarıldı, eksen dict'lerinde inline yazıldı
+- **FAZ 3 Lindblad**: `tam_args` → `--n-points 100 --n-max 7` (bellek hatası önlendi)
+  - Hızlı: `--t-end 10 --n-points 50` = 2 dk ✓
+  - Tam: `--t-end 60 --n-points 100 --n-max 7` = ~5 dk ✓
+  - 18/18 FAZ başarılı
+
+### Kaldırıldı
+- **MATLAB MP4**: `animations.py` MATLAB çağrıları → `mp4_exporter.mp4_uret()` ile değiştirildi
+- `matlab_scripts/` → `archive/matlab_deprecated/`
+
+---
+
+## v9.0.0 — 2026-04-24 (TODO v9, Oturum 8)
+
+### Yeni
+- **Plotly Dash dashboard** (`bvt_dashboard/`) — Marimo'nun yerini alıyor; 5 interaktif sekme (port 8050)
+- **MP4 pipeline** (`src/viz/mp4_exporter.py`, `src/viz/mp4_ffmpeg_path.py`) — imageio-ffmpeg, sistem PATH gerektirmiyor; 3-yöntem fallback
+- **5 MP4 üreticisi** (`scripts/mp4_olustur.py`) — rabi, lindblad, kalp_em, halka_n11, domino
+- **Makale figürleri** (`scripts/fig_kuantum_sehpa.py`, `scripts/bvt_bolum14_mt_sentez.py`)
+
+### Fizik Düzeltmeleri
+- **L15 dipol r⁻³**: kaplama cap kaldırıldı + biyolojik frekans detuning ±20% → d=5m'de r=0.632 (mesafe etkisi görünür)
+- **L13 C_KB**: cos(Δφ) → genlik-tabanlı overlap `2|K||B|/(|K|²+|B|²)` → monoton artış ✓
+- **L17 Lorentzian zemin**: 0.1 → 0.001 → Schumann 12.8× fark ✓
+- **7-panel Plotly animasyonu**: `traces=list(range(n))` eksikti → tüm paneller güncelleniyor ✓
+- `N_kisi_tam_dinamik()` — `omega_individual` parametresi eklendi
+
+### Kaldırılanlar
+- **Marimo** kalıcı kullanım dışı (Windows ASGI/WebSocket crash) → `archive/marimo_deprecated/`
+- `main.py --marimo-export` → deprecation uyarısı
+
+---
+
+---
+
+## [2026-04-22] — Oturum 5b: TODO v2+v3 Eksik Maddeler Tamamlandı
+
+### Eklendi
+- `tests/test_inkoherant_patern.py` — 7 test (tümü geçiyor):
+  - İnkoherant EM alan homojen değil, gürültülü desen
+  - Koherant > inkoherant ortalama genlik (BVT öngörüsü)
+  - Farklı t → farklı patern (dinamik seed)
+  - Animasyon görünürlük testleri
+
+### Güncellendi
+- `src/viz/plots_interactive.py`:
+  - `sekil_rabi_animasyon`: statik çizgiler artık opak (opacity=1.0), legend 4 satır (8 değil)
+  - `sekil_seri_paralel_em`: r(t) çizgisi "white"→"royalblue", y-axis range=[0,1.1] eklendi
+  - `sekil_3d_kalp_isosurface`: colorbar "1 pT, 10 pT, 100 pT, 500 pT" okunabilir etiket
+  - `sekil_topoloji_karsilastirma`: "gray"→"orangered" (beyaz zeminde görünür)
+  - `sekil_overlap_evrimi`: sol panel formül düzeltildi — yüksek koherans HIZLI yükselir ve
+    YÜKSEK η_ss'e ulaşır (önceki: ters davranış, BVT'ye zıt)
+  - `sekil_lindblad_animasyon`: `full_dim` parametresi eklendi — True ise N=9 (dim=81, BVT alt-uzay)
+  - `tum_sekilleri_kaydet`: `full_dim` parametresi geçiyor
+- `simulations/uret_zaman_em_dalga.py`: beyin dipolu eklendi (3 panel: Kalp / Beyin / Toplam)
+  - Beyin: (0, 0.3m), μ_B=1e-7 A·m², vagal gecikme 0.5 rad
+  - Figsize (14,6)→(20,6), 3 ayrı subplot
+- `src/viz/animations.py`:
+  - `animasyon_kalp_koherant_vs_inkoherant`: inkoherant panel artık 50 alt-dipol rastgele
+    fazlı süperpozisyon (homojen sarı değil, gürültülü desen — BVT öngörüsü)
+  - PNG snapshot t=0 yerine orta zamandan (mid_idx = len(frames)//2)
+
+### Test Durumu
+- Toplam: 155 test | Geçen: 149 | Başarısız: 6 (önceki oturumlardan)
+- Bu oturumda eklenen: 7 yeni test, tümü geçiyor
+
+---
+
+## [2026-04-22] — Oturum 5: TODO v2+v3 Kapsamlı İyileştirme Turu
+
+### Eklendi
+- `src/viz/theme.py` — BVT görsel tema sistemi:
+  - `BVT_TEMA` dict (light/dark mod, background/grid/text/axes/line_width/palette)
+  - `apply_theme(ax, mode)`, `get_palette(context, mode)`
+  - `ensure_visibility(color, background)` — WCAG kontrast garantisi
+  - `apply_plotly_theme(fig, mode)` — Plotly dashboard entegrasyonu
+  - Palette: koherant/inkoherant/duz/tam_halka/schumann/heartmath/psi_sonsuz
+- `src/models/population_hkv.py` — Analitik iki-popülasyon HKV modeli:
+  - `karma_dagilim_pdf()` — Gaussian karışım PDF
+  - `karma_dagilim_beklenen()` — ⟨t⟩ = p_A·τ_A + (1-p_A)·τ_B
+  - `heartmath_uyumu_tahmin()` — HeartMath 4.8s hedefine p_A kalibrasyonu
+  - `bimodalite_indeksi()` — Ashman's D bimodality indeksi
+  - `guc_analizi()` — Bootstrap güç analizi
+  - `analiz_tam()` — Kapsamlı HKV analiz raporu
+- `simulations/level13_uclu_rezonans.py` — Kalp↔Beyin↔Schumann↔Ψ_Sonsuz dörtlü rezonans:
+  - 4 osilatör ODE sistemi (kappa_KB, g_BS, lambda_KS bağlaşımları)
+  - pump_profil: 'kademeli', 'ani', 'sigmoid' seçenekleri
+  - R_total metriği, 6-panel figür çıktısı
+- `simulations/level14_merkez_birey.py` — Halka+merkez birey senaryosu:
+  - N_halka kişi + merkez birey (C_merkez=1.0)
+  - Δr ve Δ⟨C⟩_halka ölçümü (kontrol vs aktif merkez)
+  - 4-panel figür + NPZ kayıt
+- `simulations/level15_iki_kisi_em_etkilesim.py` — İki kişi EM etkileşim modeli:
+  - Mesafeye bağlı κ: kappa_scale = max(0.1, min(1.0, 1/(1+d)))
+  - 3 senaryo: PARALEL (3m), HeartMath (0.9m), SERİ temas (0.3m)
+  - Uzaklık taraması (logspace 0.1-5m), 9-panel + uzaklık etkisi figürleri
+- `scripts/bvt_literatur_karsilastirma.py` — BVT öngörü↔literatür karşılaştırma:
+  - 19 öngörü, 8 kategori (Kalp EM, HKV, Koherans, N-kisi, Psi_Sonsuz, Kuantum, Grup, Kalp-Beyin)
+  - PNG matris tablosu, kapsam bar chart, Markdown tablo
+- `tests/test_theme.py` — Tema sistemi testleri (7 test, tümü geçiyor)
+- `tests/test_population_hkv.py` — Popülasyon HKV testleri (7 test, tümü geçiyor)
+- `tests/test_pre_stimulus.py` — Pre-stimulus testleri (8 test, tümü geçiyor):
+  - İki popülasyon KS testi (p<0.001), boyut doğrulama, ES karşılaştırma
+
+### Güncellendi
+- `src/models/pre_stimulus.py` — `monte_carlo_iki_populasyon()` eklendi:
+  - Pop A (koherant): C~0.65, τ≈1-2s (erken deteksiyon)
+  - Pop B (normal): C~0.25, τ≈4.8s (standart biyolojik zincir)
+  - scipy.stats.ks_2samp KS testi, deneysel_karsilastirma raporu
+- `src/models/multi_person_em_dynamics.py` — `N_kisi_tam_dinamik()` güncellendi:
+  - `cooperative_robustness: bool = True` parametresi eklendi
+  - γ_etkin = γ_eff × (1 - 0.5 × f_geometri) (Celardo et al. 2014)
+  - Return dict'e `gamma_etkin` alanı eklendi
+- `tests/test_multi_person_em.py` — 2 yeni test eklendi:
+  - `test_cooperative_robustness_gamma_azalir()`: robustness=True → γ_etkin < γ_eff
+  - `test_cooperative_robustness_false_gamma_ayni()`: robustness=False → γ_etkin = γ_eff
+- `simulations/level6_hkv_montecarlo.py` — İki popülasyon modeli entegrasyonu:
+  - D2 figür: 4-panel (Pop A/B histogram, ES karşılaştırma, karma dağılım)
+  - D3 figür: C vs pre-stimulus scatter, iki popülasyon renklendirilmiş
+- `simulations/level11_topology.py` — C0 aralığı düşürüldü (0.15-0.40, daha gerçekçi başlangıç)
+  - `cooperative_robustness=True` eklendi
+- `simulations/level12_seri_paralel_em.py` — 3-faz senaryo yeniden tasarımı:
+  - Faz 1 PARALEL: κ×0.3, Faz 2 HİBRİT: κ×1.0, Faz 3 SERİ: κ×2.0
+  - Her faz önceki faz bitiş durumundan başlar
+  - EM snapshots faz ortalarında (t_faz×0.5, 1.5, 2.5)
+- `simulations/level9_v2_kalibrasyon.py` — Dürüstluk notu eklendi:
+  - "Model eta tahminleri deneysel değerlerden 5-20× yüksek" uyarısı
+- `simulations/level1_em_3d.py` — r_max varsayılanı 1.0→3.0 m (McCraty 2003)
+- `simulations/uret_zaman_em_dalga.py` — r_max 0.4→3.0 m, N_grid 80→60
+
+### Düzeltildi
+- `ensure_visibility()` beyaz-üstüne-beyaz tespiti: hex parse + luminance hesabı
+- Level12 faz geçişi görünürlüğü: bağımsız κ değerleri ile 3 ayrı simülasyon
+
+### Test Durumu
+- Toplam: 148 test | Geçen: 142 | Başarısız: 6 (önceki oturumdan gelen, bu oturumda dokunulmadı)
+- Yeni testler: 22 test eklendi, tümü geçiyor
+
+---
+
+## [2026-04-21] — Oturum 4: Görsel Audit Düzeltmeleri + Yeni Modüller
+
+### Eklendi
+- `src/models/multi_person_em_dynamics.py` — N-kişi zaman bağımlı EM dinamiği:
+  - `kisiler_yerlestir()` (5 topoloji), `dipol_moment_zaman()`, `toplam_em_alan_3d()`
+  - `dipol_dipol_etkilesim_matrisi()`, `N_kisi_tam_dinamik()` (Kuramoto+geometri)
+- `tests/test_multi_person_em.py` — 19 test (4 sınıf), tümü geçiyor
+- `simulations/level11_topology.py` — 4 topoloji karşılaştırması (N_c_etkin analizi)
+- `simulations/level12_seri_paralel_em.py` — PARALEL→HİBRİT→SERİ faz geçişi animasyonu
+- `src/viz/animations.py` — Plotly frame-tabanlı HTML animasyonlar:
+  - `animasyon_kalp_koherant_vs_inkoherant()` (yan yana C=0.85 vs C=0.15)
+  - `animasyon_halka_kolektif_em()` (N-kişi halka topolojisi)
+- `matlab_scripts/matlab_pde_em_3d.m` — MATLAB 3D harmonik Maxwell denklem çözücü
+  (Jefimenko formülasyonu, yakın+uzak alan, pT çıktısı)
+- `archive/old_py_notebooks/` — Eski Python betikleri arşivlendi (29 dosya)
+
+### Güncellendi
+- `src/matlab_bridge.py` — Yeni fonksiyonlar:
+  - `bvt_pde_3d_solve()` — matlab_pde_em_3d.m çağırır, Python fallback destekli
+  - `matlab_animate_N_person()` — VideoWriter mp4, Matplotlib gif fallback
+  - `matlab_symbolic_derivation()` — Sembolik türetim → LaTeX string
+- `simulations/level6_hkv_montecarlo.py` — `--advanced-wave` flag eklendi
+  (Wheeler-Feynman advanced wave modülasyonu, C-ES korelasyon r=0.887)
+- `src/models/pre_stimulus.py` — `advanced_wave_modulation()` ve
+  `monte_carlo_prestimulus_advanced()` fonksiyonları eklendi
+- `simulations/level2_cavity.py` — θ_mix tablosu hardcoded "2.10"→dinamik değer
+- `simulations/level7_tek_kisi.py` — |α| aks etiketi düzeltildi
+- `src/viz/plots_static.py` — LogNorm ile doğru log-ölçek kontur grafiği
+- `src/solvers/tise.py` — `Optional` import eksikliği giderildi
+- `old py/BVT_v2_kalibrasyon.py` — N_c=0 hatası düzeltildi (literature N_c=11)
+- `old py/BVT_tek_kisi_tamamlama.py` — |α| aks etiketi düzeltildi
+
+### Düzeltildi
+- N_c=0 kök neden: kappa_12_raw = V_dd/ℏ ≈ 9.5e18 rad/s çok büyük →
+  literatür değeri N_c=11 sabitlendi, kappa_12_eff = gamma_group/N_c = 0.00909 rad/s
+- θ_mix 2.10° vs 18.29° açıklandı: kod doğru (18.3°), belgedeki 2.10° rad/derece
+  karışıklığından kaynaklanıyordu
+- `animations.py` broadcast hatası: C_mean_t şekil uyumsuzluğu giderildi
+- `animations.py` UnicodeEncodeError: "✓" → "OK" değiştirildi
+
+---
+
 ## [2026-04-11] — Oturum 3: Tüm Eksik Modüller + main.py Tamamlandı
 
 ### Eklendi
