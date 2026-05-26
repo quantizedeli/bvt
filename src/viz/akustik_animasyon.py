@@ -292,7 +292,9 @@ def render_a5_heart_dipole(
 
     def update(frame):
         t_idx = idx_seq[frame]
-        ax_dipole.collections.clear()
+        # MPL 3.7+ uyumlu: ArtistList.clear() yok, manuel remove (quiver 3D için)
+        for artist in list(ax_dipole.collections):
+            artist.remove()
         mu_now = float(mu[t_idx] / mu_mean)
         ax_dipole.quiver(
             0, 0, 0, 0, 0, mu_now, color="red",
