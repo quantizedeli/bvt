@@ -152,6 +152,35 @@
 | **Geri-dönüş tetikleyici** | Sprint 08 S1 (plateau bug fix) — Sprint 07 S0'ın follow-up'ı; tam 5-farklı-değer hedefi için |
 | **Riski azaltan** | Mevcut %21.6 varyasyon Sprint 07 hedefini karşılıyor; D-012 fine-tuning, blocking değil |
 
+### D-013 — Sprint 08 S2 L6 NMM α-band kalibrasyon (sıralama ters)
+
+| | |
+|---|---|
+| **Karar başlığı** | JR-NMM ile NREM/REM/Uyanık α-band güç ters sıralı |
+| **Seçilen (Sprint 08 S2 PoC)** | `scripts/level6_nmm_upgrade.py` — JR-NMM 3 senaryo demo. Mevcut JR parametre seti (`JR_AE=3.25, JR_AI=22.0`) ve I_p kalibrasyonu ile Uyanık < REM > NREM (beklenen Uyanık > REM > NREM). |
+| **Kök neden** | JR-NMM sigmoid_jr(v_0=6 mV) lineer-olmayan davranış: yüksek I_p (Uyanık 150-220) saturasyona gidiyor → AC çıkışı sönümleniyor. REM (135) sigmoid'in yarı doğrusal kısmında — en duyarlı. Literatür JR parametre setleri (David-Friston, Coombes-Lord) farklı kalibrasyon yapar. |
+| **Ertelenen (Sprint 09'a)** | (a) JR parametre seti revizyonu: David-Friston veya Coombes-Lord uyumu; (b) Alternatif: 2-popülasyon Wendling NMM (alpha-tuned); (c) Veya literatür I_p aralığı 110-150 üzerinde ek tarama (varyans değişimi α gücünü değiştirir) |
+| **Geri-dönüş tetikleyici** | L6 makale §6 revizyonu için BVT'nin pre-stimulus α-band tahmini fiziksel temele oturtulmalıysa |
+| **Riski azaltan** | S2 sadece PoC — mevcut L6 (level6_hkv_montecarlo.py) DOKUNULMADI, C-ES istatistiği korunuyor. Bug sadece scripts/level6_nmm_upgrade.py demo'sunda. |
+
+### D-014 — Sprint 08 S5 HRV C_kalp_t → mu_kalp_t fix (KISMEN kapandı)
+
+| | |
+|---|---|
+| **Karar başlığı** | HRV metrikleri yanlış sinyalden hesaplanıyordu |
+| **Tespit** | Sprint 08 S5 (sure_dakika=1.0) koşumunda LF/HF=0 görüldü. Sebep: `hrv_metrikleri_uret(C_kalp_t)` çağrılıyordu ama C_kalp_t ses freq (7.83+ Hz) baskın, HRV bandı (0.04-0.4 Hz) boş. |
+| **Fix (kısmen yapıldı)** | `kalp_akustik.py:99` → `hrv_metrikleri_uret(mu_kalp_t, fs)`. mu_kalp_t F_HEART=0.1 Hz sin modülasyonu içerir → LF görünür (0.000325 ölçüldü). |
+| **Kalan sorun → D-015** | mu_kalp_t basit 0.1 Hz sin → HF bandı (0.15-0.4) tamamen boş → LF/HF oranı anlamsız (HF~0 division). Gerçek HRV: RR-interval series, multi-band içerir. |
+
+### D-015 — Gerçek HRV modeli (RR-interval) gerekli (Sprint 09 hedefi)
+
+| | |
+|---|---|
+| **Karar başlığı** | Anlamlı LF/HF için gerçek RR-interval modeli |
+| **Mevcut (yetersiz)** | mu_kalp_t = MU_HEART · (1 + 0.5·f_C·sin(2π·F_HEART·t)) — tek-frekanslı |
+| **Ertelenen (Sprint 09'a)** | RR-interval series üretmek: (a) Sinüs ritmi (60 BPM ortalama) + (b) HRV variability (RSA respiratorik sinüs aritmisi + Mayer wave 0.1 Hz LF) + (c) Akustik forsing'in RR'a etkisi (vagal cevap modeli). Sonra welch RR'a uygulanır → LF/HF anlamlı. |
+| **Geri-dönüş tetikleyici** | BVT pre-stimulus + HRV koherans makale revizyonu için gerçek HRV ölçüm |
+
 ---
 
 ## Otomatik kayıt protokolü

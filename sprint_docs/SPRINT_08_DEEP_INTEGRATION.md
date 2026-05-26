@@ -1,12 +1,28 @@
-# Sprint 08 — FAZ G Deep Integration + Plateau Fine-Tuning
+# Sprint 08 — FAZ G Deep Integration + Plateau Fine-Tuning (KAPALI v9.6)
 
-> **Sprint 07 sonrası açılır.** D-011 (S3-S5 deep integration L6/L7/L8) ve
-> D-012 (plateau fix) ana hedefler. D-009 TRUBA validation isteğe bağlı.
+> **Sprint 07 sonrası açıldı, 2026-05-26'da kapatıldı.**
+> S1 ✅, S2/S5 PoC (bilim bulguları → Sprint 09), S3/S4/S6 → Sprint 09.
 
-**Tarih (planlanan):** 2026-05-26 sonrası
-**Süre tahmini:** 5-7 gün
+**Tarih:** 2026-05-26 (tek oturum)
 **Tip:** Deep integration + scientific fine-tuning sprint
-**Tag (hedef):** `v9.6-sprint_08`
+**Tag:** `v9.6-sprint_08`
+
+## Kapanış Özeti
+
+| Hedef | Durum | Çıktı |
+|---|---|---|
+| **S1** D-012 plateau fix | ✅ **TAM** | `_freq_band_gain()`, %60.5 varyasyon, Tibet gamma_mt güçlendi |
+| **S2** D-011a L6 NMM | ⚠️ **PoC partial** | `scripts/level6_nmm_upgrade.py`, α-band sıralama ters → D-013 Sprint 09 |
+| S3 D-011b L7 HEP | ⏳ Sprint 09 | (Sprint 07 PoC `spillover_S3_S5_demo.py` mevcut) |
+| S4 D-011c L8 K_t | ⏳ Sprint 09 | (Sprint 07 PoC mevcut) |
+| **S5** HRV anlamlı | ⚠️ **partial** | HRV `mu_kalp_t`'den hesaplanıyor (fix), LF/HF=0.000325 görüldü ama HF~0 → D-015 Sprint 09 |
+| S6 TRUBA submission | ⏳ Sprint 09 | (taslak Sprint 07'de) |
+
+## Yeni DEFERRED (Sprint 09'a)
+
+- **D-013** JR-NMM kalibrasyon (David-Friston/Coombes parametre seti)
+- **D-014** HRV C_kalp_t→mu_kalp_t fix (kısmen kapandı, kalan D-015)
+- **D-015** Gerçek HRV modeli — RR-interval series + multi-band
 
 **Önkoşul (Sprint 07'den):**
 - `v9.5-sprint_07` tag'i atılı ✓

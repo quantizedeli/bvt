@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Proje:** Birliğin Varlığı Teoremi (BVT) / Theorem of the Unity of Existence  
 **Yazar:** Ahmet Kemal Acar | **Güncelleme:** Mayıs 2026  
-**Durum:** v9.5 — Sprint 07 FAZ G Spillover KAPALI (D-010 v4 doğrulandı, %21.6 varyasyon); Sprint 08 başlıyor
+**Durum:** v9.6 — Sprint 08 Deep Integration KAPALI (S1 D-012 %60 varyasyon + S2/S5 bilim bulguları); Sprint 09 hedefleri: D-013/D-014/D-015
 
 **Bu CLAUDE.md ile birlikte oku:**
 1. **`sprint_docs/`** — 9 sprint dökümanı (analiz raporu + Sprint 00-04 + 4 checklist)
@@ -68,6 +68,20 @@ kavramlarının kuantum mekaniksel karşılığını kurar.
 - **Plateau bulgusu (Sprint 08 fine-tuning):** 4 enstrüman 0.10'da plateau,
   sadece Tibet unique → Sprint 08 D-012 (clip range veya K_eff frekans-bağımlı).
 - DEFERRED: D-001..D-012 (D-010 kapandı, D-009/D-011/D-012 Sprint 08'de)
+
+**v9.6 — Sprint 08 Deep Integration (Mayıs 2026, KAPALI):**
+- **S1 D-012 plateau fix:** `_freq_band_gain()` literatür band gain (Landry 73Hz 1.4×).
+  5/5 enstrüman koşum: **%60.5 varyasyon** (hedef %40 — 1.5× geçildi).
+  Tibet 0.17178 unique güçlendi (gamma_mt). 4 unique değer (Tanpura+Kudum aynı band).
+- **S2 D-011a L6 NMM PoC:** `scripts/level6_nmm_upgrade.py` Jansen-Rit ile
+  NREM/REM/Uyanık α-band güç hesabı. **PARTIAL:** α-band sıralama beklenenin
+  tersi (sigmoid_jr saturasyon kalibrasyon problemi). **D-013** Sprint 09'a.
+- **S5 HRV anlamlı koşum (sure_dakika=1.0):** `hrv_metrikleri_uret(mu_kalp_t)`
+  fix (önceden C_kalp_t kullanılıyordu, HRV bandı boştu). LF/HF=0.000325
+  görüldü ama HF~0 → gerçek RR-interval modeli gerekiyor. **D-014** kısmen kapandı,
+  **D-015** Sprint 09'a (RR-interval series, multi-band HRV).
+- S3 (L7 HEP), S4 (L8 K_t), S6 (TRUBA) → Sprint 09 (D-011b, D-011c, D-009)
+- DEFERRED: D-001..D-015 yeni D-013/D-014/D-015 Sprint 09'a
 
 **v9.4 plan (Mayıs 2026 — sprint dökümanları aktif):**
 - QA raporu (`output/QA_REPORT_2026-05-15.md`): 7 fail test, 5/13 replikasyon, görsel anomali

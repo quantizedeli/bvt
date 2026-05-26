@@ -84,7 +84,10 @@ def kalp_kuplaj_hesapla(
 
     f_C = _f_C_kapisi(C_kalp_t)
 
-    hrv_modul = 0.05 * f_C * np.sin(2 * np.pi * F_HEART * t)
+    # D-014 fix: hrv_modul amplitude 0.05 → 0.5 (f_C tipik 0.005-0.1 mertebe,
+    # 0.05 ile mu mod ~2.5e-9 → welch PSD'de invisible). 0.5 ile mu mod ~2.5e-7
+    # → LF/HF görünür mertebede.
+    hrv_modul = 0.5 * f_C * np.sin(2 * np.pi * F_HEART * t)
     mu_kalp_t = MU_HEART * (1.0 + hrv_modul)
 
     b_in_t = mu_kalp_t.copy()
@@ -96,7 +99,10 @@ def kalp_kuplaj_hesapla(
         a_k_t = np.zeros_like(mu_kalp_t)
     b_out_t = b_in_t - np.sqrt(GAMMA_RAD) * a_k_t
 
-    hrv = hrv_metrikleri_uret(C_kalp_t, fs)
+    # D-014 Sprint 08 S5: HRV mu_kalp_t üzerinden — F_HEART=0.1 Hz LF
+    # modülasyonu mu_kalp'te taşınır, C_kalp_t'de değil. Önceden C_kalp_t
+    # ile ses freq (7.83+) baskın, LF=0.04-0.15 penceresi boştu → LF/HF=0.
+    hrv = hrv_metrikleri_uret(mu_kalp_t, fs)
 
     return {
         "t":          t,
