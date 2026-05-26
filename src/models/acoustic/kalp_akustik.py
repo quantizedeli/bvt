@@ -40,16 +40,15 @@ def kalp_kuplaj_hesapla(
     nt = len(p_kalp_t)
     t = np.arange(nt) / fs
 
-    # D-010 fix v2: p_kalp_t normalize edilir, K_kalp katsayı olarak kalır.
-    # FDTD damping ile p_kalp_t mertebesi 1-10 μPa'ya düşüyor — mutlak ölçek
-    # anlamsız, normalize akustik forsing daha doğru bilim.
-    # delta_C = K_kalp_scaled · p_normalize ∈ [-0.5, +0.5] aralığında modülasyon.
-    p_max = np.max(np.abs(p_kalp_t)) + 1e-30
-    p_kalp_norm = p_kalp_t / p_max   # [-1, +1]
-    # Effective K: kalp_akustik için 0.5 amplitude (BVT C_THRESHOLD üstüne çıkar)
-    K_eff = K_kalp * 6.25e8   # 0.8e-9 · 6.25e8 = 0.5
+    # D-010 fix v4: DC offset removal (5 enstrümanın 4'ü v3'te 0.10 plateau).
+    # FDTD damping + ABC reflection p_kalp_t'yi sadece pozitif yarıya itiyor.
+    # AC bileşen (centered) ile gerçek osilasyon görünür → frekansa duyarlılık.
+    p_centered = p_kalp_t - np.mean(p_kalp_t)
+    p_max = np.max(np.abs(p_centered)) + 1e-30
+    p_kalp_norm = p_centered / p_max   # gerçek AC ∈ [-1, +1]
+    K_eff = K_kalp * 1.25e8   # 0.1 amplitude
     delta_C = K_eff * p_kalp_norm
-    C_kalp_t = C_baseline + np.clip(delta_C, -0.3, 0.3)
+    C_kalp_t = C_baseline + np.clip(delta_C, -0.15, 0.15)
 
     f_C = _f_C_kapisi(C_kalp_t)
 
