@@ -86,6 +86,18 @@
 | **Geri-dönüş tetikleyici** | Yayın/podcast amaçlı sinematik PR kalitesi; akademik konferans sunumu video gereksinimi; Sprint 04 Hero 05 benzeri özel sinematik talep |
 | **Not** | Matplotlib + FFmpeg yeterince temiz video üretiyor (Sprint 01-04 kanıtladı) |
 
+### D-008 — k-Wave-python CPU runtime infeasibility (2026-05-26 keşfi)
+
+| | |
+|---|---|
+| **Karar başlığı** | FDTD çözücü implementasyonu |
+| **Seçilen** | Saf NumPy FDTD (ev yapımı, ~200 satır, leap-frog scheme) — `src/models/acoustic/dalga_pde.py` |
+| **Ertelenen** | k-Wave-python 0.6.2 wrapper kullanımı (ki Task 1'de kurulmuştu) |
+| **Erteleme nedeni** | k-Wave-python 0.6.x Python port'u CPU-only ve henüz olgunlaşmamış. Sprint 06 Task 5'te ampirik bulgu: 80×80×100 grid + CFL kısıtı → ~15 saat/tek-koşum (Windows i7, 8 core). MATLAB binary backend (`kspaceFirstOrder3DC`) tetiklenmiyor veya etkisiz. 22 enstrüman × 15 saat = 14 gün — kullanılamaz. NumPy FDTD aynı fizik denklemini ~50× daha hızlı çözer (CPU vektörizasyonla). |
+| **Geri-dönüş tetikleyici** | (1) k-Wave-python 1.0+ sürümü çıkıp Windows CPU desteği olgunlaşırsa, (2) Proje sahibi Linux+CUDA GPU edinirse (k-Wave GPU implementasyonu ~100× hızlanma), (3) MATLAB lisansı + kspaceFirstOrder3DC binary çalışırsa, (4) Heterojen ortamda PML/CFL doğru implementasyonu için k-Wave gerekiyorsa (NumPy FDTD basit ABC kullanır) |
+| **Riski azaltan** | NumPy FDTD literatür standartında (leap-frog 2nd-order central differences). Heterojen ρ, c desteklenir. Source injection + 25 sensör kayıt aynı. PML yerine basit damping ABC (kabul edilebilir doğruluk). Grid 32×32×40'a indirildi (HEAD_GRID_DEFAULT) — 80³ "deferred high-res" modu olarak DEFERRED'da bekler. |
+| **Etkilenen** | `requirements.txt` (k-Wave-python>=0.6 kalır ama opsiyonel hale gelir), `constants.py` HEAD_GRID_DEFAULT (80,80,100)→(32,32,40), Task 5 spec, slow test runtime budget |
+
 ---
 
 ## Otomatik kayıt protokolü

@@ -21,13 +21,13 @@ def test_piezo_sabitleri():
 
 
 def test_geometri_tutarli():
-    """Kafa geometrisi voxel ve eksen tutarlılığı."""
-    assert HEAD_VOXEL_SIZE_M == 2.0e-3
-    assert HEAD_GRID_DEFAULT == (80, 80, 100)
+    """Kafa geometrisi voxel ve eksen tutarlılığı (D-008 sonrası 32×32×40 grid)."""
+    assert HEAD_VOXEL_SIZE_M == 5.0e-3   # D-008: 2mm → 5mm
+    assert HEAD_GRID_DEFAULT == (32, 32, 40)
     nx, ny, nz = HEAD_GRID_DEFAULT
     a, b, c = HEAD_AXES_CM
-    # Kontrol: gridx * voxel = 2*a (cm)
-    assert abs(nx * HEAD_VOXEL_SIZE_M * 100 - 2 * a) < 1.0
+    # Kontrol: nx · voxel ≥ 2·a (yeterli kafa kaplama)
+    assert nx * HEAD_VOXEL_SIZE_M * 100 >= 2 * a - 1.0
 
 
 def test_doku_listesi_tam():

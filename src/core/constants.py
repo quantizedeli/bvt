@@ -270,8 +270,12 @@ E33_BONE:   Final[float]  = 0.027    # C/m^2, Fukada-Yasuda 1957
 EPS_S_BONE: Final[float]  = 8.0e-11  # F/m, sabit gerinim dielektrik
 
 # Kafa geometrisi
-HEAD_VOXEL_SIZE_M: Final[float] = 2.0e-3
-HEAD_GRID_DEFAULT: Final[tuple]  = (80, 80, 100)
+# NOT (D-008): HEAD_GRID_DEFAULT 32×32×40'a düşürüldü — saf NumPy FDTD CPU runtime için.
+# Voxel boyutu 5 mm'ye yükseldi (eski 2 mm). Yarıçaplar (eksen_cm) aynı kaldı.
+# k-Wave/GPU geldiğinde HEAD_GRID_HIGH_RES (80×80×100) opsiyonel olarak kullanılır.
+HEAD_VOXEL_SIZE_M: Final[float] = 5.0e-3
+HEAD_GRID_DEFAULT: Final[tuple]  = (32, 32, 40)
+HEAD_GRID_HIGH_RES: Final[tuple] = (80, 80, 100)   # D-008 deferred
 HEAD_AXES_CM: Final[tuple]       = (8.0, 8.0, 10.0)
 
 # Doku özellikleri — (rho kg/m^3, c m/s, sigma S/m)
