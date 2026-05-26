@@ -111,6 +111,18 @@
 | **Tahmini TRUBA süresi** | Single node CPU 32 core × 22 enstrüman × ~1 saat = 22 saat. GPU node varsa ~2-4 saat. (Yerel NumPy CPU: aynı 22 enstrüman × 5 dk = 1.8 saat — yerel zaten makul, ama 80³ HIGH_RES çok büyük.) |
 | **Riski azaltan** | Mevcut 32×32×40 sonuçları bilim kanıtı için yeterli; TRUBA "uzun-vade gelecek" planı, blocking değil |
 
+### D-010 — Frekans-bağımsız metrikler bug'ı (2026-05-26 top5 koşum bulgusu)
+
+| | |
+|---|---|
+| **Karar başlığı** | Pipeline türetilmiş metriklerin (ΔC, r, LF/HF) frekansa duyarsızlığı |
+| **Gözlem** | Top5 koşum (Schumann_f1 / Tibet_73Hz / Saman_240BPM / Kudum_110Hz / Tanpura_136Hz) tüm enstrümanlar için **aynı** ΔC=+0.00000, r=0.294, LF/HF=0.00 üretti. Pipeline çalıştı (25 MP4, 6 PNG ✓), ama özet metrikler frekansa duyarsız. |
+| **Kök neden analizi** | (1) **C_baseline=0.20 < C_THRESHOLD=0.3** — f(C) kapısı hep 0, kalp dipol modülasyonu yok. delta_C = K·p·1e6 ölçeklemesi de 70 dB SPL (0.06 Pa) için sadece ~5e-5 üretiyor — C eşiği aşamaz. (2) **Stuart-Landau forsing F_t çok zayıf** (0.05·p_isit ~ 3e-3) — λ=0.2 doğal frekans baskın, frekans bilgisi r'ye taşınmıyor. (3) **HRV penceresi yetersiz** — sure_dakika=0.1 → 6 sn fiziksel; welch LF=0.04-0.15 Hz penceresinin ~1 cycle'a yetmiyor → LF/HF=0. (4) **delta_C_total = mean-initial** çok sönük metrik; max-min veya peak detection olmalı. |
+| **Ertelenen düzeltmeler (Sprint 07'ye)** | (a) `kalp_akustik.py`: C_baseline 0.20 → 0.35 (BVT_Makale C_init=0.2 ile yeniden incelenmeli), delta_C ölçek factor 1e6 → 1e9 (SPL 70 dB için anlamlı mertebe). (b) `noral_kutle.py` Stuart-Landau: F_t amplitude artır (0.05 → 1.0), veya doğal ω'yı sürücüye yakınlaştır. (c) `boru.py`: delta_C_total = max(C)-min(C). (d) HRV için sure_dakika ≥ 1.0 öner — TRUBA kapsamı (D-009). |
+| **Geri-dönüş tetikleyici** | Sprint 07'de S1 (L17 vs FAZ G karşılaştırma) öncesi — metrikler frekansa duyarlı olmadan karşılaştırma anlamsız. Bu D-010 Sprint 07 S1'in **ön-koşulu**. |
+| **Riski azaltan** | Sprint 06 kabul kriterleri sadece "pipeline çalışıyor + L17 dokunulmadı + 5 MP4 üretilir" idi. Bilim doğrulaması Sprint 07 spillover işidir. MP4 görsel çıktılar (özellikle A1 basınç, A4 Δσ) **frekansa bağlı görünür fark** içerir — bug sadece türetilmiş özet metriklerde. |
+| **Veri** | 5 enstrümanın pipeline cache'i `output/level19/cache/` altında saklanabilir; Sprint 07'de C_baseline/F_t değişiminin etkisini cache'ten yükleyerek (re-run yapmadan) test edilebilir. |
+
 ---
 
 ## Otomatik kayıt protokolü

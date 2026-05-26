@@ -20,10 +20,34 @@
 | S4 | L6 pre-stimulus Jansen-Rit upgrade | Orta | 1.5 gün | Orta — daha gerçekçi α-band |
 | S5 | L8 iki kişi K_t coupling | Yüksek | 2 gün | Çok yüksek — V_matrix fiziksel temele kavuşur |
 
+## S0 (ÖN-KOŞUL) — D-010 frekans-bağımsız metrikler bug'ı düzeltmesi
+
+**Tetikleyici:** Sprint 06 top5 koşumu (2026-05-26) tüm enstrümanlar için
+aynı ΔC=0 / r=0.294 / LF/HF=0 üretti. S1 karşılaştırması anlamsız olur
+metrikler frekansa duyarlı değilse.
+
+**Görevler (sırayla):**
+- [ ] `src/models/acoustic/kalp_akustik.py`: C_baseline 0.20 → 0.35
+  (C_THRESHOLD üstü), delta_C ölçek 1e6 → 1e9
+- [ ] `src/models/acoustic/noral_kutle.py`: Stuart-Landau F_t amplitude
+  0.05 → 1.0; veya ω_natural sürücü frekansına yakınlaştır
+- [ ] `src/models/acoustic/boru.py`: delta_C_total = max(C) - min(C)
+  (mean-initial yerine peak-to-peak)
+- [ ] Validation: top5 yeniden koş (cache invalidate), 5 farklı ΔC görmeli
+- [ ] Test: `tests/test_acoustic_pipeline.py`'a metrik-frekans-duyarlı assertion ekle
+
+**Kabul:** 5 enstrümanın ΔC değerleri ≥ %20 birbirinden farklı.
+
+**Süre:** 1 gün
+
+---
+
 ## S1 — L17 vs FAZ G karşılaştırma figürü
 
 **Hedef:** Makale §17 için bir figür: heuristic L17 (22 enstrüman bar) yan yana
 FAZ G top-5 detaylı sonuç.
+
+**Ön-koşul:** S0 tamamlanmış olmalı.
 
 **Görevler:**
 - [ ] `scripts/compare_l17_fazg.py` yaz
