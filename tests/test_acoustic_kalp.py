@@ -1,7 +1,7 @@
 """M7 kalp akustik kuplaj testleri."""
 import numpy as np
 from src.models.acoustic.kalp_akustik import (
-    kalp_kuplaj_hesapla, hrv_metrikleri_uret,
+    kalp_kuplaj_hesapla, hrv_metrikleri_uret, rr_interval_uret,
 )
 
 
@@ -75,3 +75,44 @@ def test_holevo_sinir_b_out():
     E_in = np.sum(sonuc["b_in_t"] ** 2)
     E_out = np.sum(sonuc["b_out_t"] ** 2)
     assert E_out <= E_in * 1.1
+
+
+# =============================================================================
+# Sprint 09 D-015 — Gerçek RR-interval HRV modeli testleri
+# =============================================================================
+
+
+def test_rr_interval_uret_temel():
+    """rr_interval_uret atış sayısı ≈ 60 BPM × süre / 60 + tolerans."""
+    fs = 300.0
+    t_end = 60.0
+    t = np.arange(int(t_end * fs)) / fs
+    f_C = 0.05 * np.ones(len(t))
+    out = rr_interval_uret(t, f_C, hr_mean_bpm=60.0)
+    n_beats_exp = int(60.0 * 60.0 / 60.0)  # 60 atış
+    assert abs(len(out['rr_intervals_ms']) - n_beats_exp) <= 5
+    # Ortalama RR ≈ 1000 ms
+    assert 950 < np.mean(out['rr_intervals_ms']) < 1050
+
+
+def test_rr_interval_lf_hf_anlamli():
+    """Sprint 09 D-015 kabul: RR-series LF/HF ∈ [0.5, 5.0] (sağlıklı yetişkin)."""
+    fs = 300.0
+    t_end = 120.0   # 2 dakika — welch için yeterli
+    t = np.arange(int(t_end * fs)) / fs
+    f_C = 0.05 * np.ones(len(t))
+    rr_out = rr_interval_uret(t, f_C, hr_mean_bpm=60.0)
+    hrv = hrv_metrikleri_uret(rr_out['rr_resampled'], fs=4.0, is_rr_interval=True)
+    assert hrv['lf_power'] > 0, f"LF power 0 (HRV bandı boş)"
+    assert hrv['hf_power'] > 0, f"HF power 0 (HRV bandı boş)"
+    assert 0.5 <= hrv['lf_hf'] <= 5.0, f"LF/HF {hrv['lf_hf']:.3f} sınır dışı"
+
+
+def test_hrv_metrikleri_eski_davranis_korundu():
+    """is_rr_interval=False (default) eski imza çalışmaya devam eder."""
+    rng = np.random.default_rng(42)
+    fs = 300.0
+    C_t = rng.standard_normal(int(60 * fs))
+    hrv_eski = hrv_metrikleri_uret(C_t, fs)
+    # Eski testlerin beklediği alanlar mevcut
+    assert all(k in hrv_eski for k in ('rmssd', 'sdnn', 'lf_hf', 'lf_power', 'hf_power'))
