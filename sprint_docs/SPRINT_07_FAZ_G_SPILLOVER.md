@@ -93,4 +93,31 @@ pytest tests/test_level6_ tests/test_level7_ tests/test_level8_ -v
 ## Sonraki sprintler
 
 Sprint 08+ — DEFERRED_DECISIONS.md'de bekleyen alternatifler (D-001 gerçek MRI,
-D-002 PyRates, D-004 anizotropik piezo tensor) talep duyduğunda açılır.
+D-002 PyRates, D-004 anizotropik piezo tensor, **D-009 TRUBA HPC**) talep
+duyduğunda açılır.
+
+### S6 (opsiyonel) — TRUBA HPC entegrasyonu (D-009)
+
+**Hedef:** FAZ G'yi TRUBA üzerinde 80×80×100 grid (HEAD_GRID_HIGH_RES) ve
+22 enstrüman tam katalogla koşmak. Yerel makinedeki D-008 sınırlamalarını aşar.
+
+**Tetikleyici:** Makale revizyonu için "tam çözünürlüklü FDTD" hakem talebi,
+veya 1080p sinematik hero animations için yüksek-çözünürlüklü voxel ihtiyacı.
+
+**Görevler:**
+- [ ] `truba/slurm_jobs/level19_faz_g.sh` SLURM batch script yaz
+  (klasörü ilk kez oluştur; TÜBİTAK ULAKBIM TRUBA standart SBATCH format)
+- [ ] Output rsync stratejisi: yerel `output/level19/cache/` ↔ TRUBA scratch
+- [ ] `--grid high_res` CLI flag ekle (level19_volumetric_acoustic.py'a)
+  — varsayılan 32×32×40 kalır, opsiyonel HIGH_RES
+- [ ] k-Wave-python GPU build deneme (CUDA varsa)
+  — D-008'i kısmen tetikler
+- [ ] Sonuç karşılaştırma figürü: yerel 32³ vs TRUBA 80³ → fizik aynı mı?
+
+**Tahmini süre (TRUBA):**
+- 22 enstrüman × 80³ × CPU 32 core ≈ 22 saat single node
+- GPU node varsa 2-4 saat
+- TRUBA queue + onay süresi ~gün-hafta (planlı yapılmalı)
+
+**Riski azaltan:** Yerel 32×32×40 sonuçları bilim kanıtı için yeterli
+— TRUBA "tam katalog + yüksek-res" için, blocking değil.

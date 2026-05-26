@@ -20,6 +20,11 @@ import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation, FFMpegWriter
 from scipy.signal import spectrogram
 
+# Windows + imageio-ffmpeg path setter (sistem PATH'inde ffmpeg gerekmez)
+# Import side-effect: matplotlib.rcParams["animation.ffmpeg_path"] set edilir.
+from src.viz.mp4_ffmpeg_path import ffmpeg_path as _ensure_ffmpeg_path
+_ensure_ffmpeg_path()
+
 from src.models.acoustic import PipelineSonuc
 
 

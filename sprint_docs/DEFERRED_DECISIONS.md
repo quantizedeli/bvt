@@ -98,6 +98,19 @@
 | **Riski azaltan** | NumPy FDTD literatür standartında (leap-frog 2nd-order central differences). Heterojen ρ, c desteklenir. Source injection + 25 sensör kayıt aynı. PML yerine basit damping ABC (kabul edilebilir doğruluk). Grid 32×32×40'a indirildi (HEAD_GRID_DEFAULT) — 80³ "deferred high-res" modu olarak DEFERRED'da bekler. |
 | **Etkilenen** | `requirements.txt` (k-Wave-python>=0.6 kalır ama opsiyonel hale gelir), `constants.py` HEAD_GRID_DEFAULT (80,80,100)→(32,32,40), Task 5 spec, slow test runtime budget |
 
+### D-009 — TRUBA HPC (TÜBİTAK ULAKBIM) ile büyük ölçekli FAZ G koşumu
+
+| | |
+|---|---|
+| **Karar başlığı** | Uzun süreli FAZ G simülasyonlarını çalıştırma altyapısı |
+| **Seçilen (mevcut)** | Yerel Windows 11 + Python 3.11 + NumPy FDTD (32×32×40 grid, sure_dakika ≤ 0.005, ~1 dk/enstrüman). Top-5 enstrüman ile makale figürleri için yeterli. |
+| **Ertelenen** | **TRUBA HPC** (Türkiye Ulusal Bilimsel Hesaplama Merkezi) üzerinde tam koşum: 80×80×100 grid (HEAD_GRID_HIGH_RES), 22 enstrüman, sure_dakika ≥ 0.05 (gerçek akustik dalga periyotları), GPU veya çoklu node paralel. |
+| **Erteleme nedeni** | (1) Geliştirme/test döngüsü yerel makinede çok daha hızlı, (2) TRUBA başvuru + queue süresi (gün-hafta), (3) MATLAB/binary k-Wave veya CUDA ortamı yerelde kurulu değil, (4) Mevcut bilim çekirdeği (top-5 + NumPy FDTD) makale için yeterli kanıt sağlıyor |
+| **Geri-dönüş tetikleyici** | (1) Makale revizyonu için "tam çözünürlüklü FDTD" hakem isteği, (2) 22 enstrüman tam katalog koşumu istenirse, (3) TRUBA hesap onayı geldikten sonra, (4) Cinematik 1080p hero animations için yüksek-çözünürlüklü voxel görsel gerekirse |
+| **TRUBA için hazırlık (yapılacaklar)** | (a) SLURM batch script: `truba/slurm_jobs/level19_faz_g.sh` (klasör henüz yok — Sprint 08'de oluşturulur, TÜBİTAK ULAKBIM TRUBA standart SBATCH format), (b) Output `output/level19/cache/` rsync, (c) `HEAD_GRID_HIGH_RES = (80, 80, 100)` constants.py'da hazır — sadece koşum parametresinde geçilir, (d) k-Wave-python GPU build veya CUDA optimization (Sprint 08+) |
+| **Tahmini TRUBA süresi** | Single node CPU 32 core × 22 enstrüman × ~1 saat = 22 saat. GPU node varsa ~2-4 saat. (Yerel NumPy CPU: aynı 22 enstrüman × 5 dk = 1.8 saat — yerel zaten makul, ama 80³ HIGH_RES çok büyük.) |
+| **Riski azaltan** | Mevcut 32×32×40 sonuçları bilim kanıtı için yeterli; TRUBA "uzun-vade gelecek" planı, blocking değil |
+
 ---
 
 ## Otomatik kayıt protokolü
