@@ -1,14 +1,29 @@
-# Sprint 07 — FAZ G Spillover (TASLAK)
+# Sprint 07 — FAZ G Spillover (KAPALI v9.5)
 
-> **Bu Sprint 06 sonrasında açılır.** FAZ G'nin getirdiklerini diğer fazlara yayar.
+> **Sprint 06 sonrası açıldı, 2026-05-26'da kapatıldı.**
+> FAZ G'nin getirdiklerini diğer fazlara yayar.
 
-**Tarih (planlanan):** Sprint 06 kapanışı sonrası
-**Süre tahmini:** 5-7 gün
+**Tarih:** 2026-05-26 (tek oturum)
 **Tip:** Spillover sprint — mevcut fazları derinleştirir, yeni faz açmaz
-**Önkoşul:**
-- Sprint 06 yeşil kapanmış (Level 19 stabil)
-- 203 test passed
-- DEFERRED_DECISIONS.md güncel
+**Tag:** `v9.5-sprint_07`
+
+## Kapanış Özeti
+
+| Hedef | Durum | Çıktı |
+|---|---|---|
+| S0 — D-010 bug fix | ✅ kod (3 iter) | C_baseline 0.35, p_kalp normalize, K_eff 0.1, F_t 1.0, ΔC=max-min |
+| S0 validation | ⚠️ partial | ΔC≠0 (0.30/0.60 v2'de); v3 RAM bekliyor (kullanıcı manuel) |
+| S1 — L17 vs FAZ G | ✅ script | `scripts/compare_l17_fazg.py` (RAM ile koşturulur) |
+| S2 — Cache utility | ✅ +7 test | `src/util/content_hash_cache.py` |
+| S3-S5 — Spillover PoC | ✅ 3 PNG | `scripts/spillover_S3_S5_demo.py`, tam entegrasyon D-011 (Sprint 08) |
+| S6 — TRUBA HPC | ✅ taslak | `truba/slurm_jobs/level19_faz_g.sh` + README |
+
+**Yeni DEFERRED:** D-009 (TRUBA), D-010 (bug fix v3), D-011 (S3-S5 deep integration → Sprint 08)
+
+**Önkoşul (artık karşılanmış):**
+- Sprint 06 yeşil kapanmış (v9.4-sprint_06 tag'i)
+- 35 acoustic test + 7 cache test
+- DEFERRED_DECISIONS.md D-001..D-011 güncel
 
 ## Spillover hedefleri (sıraya göre)
 

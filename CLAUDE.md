@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Proje:** Birliğin Varlığı Teoremi (BVT) / Theorem of the Unity of Existence  
 **Yazar:** Ahmet Kemal Acar | **Güncelleme:** Mayıs 2026  
-**Durum:** v9.4 — Sprint dökümanları + sinematik görsel katmanı planlandı + QA disiplini eklendi
+**Durum:** v9.5 — Sprint 07 FAZ G Spillover (S0 bug fix + S1 karşılaştırma + S2 cache + S3-S5 PoC + S6 TRUBA)
 
 **Bu CLAUDE.md ile birlikte oku:**
 1. **`sprint_docs/`** — 9 sprint dökümanı (analiz raporu + Sprint 00-04 + 4 checklist)
@@ -50,6 +50,21 @@ kavramlarının kuantum mekaniksel karşılığını kurar.
 - Cache: 3-katmanlı SHA-256 (output/level19/cache/)
 - Bağımlılık: k-Wave-python>=0.6, mne>=1.5
 - DEFERRED_DECISIONS.md: 8 ertelenen alternatif yol (D-001..D-008)
+
+**v9.5 — Sprint 07 FAZ G Spillover (Mayıs 2026):**
+- **S0 D-010 fix:** Frekans-bağımsız metrik bug'ı çözüldü (3 iterasyon).
+  C_baseline 0.20 → 0.35, p_kalp normalize, K_eff = 0.1 (saturation önlemi),
+  Stuart-Landau F_t 0.05 → 1.0, ΔC = max(C)-min(C). v3 RAM ile manuel doğrulama bekliyor.
+- **S1 L17 vs FAZ G karşılaştırma:** `scripts/compare_l17_fazg.py` — top5
+  heuristic vs fiziksel ΔC yan yana figürü + D-010 varyasyon kontrolü.
+- **S2 Cache utility:** `src/util/content_hash_cache.py` — SHA-256 hash decorator,
+  L11/L15/L18'e yaygınlaştırılabilir (Sprint 08). 7 test passed.
+- **S3-S5 Spillover PoC:** `scripts/spillover_S3_S5_demo.py` — M6 NMM, M7 kalp,
+  M8 K_t modülleri L6/L7/L8 senaryolarında bağımsız demo. 3 PNG.
+  Tam level entegrasyonu **D-011** Sprint 08'e ertelendi.
+- **S6 TRUBA HPC:** `truba/slurm_jobs/level19_faz_g.sh` + `truba/README.md` —
+  SBATCH config, rsync rehberi, süre tahmin tablosu. D-009 implementation.
+- DEFERRED: D-001..D-011 (yeni: D-009 TRUBA, D-010 bug fix, D-011 deep integration)
 
 **v9.4 plan (Mayıs 2026 — sprint dökümanları aktif):**
 - QA raporu (`output/QA_REPORT_2026-05-15.md`): 7 fail test, 5/13 replikasyon, görsel anomali
