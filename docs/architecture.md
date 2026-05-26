@@ -15,7 +15,9 @@ operators.py ──► hamiltonians.py ─────────────�
      │          multi_person.py
      │
      └──► viz/plots_static.py ──► results/figures/ (PNG)
-          viz/plots_interactive.py ──► results/html/ (Plotly)
+          viz/plots_interactive.py ──► output/html/ (Plotly)
+          viz/cinematic/* ───────────► output/cinematic/ (poster/html/mp4)
+          audio/* ───────────────────► output/audio/ (wav)
 ```
 
 ## Katman Açıklamaları
@@ -40,9 +42,14 @@ operators.py ──► hamiltonians.py ─────────────�
 
 ### Katman 4: Görselleştirme (viz/)
 - Tüm diğer modüllerden import
+- Klasik grafikler + cinematic render katmanı
 - Hiçbir fizik hesabı içermez (sadece görsel)
 
-### Katman 5: Simülasyonlar (simulations/)
+### Katman 5: Sonic katman (audio/)
+- Frekans modelinden bağımsız procedural waveform üretimi
+- WAV export, binaural beat, spatial pan, envelope yardımcıları
+
+### Katman 6: Simülasyonlar (simulations/)
 - Tüm diğerlerini koordine eder
 - `argparse` ile CLI arayüzü
 - Sonuçları `results/` klasörüne kaydeder
@@ -56,7 +63,7 @@ Hesap: operators → hamiltonians → solvers
   ↓
 Model: em_field, schumann, pre_stimulus, multi_person
   ↓
-Çıktı: results/figures/*.png + results/html/*.html
+Çıktı: output/figures/*.png + output/html/*.html + output/cinematic/* + output/audio/*
   ↓
 Makale: BVT_Makale.docx (manuel entegrasyon)
 ```
@@ -71,6 +78,39 @@ H_beyin  : dim=9, baz durumları |0⟩....|8⟩ (alfa ritim Fock uzayı)
 H_Sch    : dim=9, baz durumları |0⟩....|8⟩ (Schumann mod doluluk)
 
 Toplam boyut: 9×9×9 = 729
+
+## FAZ G — Volumetric Acoustic (v9.4)
+
+Yeni paket `src/models/acoustic/`:
+
+```
+┌──────────────────────────────────────────────────────┐
+│  src/models/acoustic/                                │
+│    __init__.py  →  PipelineSonuc dataclass + import  │
+│                                                      │
+│    kaynak.py        ── sentetik / .wav okuyucu       │
+│         ↓                                            │
+│    voxel_doku.py    ── 5-katmanlı 32×32×40 elipsoid  │
+│         ↓                                            │
+│    dalga_pde.py     ── NumPy leap-frog FDTD (D-008)  │
+│         ↓                                            │
+│    ┌────┴────┬─────┬─────┬─────┐                     │
+│    ↓         ↓     ↓     ↓                           │
+│  piezo    akusto  NMM   kalp                         │
+│  elektrik elektrik     akustik                       │
+│    ↓         ↓     ↓     ↓                           │
+│    └────┬────┴─────┴─────┘                           │
+│         ↓                                            │
+│    ileri_eeg.py     ── MNE 3-sferik BEM + K_t       │
+│         ↓                                            │
+│    boru.py          ── orchestrator + SHA-256 cache  │
+└──────────────────────────────────────────────────────┘
+```
+
+Veri tipleri: `PipelineSonuc` dataclass (boru.py'da kos_faz_g() döndürür).
+Cache: `output/level19/cache/pipeline_{sha8}.npz` (parametre hash'i ile).
+
+Detay: `sprint_docs/SPRINT_06_FAZ_G_VOLUMETRIC_ACOUSTIC.md`.
 
 Dizinleme: |i,j,k⟩ = |i⟩_kalp ⊗ |j⟩_beyin ⊗ |k⟩_Sch
            flat index = i*81 + j*9 + k

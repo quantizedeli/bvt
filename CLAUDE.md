@@ -40,6 +40,17 @@ kavramlarının kuantum mekaniksel karşılığını kurar.
 - rng_seed fix: Celardo/Mossbridge/Microtubule `run()` imzasına `rng_seed: int = 42` eklendi
 - L17 v9.3: 3-yol fizik (P1 direkt EEG + P2 akustik + P3 ritmik vagal), 3-durum ODE, 7 figür
 
+**v9.4 — FAZ G eklendi (Mayıs 2026):**
+- Yeni paket `src/models/acoustic/` 8 modül (kaynak, voxel, PDE, piezo, AE, NMM, kalp, forward EEG)
+- `simulations/level19_volumetric_acoustic.py` — Level 19 CLI orchestrator
+- 5 MP4 animasyon: volumetric basınç + EEG topomap + NMM + AE Δσ + kalp dipol
+- L17 dokunulmadı (heuristic faz korunuyor)
+- **D-008:** k-Wave-python CPU runtime infeasible (15 sa/koşum), saf NumPy FDTD'ye geçildi
+- HEAD_GRID_DEFAULT (32, 32, 40), voxel 5mm (D-008 sonrası)
+- Cache: 3-katmanlı SHA-256 (output/level19/cache/)
+- Bağımlılık: k-Wave-python>=0.6, mne>=1.5
+- DEFERRED_DECISIONS.md: 8 ertelenen alternatif yol (D-001..D-008)
+
 **v9.4 plan (Mayıs 2026 — sprint dökümanları aktif):**
 - QA raporu (`output/QA_REPORT_2026-05-15.md`): 7 fail test, 5/13 replikasyon, görsel anomali
 - Sinematik roadmap (`output/CINEMATIC_VISUALIZATION_ROADMAP_2026-05-15.md`): 4 hero animation
@@ -120,6 +131,10 @@ Katman 2: src/solvers/{tise,tdse,lindblad,cascade}.py
 Katman 3: src/models/{em_field,schumann,pre_stimulus,multi_person,
                       em_field_composite,berry_phase,entropy,vagal,
                       two_person,multi_person_em_dynamics,population_hkv}.py
+          src/models/acoustic/{kaynak,voxel_doku,dalga_pde,
+                              piezoelektrik,akustoelektrik,
+                              noral_kutle,kalp_akustik,
+                              ileri_eeg,boru}.py
 Katman 4: src/viz/{plots_static,plots_interactive,animations,theme,mp4_ffmpeg_path,mp4_exporter}.py
 Katman 5: simulations/level{1-18}_*.py  ← Sadece orchestration
           main.py                        ← 18-faz tek giriş noktası
@@ -231,6 +246,11 @@ Korteks α → Beyin EM → Sch faz kilit → Sch mod amplif → η geri besleme
 | GAMMA_K / GAMMA_B | 0.01 / 1.0 s⁻¹ | Lindblad |
 | MU_HEART / MU_BRAIN | **10⁻⁵** / 10⁻⁷ A·m² | v9.2 (MCG gerçekçi, eski 1e-4 DEĞİL) |
 | MU_HEART_MCG | 4.69e-8 A·m² | B(5cm)=75 pT için kalibre |
+| K_AE_BRAIN | 1.0e-9 Pa⁻¹ | Olafsson 2008 (akustoelektrik beyin) |
+| K_AE_HEART | 0.8e-9 Pa⁻¹ | FAZ G ön-değer |
+| E33_BONE | 0.027 C/m² | Fukada-Yasuda 1957 (piezoelektrik kemik) |
+| HEAD_GRID_DEFAULT | (32, 32, 40) | D-008 (k-Wave CPU infeasibility) |
+| HEAD_VOXEL_SIZE_M | 5e-3 | D-008 sonrası 2mm→5mm |
 
 Tüm değerler `data/literature_values.json` ile çapraz doğrulanır.  
 **Kritik TISE buluşu:** |7⟩→|16⟩ geçişinde detuning = 0.003 Hz (kararlı rezonans).
@@ -335,6 +355,10 @@ python main.py --mp4
 12. **FAZ D reprodüksiyonlar** — `output/replications/` altında; `scripts/reproduction_report.py` çalıştırılınca tüm 5'i üretir
 13. **L1 EM alan eksen** — `alan_ızgarası_3d(r_max=0.15)` varsayılan 15cm (eski 50cm)
 14. **TISE detuning v9.2** — KAPPA=5.0 ile |7⟩→|16⟩ detuning ~1.85 rad/s (eski 0.003 KAPPA=21.9 için geçerliydi)
+15. **FAZ G — Level 19 her zaman full koşar** — kullanıcı tercihi v9.4 brainstorm 2026-05-25. `main.py --hizli`'da diğer fazlar kısalır, FAZ G değişmez.
+16. **L17 dokunulmaz** — heuristic faz korunuyor; FAZ G yan yana, karşılaştırma değil.
+17. **Cache invalidasyon** — `constants.py` değişirse `output/level19/cache/` temizle.
+18. **D-008 NumPy FDTD** — k-Wave-python CPU performans yetersiz. NumPy port'u tamamen yerini aldı (Mayıs 2026 keşif). GPU/MATLAB için DEFERRED_DECISIONS D-008'e bakın.
 
 ---
 

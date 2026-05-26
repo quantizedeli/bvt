@@ -19,10 +19,12 @@ Vahdet-i Vücud kavramlarının kuantum mekaniksel karşılığını kurar.
 ## Hızlı Başlangıç
 
 ```bash
-# Bağımlılıklar
-pip install "numpy>=1.24" "scipy>=1.11" "qutip>=5.0" "matplotlib>=3.5" \
-            "plotly>=5.0" "dash>=2.18" "dash-bootstrap-components>=1.6" \
-            imageio imageio-ffmpeg pytest
+# Ba??ml?l?klar
+pip install -r requirements.txt
+
+# main.py eksik paketleri a??l??ta otomatik kurar;
+# bunu istemezsen:
+python main.py --kontrol --no-auto-install
 
 # Tüm 18 level
 python main.py
@@ -30,11 +32,15 @@ python main.py
 # Hızlı test (kısa parametreler)
 python main.py --hizli
 
-# Dash dashboard (tarayıcıda otomatik açılır — http://localhost:8050)
+# Dash dashboard
 python bvt_dashboard/app.py
+# Tarayıcıda aç: http://127.0.0.1:8050
 
 # MP4 animasyonları üret (output/animations/)
 python scripts/mp4_olustur.py --hangi tumu
+
+# Output katalog raporu (output dışına yazar)
+python scripts/generate_output_catalog.py
 
 # Tüm testler
 pytest tests/ -v --tb=short
@@ -117,7 +123,7 @@ bvt_claude_code_4/
 
 ```bash
 python bvt_dashboard/app.py
-# → http://localhost:8050 (otomatik açılır)
+# Tarayıcıda aç: http://127.0.0.1:8050
 ```
 
 5 interaktif sekme:
@@ -147,12 +153,28 @@ python bvt_dashboard/app.py
 ## Cinematic + Sonic Katman
 
 - `src/viz/cinematic/`: ortak `SceneData`, backend adapter'lar? ve hero sahneleri
-- `output/cinematic/`: poster, thumbnail, HTML ve scene-data artefaktlar?
+- `output/cinematic/`: poster, thumbnail, HTML, MP4 ve scene-data artefaktlar?
 - `src/audio/`: drone, davul, binaural ve WAV export prototipleri
-- `scripts/render_audio_demo.py`: Hero 05 i?in dinlenebilir ilk sonic demolar
+- `scripts/render_audio_demo.py`: Hero 05 i?in dinlenebilir sonic demo ?retimi
+- `scripts/sync_dashboard_assets.py`: cinematic/audio artefaktlar?n? dashboard asset klas?r?ne senkronlar
 
 Opsiyonel ger?ek 3D backend i?in:
 
 ```bash
 pip install pyvista
 ```
+
+---
+
+## FAZ G (v9.4+) — Volumetric Acoustic
+
+```bash
+# Tek enstrüman, smoke koşum
+python simulations/level19_volumetric_acoustic.py --frekanslar Schumann_f1 --sure-dakika 0.005
+
+# Top-5 enstrüman + animasyon
+python simulations/level19_volumetric_acoustic.py --frekanslar top5 --anim
+```
+
+Detay: `sprint_docs/SPRINT_06_FAZ_G_VOLUMETRIC_ACOUSTIC.md`,
+`docs/superpowers/plans/2026-05-25-faz-g-volumetric-acoustic.md`.

@@ -10,6 +10,19 @@
 | 4 | level4_multiperson.py | ~45 dk | Orta | N-kişi dinamiği |
 | 5 | level5_hybrid.py | ~4 saat | Düşük (opsiyonel) | Maxwell+QM hibrit |
 | 6 | level6_hkv_montecarlo.py | ~3 saat | Yüksek (özgün) | Pre-stimulus MC |
+| 7 | level7_tek_kisi.py | ~5 dk | Orta | Tek kişi tam model |
+| 8 | level8_iki_kisi.py | ~5 dk | Orta | İki kişi dipol-dipol |
+| 9 | level9_v2_kalibrasyon.py | ~5 dk | Yüksek | Parametre kalibrasyonu |
+| 10 | level10_psi_sonsuz.py | ~5 dk | Orta | Ψ_Sonsuz yapısı |
+| 11 | level11_topology.py | ~10 dk | Orta | Topoloji karşılaştırması |
+| 12 | level12_seri_paralel_em.py | ~10 dk | Orta | Seri-paralel faz geçişi |
+| 13 | level13_uclu_rezonans.py | ~5 dk | Orta | Üçlü rezonans |
+| 14 | level14_merkez_birey.py | ~10 dk | Orta | Merkez birey |
+| 15 | level15_iki_kisi_em_etkilesim.py | ~30 dk | Orta | Mesafe taraması |
+| 16 | level16_girisim_deseni.py | ~5 dk | Orta | Girişim deseni |
+| 17 | level17_ses_frekanslari.py | ~10 dk | Yüksek | Ses frekans atlası |
+| 18 | level18_rem_pencere.py | ~10 dk | Orta | REM/NREM HKV |
+| 19 | level19_volumetric_acoustic.py | ~20 dk | Yüksek (FAZ G) | Akustik PDE + AE + NMM + kalp + forward EEG |
 
 ---
 
