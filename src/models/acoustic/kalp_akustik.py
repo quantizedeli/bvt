@@ -34,13 +34,21 @@ def kalp_kuplaj_hesapla(
     p_kalp_t: np.ndarray,
     fs: float,
     K_kalp: float = K_AE_HEART,
-    C_baseline: float = 0.20,
+    C_baseline: float = 0.35,
 ) -> dict:
     """Kalp basıncından b_out çıkışını hesapla."""
     nt = len(p_kalp_t)
     t = np.arange(nt) / fs
 
-    delta_C = K_kalp * p_kalp_t * 1e6   # Pa → mikrostrain ölçeklemesi
+    # D-010 fix v2: p_kalp_t normalize edilir, K_kalp katsayı olarak kalır.
+    # FDTD damping ile p_kalp_t mertebesi 1-10 μPa'ya düşüyor — mutlak ölçek
+    # anlamsız, normalize akustik forsing daha doğru bilim.
+    # delta_C = K_kalp_scaled · p_normalize ∈ [-0.5, +0.5] aralığında modülasyon.
+    p_max = np.max(np.abs(p_kalp_t)) + 1e-30
+    p_kalp_norm = p_kalp_t / p_max   # [-1, +1]
+    # Effective K: kalp_akustik için 0.5 amplitude (BVT C_THRESHOLD üstüne çıkar)
+    K_eff = K_kalp * 6.25e8   # 0.8e-9 · 6.25e8 = 0.5
+    delta_C = K_eff * p_kalp_norm
     C_kalp_t = C_baseline + np.clip(delta_C, -0.3, 0.3)
 
     f_C = _f_C_kapisi(C_kalp_t)

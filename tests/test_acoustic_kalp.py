@@ -5,14 +5,20 @@ from src.models.acoustic.kalp_akustik import (
 )
 
 
-def test_basinc_yokken_modulasyon_yok():
-    """p_kalp = 0 → μ_kalp sabit, b_out = b_in."""
+def test_basinc_yokken_baseline_hrv():
+    """p_kalp = 0 → μ_kalp baseline HRV modülasyonu (C_baseline > C_THRESHOLD).
+
+    D-010 fix sonrası C_baseline=0.35 > C_THRESHOLD=0.3 olduğundan,
+    p=0'da bile f(C_baseline) > 0 → küçük HRV modülasyonu (F_HEART = 0.1 Hz)
+    olur. Bu fiziksel olarak doğru: kişi sessizde de HRV koherans korunur.
+    """
     fs = 300.0
     nt = int(5 * fs)
     p_kalp_t = np.zeros(nt)
     sonuc = kalp_kuplaj_hesapla(p_kalp_t, fs)
     mu_std = np.std(sonuc["mu_kalp_t"])
-    assert mu_std < 1e-10
+    # Baseline modülasyon: MU_HEART × 0.05 × f(0.35) ≈ 2.5e-9 std mertebesi
+    assert mu_std < 1e-8, f"mu_std={mu_std:.2e} baseline HRV için çok büyük"
 
 
 def test_0_1hz_hrv_koherans_peak():

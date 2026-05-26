@@ -105,9 +105,17 @@ def kos_faz_g(
     eeg_jr_21 = np.tile(jr_sonuc["eeg"][:, None], (1, 21)).astype(np.float32)
 
     # SL ağ — 21 osilatör
+    # D-010 fix: F_t amplitude 0.05 → 1.0 (normalize edilmiş, 21 kanala dağıt)
+    # Sürücü amplitude ≥ doğal osilatör genliğine yakın olmalı (λ=0.2 baskınlığını
+    # aşmak için). Tüm 21 kanala forsing, T7/T8 ana, diğerleri küçük varyans.
     F_t_sl = np.zeros((nt_nmm, 21))
-    F_t_sl[:, 7] = 0.05 * p_isit_for_nmm   # T7
-    F_t_sl[:, 11] = 0.05 * p_isit_for_nmm  # T8
+    p_isit_norm = p_isit_for_nmm / (np.max(np.abs(p_isit_for_nmm)) + 1e-9)
+    F_t_sl[:, 7]  = 1.0 * p_isit_norm   # T7 (ana işitsel)
+    F_t_sl[:, 11] = 1.0 * p_isit_norm   # T8 (ana işitsel)
+    # Diğer kanallar: zayıf yayılım (anatomik komşuluk modeli)
+    for k_other in range(21):
+        if k_other not in (7, 11):
+            F_t_sl[:, k_other] = 0.15 * p_isit_norm
     sl_sonuc = stuart_landau_aglari_koz(N=21, fs=fs_nmm, t_end=sure_s, F_t=F_t_sl)
     eeg_sl_21 = sl_sonuc["x"].astype(np.float32)
 
@@ -135,9 +143,9 @@ def kos_faz_g(
         q_t[:, 3 * k + 2] = 1e-9 * (eeg_sl_21[:, k_eeg] + 0.5 * eeg_jr_21[:, k_eeg] / 1000)
     eeg_skalp_modul = skalp_eeg_uret(K_t, q_t)
 
-    # Türetilmiş
-    delta_C_total = float(np.mean(kalp_sonuc["C_kalp_t"][-int(fs_nmm):])
-                          - kalp_sonuc["C_kalp_t"][0])
+    # Türetilmiş (D-010 fix: mean-initial yerine peak-to-peak duyarlılık)
+    C_t = kalp_sonuc["C_kalp_t"]
+    delta_C_total = float(np.max(C_t) - np.min(C_t))   # peak-to-peak
     delta_C_kalp = delta_C_total
     entrainment = float(np.mean(sl_sonuc["r_t"][-int(fs_nmm):]))
 

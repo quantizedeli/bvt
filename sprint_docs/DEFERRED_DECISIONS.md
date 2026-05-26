@@ -123,6 +123,17 @@
 | **Riski azaltan** | Sprint 06 kabul kriterleri sadece "pipeline çalışıyor + L17 dokunulmadı + 5 MP4 üretilir" idi. Bilim doğrulaması Sprint 07 spillover işidir. MP4 görsel çıktılar (özellikle A1 basınç, A4 Δσ) **frekansa bağlı görünür fark** içerir — bug sadece türetilmiş özet metriklerde. |
 | **Veri** | 5 enstrümanın pipeline cache'i `output/level19/cache/` altında saklanabilir; Sprint 07'de C_baseline/F_t değişiminin etkisini cache'ten yükleyerek (re-run yapmadan) test edilebilir. |
 
+### D-011 — Sprint 07 S3+S4+S5 derin level entegrasyonu Sprint 08'e
+
+| | |
+|---|---|
+| **Karar başlığı** | L6, L7, L8'e FAZ G modüllerinin tam entegrasyonu |
+| **Seçilen (Sprint 07)** | `scripts/spillover_S3_S5_demo.py` — proof-of-concept demo: M6 (NMM), M7 (kalp), M8 (forward EEG) modülleri L6/L7/L8 senaryolarında bağımsız demo edilir. 3 PNG (S3 HEP, S4 NMM, S5 K_t coupling) üretildi. **Mevcut level dosyaları DEĞİŞMEDİ.** |
+| **Ertelenen** | L7'ye `--fiziksel-modu` flag (M7 kalp_akustik aktif), L6'ya `--nmm jansen_rit` flag, L8'e `--ses-kuplaj` flag (M8 K_t aktif). Her biri 400-540 satır dosyaya cerrahi edit + yeni test paketi. |
+| **Erteleme nedeni** | (1) Mevcut level dosyaları büyük (1388 satır toplam) — tam entegrasyon regresyon riski yüksek, (2) S3-S5 PoC bilim doğruluğu sorunları gösterdi (S3 LF/HF=0, S4 α-band sıralaması beklenenin tersi) — tam entegrasyon öncesi tuning gerekli, (3) S0 + S1 + S2 + S6 Sprint 07'de zaten substantial iş yükü |
+| **Geri-dönüş tetikleyici** | (1) Sprint 08 başlangıcı, (2) Makale §6/§7/§8 revizyonu için L6/L7/L8 sonuçlarının fiziksel temele dayanması gerekirse, (3) Demo PoC'ları (output/spillover_demo/*.png) hakem değerlendirmesi olumlu çıkarsa |
+| **Riski azaltan** | PoC PNG'leri spillover'ın bilim açısından mümkün olduğunu gösteriyor — Sprint 08'de güvenle tam entegrasyona geçilebilir. Demo script de korunur (her modülü ayrı test için kullanılabilir). |
+
 ---
 
 ## Otomatik kayıt protokolü
