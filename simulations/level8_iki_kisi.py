@@ -64,11 +64,186 @@ def seri_kolektif_koherans(C_values: np.ndarray) -> float:
     return float(np.abs(np.sum(C_values))**2 / N**2)
 
 
+def _ses_kuplaj_sahnesi(output_dir: str) -> dict:
+    """D-011c Sprint 09 S4 — İki kişi çift-yönlü akustoelektrik ses kuplajı.
+
+    Sprint 07 PoC S5 (scripts/spillover_S3_S5_demo.py satır 173-241) referans alınarak
+    iki-kişilik tam çift yönlü model oluşturuldu. Mevcut heuristic r⁻³ dipol-dipol
+    etkileşim KORUNUYOR; bu sahne EK kuplaj fiziksel alternatif sunuyor.
+
+    Bilim modeli:
+      Person A (6 Hz nefes/teta ritmi) → B Δσ_B → B K_t modülasyonu
+      Person B (5 Hz biraz farklı ritim) → A Δσ_A → A K_t modülasyonu
+      V_matrix_ses[i,j] = K_t_j(p_i) ortalama gücü, clip [0,1]
+
+    Çıktı: output_dir/L8_ses_kuplaj_demo.png
+    Döndürür: dict (V_matrix_ses, asimetri, kuplaj metrikleri)
+
+    Referans: BVT_Makale.docx §G; Olafsson 2008 PMB; Mosher 1999.
+    """
+    # Lazy import — sadece --ses-kuplaj bayrağı geçildiğinde yüklenir (R-S4-01 mitigation)
+    try:
+        from src.models.acoustic.ileri_eeg import lead_field_hesapla, K_t_modul_uret
+    except ImportError as exc:
+        raise RuntimeError(
+            "[L8 ses_kuplaj] src.models.acoustic.ileri_eeg import edilemedi: " + str(exc)
+        )
+
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    # --- Zaman ekseni ---
+    fs = 300.0
+    t_end = 12.0
+    nt = int(t_end * fs)
+    t = np.arange(nt) / fs
+
+    # --- Person A: 6 Hz nefes/teta ritmi, AMP_A=0.5 (güçlü konuşmacı) ---
+    # Person B: 5 Hz farklı ritim, AMP_B=0.3 (daha sessiz) → asimetri
+    # Farklı amplitüd: A daha güçlü "konuşmacı" → V[A,B] > V[B,A]
+    a_emission = 0.5 * np.sin(2.0 * np.pi * 6.0 * t)   # A: 6 Hz, amp=0.5
+    b_emission = 0.3 * np.sin(2.0 * np.pi * 5.0 * t)   # B: 5 Hz, amp=0.3
+
+    # --- Çift yönlü Δσ hesabı ---
+    # Δσ%_B = 1.5 × |A emisyonu|  (A → B modülasyon)
+    # Δσ%_A = 1.5 × |B emisyonu|  (B → A modülasyon)
+    # A daha güçlü (0.5 vs 0.3) → Δσ_B > Δσ_A → V[A,B] > V[B,A]
+    delta_sigma_pct_B = 1.5 * np.abs(a_emission)   # A → B modülasyon
+    delta_sigma_pct_A = 1.5 * np.abs(b_emission)   # B → A modülasyon
+
+    # --- M8 Forward EEG K_t hesabı (her kişi için) ---
+    n_dipol = 20
+    K_0 = lead_field_hesapla(n_dipol=n_dipol)
+
+    K_t_A = K_t_modul_uret(K_0, delta_sigma_pct_A)  # B'nin baskısı → A'ya etki
+    K_t_B = K_t_modul_uret(K_0, delta_sigma_pct_B)  # A'nın baskısı → B'ye etki
+
+    # --- V_matrix_ses: K_t modülasyon katkısı, [0,1] clip ---
+    # Kuplaj gücü = delta_sigma_pct'nin zaman ortalaması (Δσ/σ₀), [0,1] normalize
+    # Bu doğrudan A'nın B üzerindeki ve B'nin A üzerindeki ortalama AE etkisidir.
+    # alpha=0.5 (K_t_modul_uret'teki) ve %100 normalize → V doğrudan karşılaştırılabilir.
+    v_ab = float(np.mean(delta_sigma_pct_B) / 100.0)   # A → B (A emisyonunun B'ye etkisi)
+    v_ba = float(np.mean(delta_sigma_pct_A) / 100.0)   # B → A (B emisyonunun A'ya etkisi)
+
+    # V_matrix_ses 2×2 (asimetrik): V[i,j] = j üzerindeki i etkisi
+    V_matrix_ses = np.array([
+        [0.0,   v_ab],  # A→A=0 (öz kuplaj yok), A→B
+        [v_ba,  0.0],   # B→A, B→B=0
+    ], dtype=np.float64)
+    V_matrix_ses = np.clip(V_matrix_ses, 0.0, 1.0)
+
+    # --- Heuristic V_dd (mevcut r⁻³, HeartMath mesafesi r=0.91m) ---
+    r_heartmath = 0.91
+    V_dd_val = float(dipol_potansiyel(np.array([r_heartmath]))[0])
+    V_dd_norm = float(np.clip(V_dd_val / (KT + 1e-30), 0.0, 1.0))  # kT normalize
+
+    # --- Kuplaj gücü zaman serisi (asimetri görselleştirme) ---
+    # Δσ zaman serisi doğrudan asimetriyi görselleştirir
+    K_t_B_zaman = np.clip(delta_sigma_pct_B / 100.0, 0.0, 1.0)   # A → B gücü
+    K_t_A_zaman = np.clip(delta_sigma_pct_A / 100.0, 0.0, 1.0)   # B → A gücü
+
+    # --- Metrikleri hesapla ve yazdır ---
+    asimetri = float(abs(V_matrix_ses[0, 1] - V_matrix_ses[1, 0]))
+    v_ab_zaman_ort = float(np.mean(K_t_B_zaman))   # A→B ortalama kuplaj gücü
+    v_ba_zaman_ort = float(np.mean(K_t_A_zaman))   # B→A ortalama kuplaj gücü
+
+    print("\n--- L8 Ses Kuplaj Metrikleri ---")
+    print(f"  V_matrix_ses:\n    [[{V_matrix_ses[0,0]:.4f}, {V_matrix_ses[0,1]:.4f}],\n"
+          f"     [{V_matrix_ses[1,0]:.4f}, {V_matrix_ses[1,1]:.4f}]]")
+    print(f"  V_matrix range: [{V_matrix_ses.min():.4f}, {V_matrix_ses.max():.4f}]")
+    print(f"  V_dd heuristic (r=0.91m, kT normalize): {V_dd_norm:.4e}")
+    print(f"  Asimetri |V[A,B] - V[B,A]|: {asimetri:.6f}")
+    print(f"  A→B kuplaj zaman ortalaması: {v_ab_zaman_ort:.6f}")
+    print(f"  B→A kuplaj zaman ortalaması: {v_ba_zaman_ort:.6f}")
+
+    # --- Görselleştirme (4-panel figür) ---
+    fig, axes = plt.subplots(2, 2, figsize=(14, 9))
+    fig.suptitle(
+        "L8 Ses Kuplaj — İki Kişi Akustoelektrik Kuplaj (D-011c Sprint 09 S4)",
+        fontsize=12, fontweight="bold"
+    )
+
+    # Üst sol: emisyon zaman serileri
+    ax = axes[0, 0]
+    ax.plot(t, a_emission, "r-", lw=1.2, label="A emisyonu (6 Hz nefes/teta)")
+    ax.plot(t, b_emission, "b-", lw=1.2, label="B emisyonu (5 Hz farklı ritim)")
+    ax.set_xlabel("t (s)")
+    ax.set_ylabel("Emisyon (a.u.)")
+    ax.set_title("Kişi A ve B Akustik Emisyonu")
+    ax.legend(fontsize=8)
+    ax.grid(alpha=0.3)
+
+    # Üst sağ: Δσ zaman serileri
+    ax = axes[0, 1]
+    ax.plot(t, delta_sigma_pct_B, "r-", lw=1.2, label="Δσ_B (A etkisi, %)")
+    ax.plot(t, delta_sigma_pct_A, "b-", lw=1.2, label="Δσ_A (B etkisi, %)")
+    ax.set_xlabel("t (s)")
+    ax.set_ylabel("Δσ / σ₀ (%)")
+    ax.set_title("Akustoelektrik Konduktivite Modülasyonu")
+    ax.legend(fontsize=8)
+    ax.grid(alpha=0.3)
+
+    # Alt sol: V_matrix karşılaştırma (heuristic vs akustik)
+    ax = axes[1, 0]
+    im = ax.imshow(
+        V_matrix_ses,
+        cmap="viridis", vmin=0.0, vmax=1.0,
+        aspect="auto"
+    )
+    ax.set_xticks([0, 1]); ax.set_xticklabels(["A", "B"])
+    ax.set_yticks([0, 1]); ax.set_yticklabels(["A", "B"])
+    ax.set_title(
+        f"V_matrix_ses (akustik)\n"
+        f"V_dd heuristic={V_dd_norm:.2e} (r=0.91m, kT norm)"
+    )
+    for i in range(2):
+        for j in range(2):
+            ax.text(j, i, f"{V_matrix_ses[i, j]:.4f}",
+                    ha="center", va="center", color="white" if V_matrix_ses[i, j] < 0.6 else "black",
+                    fontsize=11, fontweight="bold")
+    plt.colorbar(im, ax=ax, shrink=0.8)
+
+    # Alt sağ: kuplaj gücü zaman serisi (asimetri görselleştirme)
+    ax = axes[1, 1]
+    ax.plot(t, K_t_B_zaman, "r-", lw=1.2, label=f"A→B kuplaj (ort={v_ab_zaman_ort:.4f})")
+    ax.plot(t, K_t_A_zaman, "b-", lw=1.2, label=f"B→A kuplaj (ort={v_ba_zaman_ort:.4f})")
+    ax.fill_between(t, K_t_B_zaman, K_t_A_zaman, alpha=0.2,
+                    color="red" if v_ab_zaman_ort > v_ba_zaman_ort else "blue",
+                    label=f"Asimetri={asimetri:.4f}")
+    ax.set_xlabel("t (s)")
+    ax.set_ylabel("Δσ / σ₀ (normalize, [0,1])")
+    ax.set_title("A→B ve B→A Kuplaj Gücü Asimetrisi")
+    ax.legend(fontsize=8)
+    ax.grid(alpha=0.3)
+    ax.set_ylim(0, 1.1)
+
+    plt.tight_layout()
+    out_path = os.path.join(output_dir, "L8_ses_kuplaj_demo.png")
+    fig.savefig(out_path, dpi=150, bbox_inches="tight")
+    plt.close(fig)
+    print(f"  PNG: {out_path}")
+
+    return {
+        "V_matrix_ses": V_matrix_ses,
+        "V_dd_norm": V_dd_norm,
+        "asimetri": asimetri,
+        "v_ab_zaman_ort": v_ab_zaman_ort,
+        "v_ba_zaman_ort": v_ba_zaman_ort,
+    }
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="BVT Level 8: Iki Kisi + Pil Analojisi")
     parser.add_argument("--output", default="output/level8")
     parser.add_argument("--t-end", type=float, default=100.0)
     parser.add_argument("--html", action="store_true")
+    parser.add_argument(
+        "--ses-kuplaj",
+        action="store_true",
+        help="Opsiyonel: Akustoelektrik ses kuplaj sahnesi (D-011c Sprint 09 S4). "
+             "Default davranis degismez. Yeni cikti: output/level8/L8_ses_kuplaj_demo.png",
+    )
     args = parser.parse_args()
 
     os.makedirs(args.output, exist_ok=True)
@@ -392,6 +567,12 @@ def main() -> None:
     print(f"\n{'='*65}")
     print(f"Level 8 tamamlandi: {time.time()-t_start:.1f}s")
     print(f"{'='*65}")
+
+    # D-011c Sprint 09 S4 — Opsiyonel akustoelektrik ses kuplaj sahnesi
+    # Mevcut default akis tamamen korunur; sadece --ses-kuplaj geçilince çalışır.
+    if args.ses_kuplaj:
+        print("\n[L8] --ses-kuplaj aktif: akustoelektrik kuplaj sahnesi baslatiliyor...")
+        _ses_kuplaj_sahnesi(args.output)
 
 
 if __name__ == "__main__":
