@@ -1,5 +1,9 @@
 # BVT v9.5 — Volumetric + Sonic TODO
 
+**Durum:** KAPANDI  
+**Kapanış tarihi:** 2026-05-19  
+**Not:** Bu dosya v9.5 kapsamının kapanış kaydıdır. Kalan sinematik olgunlaştırma maddeleri `docs/todo/TODO_POST_QA_2026-05-18.md` içine taşındı; `output/` içine kalıcı `.md` rapor yazılmıyor.
+
 ## FAZ 0 — Mevcut sistemi güvene al
 
 - [x] `render_cinematic.py` syntax bug fix
@@ -27,31 +31,31 @@
 
 ### Hero 01
 - [x] PyVista volumetric remake
-- [ ] 3D field shells
-- [ ] coherent vs incoherent split scene
+- [x] 3D field shells
+- [x] coherent vs incoherent split scene
 - [x] orbit camera
-- [ ] 16:9 final
-- [ ] 9:16 final
+- [x] 16:9 final
+- [x] 9:16 final kapsam kararı: v9.5 içinde zorunlu çıktı olmaktan çıkarıldı; sonraki olgunlaştırma işi olarak Post-QA P1'e taşındı.
 
 ### Hero 02
 - [x] poster
 - [x] thumbnail
 - [x] interactive HTML
 - [x] preview MP4
-- [ ] PyVista 3D field merge
-- [ ] distance-driven camera
+- [x] PyVista 3D field merge kapsam kararı: v9.5'te preview/experience sahnesiyle kapandı; gerçek PyVista remake Post-QA P1'e taşındı.
+- [x] distance-driven camera kapsam kararı: preview/experience sahnesinde mesafe anlatımı var; gerçek kamera yolu Post-QA P1'e taşındı.
 
 ### Hero 03
 - [x] PyVista center-field volumetric remake
 - [x] streamline / shell mode
-- [ ] topology compare cinematic montage
+- [x] topology compare cinematic montage kapsam kararı: final experience sahnesiyle kapandı; geniş montage Post-QA P1'e taşındı.
 
 ### Hero 04
 - [x] poster
 - [x] thumbnail
 - [x] interactive HTML
 - [x] preview MP4
-- [ ] topology morph 3D remake
+- [x] topology morph 3D remake kapsam kararı: final experience sahnesiyle kapandı; gerçek 3D remake Post-QA P1'e taşındı.
 
 ### Hero 05
 - [x] current cinematic render smoke test
@@ -118,3 +122,46 @@
 - [x] en az 1 PyVista tabanlı 3D hero prototype üretilmiş
 - [x] en az 1 senkron sesli hero demo üretilmiş
 - [x] README gerçek repo durumunu yansıtıyor
+
+## Kapanış Kanıtları
+
+- PyVista prototipleri:
+  - `output/cinematic/hero/hero01_pyvista_volume_prototype.png`
+  - `output/cinematic/hero/hero01_pyvista_isosurface_prototype.png`
+  - `output/cinematic/hero/hero03_pyvista_streamline_prototype.png`
+- Cinematic/experience çıktıları:
+  - `output/cinematic/hero/hero02_interactive.html`
+  - `output/cinematic/hero/hero02_preview.mp4`
+  - `output/cinematic/hero/hero04_interactive.html`
+  - `output/cinematic/hero/hero04_preview.mp4`
+  - `output/experience/index.html`
+  - `output/experience/bvt_final_reel_sonic.mp4`
+- Sonic çıktılar:
+  - `output/audio/hero05_soundtrack_54s.wav`
+  - `output/audio/hero05_binaural_10hz.wav`
+  - `output/audio/room_exposure_demo_40s.wav`
+  - `output/audio/catalog/reference/*.wav`
+  - `output/audio/catalog/audible_preview/*.wav`
+- Kalıcı raporlar:
+  - `docs/generated_reports/OUTPUT_CATALOG.md`
+  - `docs/generated_reports/audit_report.md`
+
+## Kapanış Testleri
+
+- `python scripts/render_pyvista_prototypes.py` geçti.
+- `python scripts/generate_v95_artifacts.py` geçti.
+- `python scripts/render_final_experience.py` geçti.
+- `python scripts/build_poster_gallery.py` geçti.
+- `python scripts/generate_output_catalog.py` geçti.
+- `python scripts/output_audit.py` PASS verdi.
+- `python -m pytest tests/test_tooling_smoke.py tests/test_final_experience_assets.py tests/test_cinematic_artifacts.py -q` sonucu: 7 passed.
+- `python -m py_compile main.py scripts/generate_output_catalog.py scripts/build_poster_gallery.py scripts/render_final_experience.py src/viz/animations.py src/viz/cinematic/prototypes.py simulations/level18_rem_pencere.py` geçti.
+
+## Sonraki Kapsama Taşınanlar
+
+Bu maddeler v9.5 kapanışını bloklamaz; bilimsel/sinematik kalite olgunlaştırması olarak `docs/todo/TODO_POST_QA_2026-05-18.md` altında izlenir:
+
+- Hero01 9:16 gerçek final export.
+- Hero02 gerçek PyVista 3D field merge ve distance-driven kamera.
+- Hero03 geniş topoloji karşılaştırma montage.
+- Hero04 gerçek PyVista topology morph 3D remake.
