@@ -35,9 +35,8 @@ def test_mp4_uretim():
         f"Dosya çok küçük: {os.path.getsize(sonuc)} bytes"
     )
     print(f"  BAŞARILI: {sonuc} ({os.path.getsize(sonuc)//1024}KB)")
-    return True
 
 
 if __name__ == "__main__":
-    ok = test_mp4_uretim()
+    test_mp4_uretim()
     print("Test:", "GEÇTI" if ok else "KALDI")

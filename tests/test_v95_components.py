@@ -3,8 +3,9 @@ from src.viz.cinematic.backends import (
     camera_orbit_path, scene_to_streamline_seeds,
 )
 from src.viz.cinematic.scenes_single_heart import hero01_scene_data
-from src.audio.synthesis import sine_wave
+from src.audio.synthesis import sine_wave, entrainment_pulse
 from src.audio.binaural import binaural_beat
+from src.audio.envelopes import discomfort_index
 
 
 def test_backends_and_adapters():
@@ -18,4 +19,6 @@ def test_backends_and_adapters():
 
 def test_audio_shapes():
     assert sine_wave(110, 0.1).ndim == 1
+    assert entrainment_pulse(7.83, 0.1).shape == (4410,)
     assert binaural_beat(220, 10, 0.1).shape[1] == 2
+    assert discomfort_index(95) > 0

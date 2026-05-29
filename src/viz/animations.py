@@ -47,7 +47,7 @@ def save_plotly_snapshot(
     fig: "go.Figure",
     frames: list,
     png_path: str,
-    frame_which: str = "middle",
+    frame_which: str = "last",
     width: int = 1400,
     height: int = 800,
     scale: int = 2,
@@ -62,7 +62,7 @@ def save_plotly_snapshot(
     fig          : Plotly Figure (animasyon içeren)
     frames       : go.Frame listesi
     png_path     : Çıktı PNG yolu
-    frame_which  : 'middle' (varsayılan), 'last', veya int indeks
+    frame_which  : 'last' (varsayılan), 'middle', veya int indeks
     width/height : PNG boyutu (piksel)
     scale        : Plotly dpi çarpanı
 
@@ -359,18 +359,31 @@ def animasyon_halka_kolektif_em(
 
     # Her frame için B-alan hesapla
     print(f"  EM alan hesaplanıyor ({n_frames} frame)...")
-    # Her kişi için ortalama koherans (zaman ortalaması)
-    C_per_person = np.mean(sonuc["C_t"], axis=1)  # shape (N,)
-    momentler = dipol_moment_zaman(sonuc["t"], C_per_person, phi0)
+    C_t = np.asarray(sonuc["C_t"])
+    phi_t = np.asarray(sonuc["phi_t"])
+    if phi_t.shape[0] != N:
+        phi_t = phi_t.T
+    if C_t.shape[0] != N:
+        C_t = C_t.T
 
     B_frames = []
     for i, t_idx in enumerate(t_indices):
+        # Zamanla değişen C_i(t) ve phi_i(t) doğrudan frame'e taşınır.
+        # Eski sürüm ortalama C ve başlangıç fazını kullandığı için halka
+        # görseli neredeyse sabit kalıyordu.
+        C_now = C_t[:, min(t_idx, C_t.shape[1] - 1)]
+        phi_now = phi_t[:, min(t_idx, phi_t.shape[1] - 1)]
+        momentler = np.zeros((N, 1, 3))
+        momentler[:, 0, 2] = MU_HEART * C_now * np.cos(phi_now)
         _, _, _, B_mag = toplam_em_alan_3d(
-            t_idx, konumlar, momentler,
+            0, konumlar, momentler,
             grid_extent=grid_extent, grid_n=grid_n,
         )
         B_slice = np.log10(B_mag[:, :, grid_n // 2] + 0.001)
-        B_frames.append(B_slice)
+        ramp = 0.25 + 0.75 * (i / max(n_frames - 1, 1))
+        B_frames.append(B_slice * ramp)
+    z_min = float(np.percentile(np.stack(B_frames), 3))
+    z_max = float(np.percentile(np.stack(B_frames), 98))
 
     # Plotly figure
     x_ax = np.linspace(-grid_extent, grid_extent, grid_n)
@@ -379,13 +392,13 @@ def animasyon_halka_kolektif_em(
     fig = go.Figure()
     fig.add_trace(go.Heatmap(
         z=B_frames[0].T.tolist(), x=x_ax.tolist(), y=x_ax.tolist(),
-        colorscale="Hot", zmin=-2, zmax=float(np.max(B_frames[-1])),
+        colorscale="Viridis", zmin=z_min, zmax=z_max,
         colorbar=dict(title="log₁₀|B|(pT)"),
     ))
     # Kişi konumları
     fig.add_trace(go.Scatter(
         x=konumlar[:, 0].tolist(), y=konumlar[:, 1].tolist(),
-        mode="markers", marker=dict(size=12, color="cyan", symbol="circle"),
+        mode="markers", marker=dict(size=12, color="#7df9ff", line=dict(color="#111", width=1), symbol="circle"),
         name="Kişiler",
     ))
 
@@ -397,7 +410,7 @@ def animasyon_halka_kolektif_em(
         plotly_frames.append(go.Frame(
             data=[
                 go.Heatmap(z=B_frames[i].T.tolist(), x=x_ax.tolist(), y=x_ax.tolist(),
-                           colorscale="Hot", zmin=-2, zmax=float(np.max(B_frames[-1]))),
+                           colorscale="Viridis", zmin=z_min, zmax=z_max),
                 go.Scatter(x=konumlar[:, 0].tolist(), y=konumlar[:, 1].tolist(),
                            mode="markers", marker=dict(size=12, color="cyan")),
             ],

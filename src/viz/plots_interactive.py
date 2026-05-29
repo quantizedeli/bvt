@@ -93,13 +93,22 @@ def _html_kaydet(fig: Any, path: str, png: bool = True) -> None:
     if png:
         png_path = os.path.splitext(path)[0] + ".png"
         try:
-            # Animasyonlu sekillerde (frames var) sadece ilk kareyi PNG olarak kaydet
+            # Animasyonlu şekillerde ilk kare yanıltıcıdır; varsayılan olarak son kareyi al.
             try:
                 fig.update_layout(paper_bgcolor="white", plot_bgcolor="#f0f4f8", font=dict(color="#111111"))
             except Exception:
                 pass
-            fig.write_image(png_path, width=fig.layout.width or W_HD,
-                            height=fig.layout.height or H_HD, scale=1)
+            fig_for_png = fig
+            if getattr(fig, "frames", None):
+                import copy
+                fig_for_png = copy.deepcopy(fig)
+                last_frame = fig.frames[-1]
+                for ti, trace_data in enumerate(last_frame.data):
+                    if ti < len(fig_for_png.data):
+                        fig_for_png.data[ti].update(trace_data)
+                fig_for_png.update_layout(updatemenus=[], sliders=[])
+            fig_for_png.write_image(png_path, width=fig.layout.width or W_HD,
+                                    height=fig.layout.height or H_HD, scale=1)
             print(f"  PNG:        {png_path}")
         except Exception as _e:
             pass   # kaleido yoksa sessizce atla

@@ -15,7 +15,7 @@ BVT öngörüleri (docs/BVT_Literatur_Arastirma_Raporu.md, Konu 1):
 
 Çıktılar:
   output/level18/L18_rem_pencere.png      (3 panel)
-  output/level18/L18_rem_bvt_ongoru.md    (literatür özeti)
+  docs/generated_reports/L18_rem_bvt_ongoru.md    (literatür özeti)
 
 Referans: BVT_Makale.docx, Bölüm 14 (HKV + REM),
           docs/BVT_Literatur_Arastirma_Raporu.md Konu 1.
@@ -324,7 +324,13 @@ def main():
     sekil_3panel(sonuclar, os.path.join(args.output, "L18_rem_pencere.png"))
 
     print("  Rapor yazılıyor...")
-    rapor_yaz(sonuclar, os.path.join(args.output, "L18_rem_bvt_ongoru.md"))
+    report_dir = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        "docs",
+        "generated_reports",
+    )
+    os.makedirs(report_dir, exist_ok=True)
+    rapor_yaz(sonuclar, os.path.join(report_dir, "L18_rem_bvt_ongoru.md"))
 
     print(f"\n  Tüm çıktılar: {os.path.abspath(args.output)}")
     print("  Level 18 tamamlandı.")

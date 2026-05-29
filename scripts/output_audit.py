@@ -6,11 +6,11 @@ Her level klasöründe beklenen PNG/HTML dosyalarını kontrol eder.
 Sıfır-byte, dublike boyut, eksik dosya tespiti yapar.
 
 Kullanım:
-    python scripts/output_audit.py [--output output] [--report output/audit_report.md]
+    python scripts/output_audit.py [--output output] [--report docs/generated_reports/audit_report.md]
 
 Çıktı:
     PASS/WARN/FAIL özet konsola
-    output/audit_report.md rapor dosyası
+    docs/generated_reports/audit_report.md rapor dosyası
     Return code: 0=PASS, 1=FAIL var
 """
 import os
@@ -120,7 +120,7 @@ def write_report(passes, warns, fails, report_path: Path) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser(description="BVT output audit")
     parser.add_argument("--output", default="output", help="Output dizini")
-    parser.add_argument("--report", default="output/audit_report.md", help="Rapor dosyası")
+    parser.add_argument("--report", default="docs/generated_reports/audit_report.md", help="Rapor dosyası")
     args = parser.parse_args()
 
     output_dir = Path(args.output)

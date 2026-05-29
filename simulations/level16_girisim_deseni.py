@@ -213,7 +213,12 @@ def sekil_frekans_spektrumu(output_dir: str, n_freqs: int = 10) -> None:
     print(f"  PNG: {png_path}")
 
 
-def sekil_girisim_animasyon(output_dir: str, n_frames: int = 40, mesafe_m: float = 0.9) -> None:
+def sekil_girisim_animasyon(
+    output_dir: str,
+    n_frames: int = 40,
+    mesafe_m: float = 0.9,
+    png_snapshot: bool = False,
+) -> None:
     """
     Plotly animasyonu: zaman içinde yapıcı ve yıkıcı girişim deseni.
     """
@@ -287,6 +292,10 @@ def sekil_girisim_animasyon(output_dir: str, n_frames: int = 40, mesafe_m: float
     fig.write_html(html_path, include_plotlyjs="cdn")
     print(f"  HTML: {html_path}")
 
+    if not png_snapshot:
+        print("  PNG snapshot atlandı (varsayılan: hızlı/güvenli mod).")
+        return
+
     # PNG snapshot — orta frame
     try:
         mid_idx = len(frames) // 2
@@ -311,6 +320,8 @@ def main():
     parser.add_argument("--grid-n", type=int, default=80, help="Izgara nokta sayısı")
     parser.add_argument("--n-frames", type=int, default=40, help="Animasyon frame sayısı")
     parser.add_argument("--mesafe", type=float, default=0.9, help="İki kaynak arası mesafe (m)")
+    parser.add_argument("--png-snapshot", action="store_true",
+                        help="Animasyon için ek PNG snapshot üret (Kaleido yavaş olabilir)")
     args = parser.parse_args()
 
     os.makedirs(args.output, exist_ok=True)
@@ -325,7 +336,8 @@ def main():
     sekil_frekans_spektrumu(args.output)
 
     print("\n[3/3] Animasyon üretiliyor...")
-    sekil_girisim_animasyon(args.output, n_frames=args.n_frames, mesafe_m=args.mesafe)
+    sekil_girisim_animasyon(args.output, n_frames=args.n_frames, mesafe_m=args.mesafe,
+                            png_snapshot=args.png_snapshot)
 
     print(f"\n  Tüm çıktılar: {os.path.abspath(args.output)}")
     print("  Level 16 tamamlandı.")

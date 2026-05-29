@@ -1,4 +1,5 @@
 """Hafif v9.5 artefakt üretimi: poster/html/audio."""
+import json
 import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -31,6 +32,14 @@ def main():
     hero04_render_poster(sd4, str(posters / "hero04_poster_v01.png"), t_poster=7, width=1280, height=720, t_hybrid_start=3, t_serial_start=6)
     hero04_render_poster(sd4, str(hero / "hero04_thumbnail.png"), t_poster=7, width=640, height=360, t_hybrid_start=3, t_serial_start=6)
     hero04_render_mp4(sd4, str(hero / "hero04_preview.mp4"), fps=6, width=480, height=270, t_hybrid_start=3, t_serial_start=6)
+
+    manifest = {
+        "hero02": ["hero02_interactive.html", "hero02_thumbnail.png", "hero02_preview.mp4"],
+        "hero04": ["hero04_interactive.html", "hero04_thumbnail.png", "hero04_preview.mp4"],
+    }
+    (Path("output/cinematic") / "artifact_manifest.json").write_text(
+        json.dumps(manifest, indent=2), encoding="utf-8"
+    )
 
 
 if __name__ == "__main__":
