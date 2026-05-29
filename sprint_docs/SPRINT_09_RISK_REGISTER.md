@@ -346,6 +346,7 @@ Bir sonraki S: ______
 | Tarih | ID | Sonuc | Eylem |
 |---|---|---|---|
 | 2026-05-26 | R-S1-scope-surprise | S1 derin teshis -- D-013 1.5 gun spec'i, gercek scope degerin tam alfa emergence icin degil sigmoid proxy kalibrasyonu oldugu anlasild | Hibrit yaklasim (JR_PARAM_SETS + A_e/A_i modülasyonu) + D-016 (Hopf limit-cycle) Sprint 10'a DEFERRED + spec guncellendi |
+| 2026-05-27 | R-S4-01 | S4 ilk implementasyonda V_matrix K_t RMS/baseline yaklaşımı V=1.0 satürasyona düştü (K_t modül zaten K_0 üzerinden normalize) | Worker Δσ_pct değerini doğrudan V proxy aldı + farklı emisyon amplitüdü (A=0.5, B=0.3) ile asimetri sağlandı. V range [0, 0.0048], asimetri 0.0019 (~%40 bağıl). Commit fe4a684. |
 
 ---
 

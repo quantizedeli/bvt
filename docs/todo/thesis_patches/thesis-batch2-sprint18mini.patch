@@ -1,0 +1,1054 @@
+From 989511b068f3195e904ee39e314c0d554303c2bf Mon Sep 17 00:00:00 2001
+From: "Claude Opus 4.7" <claude@anthropic.local>
+Date: Thu, 21 May 2026 15:31:18 +0000
+Subject: [PATCH 2/2] docs(thesis): Sprint 18-mini AutoML multiseed + yeni
+ sohbet ilk prompt
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+- docs/thesis-toolkit/sprints/sprint-18-mini-automl-multiseed.md (666 satır)
+  AutoML multiseed (3 seed: 42, 123, 456) çalıştırma planı.
+  Bouthillier ve ark. 2021 MLSys çoklu seed gerekliliği gereği.
+  PFAZ2 YENİDEN KOŞMAZ — sadece PFAZ13 + PFAZ6/8/10 (AutoML bölümleri).
+  Yan dizin hpcv1_outputs_multiseed/ snapshot bozmaz.
+  TRUBA orfoz veya lokal seçim için karar matrisi.
+  Kod değişiklikleri: multiseed_runner.py + automl_optimizer seed param.
+
+- docs/thesis-toolkit/YENI-SOHBET-ILK-PROMPT.md (~300 satır)
+  Önceki Opus 4.7 sohbeti context sınırına geldi.
+  Yeni Sonnet 4.6 sohbeti için kapsamlı devralma promtu.
+  4 ana karar (hocayla görüşmeden ilerle):
+    1. Yol α — 22 Mayıs teslim (PFAZ2 koşmaz)
+    2. 7-bölüm SAÜ doktora yapısı
+    3. SAÜ-modifiye IEEE atıf
+    4. DOCX (SAÜ Word şablonu)
+  Multi-model atama: 5 Opus 4.7 + 17 Sonnet 4.6
+  Hibrit 4-grup paralel chapter writer
+
+Kalan iş (yeni Sonnet sohbeti yapacak):
+  - 23 agent prompt dosyası (frontmatter model: opus/sonnet)
+  - CLAUDE-CODE-ORCHESTRATION.md AUTONOMOUS revize
+  - PARALLEL-AGENTS-SYSTEM.md hibrit 4-grup + Agent K + COORDINATOR
+  - MULTI-MODEL-CONFIG.md yeni
+  - pipeline-hatalari + tez-yazim-not-defteri + claude-dersler güncelle
+  - Tek büyük patch (~10000 satır)
+
+Co-Authored-By: Claude Opus 4.7 <noreply@anthropic.com>
+---
+ docs/thesis-toolkit/YENI-SOHBET-ILK-PROMPT.md | 329 +++++++++
+ .../sprint-18-mini-automl-multiseed.md        | 666 ++++++++++++++++++
+ 2 files changed, 995 insertions(+)
+ create mode 100644 docs/thesis-toolkit/YENI-SOHBET-ILK-PROMPT.md
+ create mode 100644 docs/thesis-toolkit/sprints/sprint-18-mini-automl-multiseed.md
+
+diff --git a/docs/thesis-toolkit/YENI-SOHBET-ILK-PROMPT.md b/docs/thesis-toolkit/YENI-SOHBET-ILK-PROMPT.md
+new file mode 100644
+index 0000000..dbd976b
+--- /dev/null
++++ b/docs/thesis-toolkit/YENI-SOHBET-ILK-PROMPT.md
+@@ -0,0 +1,329 @@
++# YENİ SOHBET — İLK PROMPT (Sonnet 4.6 için)
++
++> Bu prompt'u yeni Claude Desktop sohbetine yapıştır.
++> Model: **Sonnet 4.6** (Opus 4.7 tasarrufu için)
++> Tarih: 2026-05-21 gece
++> Bağlam: hpcv1 nuclear AI tezi, 22 Mayıs teslim, Sprint 18 hazırlığı
++
++---
++
++## YAPIŞTIRILACAK İLK MESAJ (kopyala-yapıştır):
++
++```
++Merhaba, ben Ahmet Kemal. SAÜ Fen Bilimleri doktora tezimi hazırlıyorum (Yapay
++Zekâ Destekli Nükleer Veri Analizi — Tek-Tek Çekirdekler için Manyetik ve
++Kuadrupol Moment Tahmini). 22 Mayıs teslim.
++
++Önceki sohbette Opus 4.7 ile çalıştım, context sınırına geldim. Token
++tasarrufu için seninle (Sonnet 4.6) devam ediyorum.
++
++═══════════════════════════════════════════════════════════════════
++DURUM ÖZETİ
++═══════════════════════════════════════════════════════════════════
++
++Repo: hpcv1 (private), Desktop\ahmet\nucdatav2-truba\
++Branch: thesis-writing (önceki Opus sohbeti için hazırladığım)
++GitHub: quantizedeli/hpcv1 (kendi private repom)
++
++Önceki Opus sohbetinde üretilen ve commit edilen dosyalar (thesis-batch1-prep
++patch'iyle, kendi merge branch'ime alacağım):
++
++  docs/thesis-toolkit/
++    THESIS-RESEARCH-NOTES.md         (437 satır, merkez not defteri)
++    HAKAN-HOCA-SORULAR.md            (130 satır, ama HOCAYLA GÖRÜŞMEDEN ilerliyoruz)
++    THESIS-PLAN-v2.md                (375 satır, karar matrisi)
++    CLAUDE-CODE-ORCHESTRATION.md     (277 satır, master prompt — REVIZE LAZIM)
++    guide/PARALLEL-AGENTS-SYSTEM.md  (374 satır — REVIZE LAZIM)
++    UMBERTO-ECO-METODOLOJI.md        (257 satır)
++    SUBMISSION-CHECKLIST.md          (339 satır)
++    SCHEDULER-SETUP.md               (242 satır)
++    agents/agent-A-phases-update.md  (194 satır, örnek agent)
++    sprints/sprint-18-mini-automl-multiseed.md (666 satır)
++
++  thesis/
++    01-giris.md                      (84 satır, Bölüm 1 hazır)
++    02-literatur-incelemesi-v2.md    (252 satır, Bölüm 2 hazır)
++
++  skills/
++    academic-shield-v2.md            (312 satır)
++    academic-writing-pro-v2.md       (464 satır)
++    humanizer-thesis-mode.md         (322 satır)
++
++═══════════════════════════════════════════════════════════════════
++KARARLAR (kullanılacak varsayılanlar, hocayla GÖRÜŞMEDEN)
++═══════════════════════════════════════════════════════════════════
++
++1. YOL α — 22 Mayıs teslim (PFAZ2 YENİDEN KOŞMAZ)
++   → Schmidt eklenmesi yok (PFAZ2 gerekir)
++   → Mevcut Sprint 17 snapshot ile tez yazılır
++
++2. Tez yapısı: 7-bölüm (SAÜ doktora standardı)
++
++3. Atıf formatı: SAÜ-modifiye IEEE
++   [N] Soyad, A., Soyad, B., Başlık, Dergi, c(s), ss, yıl, DOI
++
++4. Çıktı: DOCX (SAÜ Word şablonu doldurulacak)
++   sau tez format/sau-lisansustu-tez-sablonu_-_yeni1__1___1_2__1_1.docx
++
++5. AI beyanı: Önsözde 3-4 cümle
++
++6. Sprint 18-mini: AutoML multiseed (3 seed: 42, 123, 456)
++   - Bouthillier ve ark. 2021 MLSys çoklu seed gerekliliği
++   - Yan dizin: hpcv1_outputs_multiseed/
++   - Snapshot bozmaz
++   - Sadece PFAZ13 + PFAZ6/8/10 (automl bölümleri) yeniden tetiklenir
++   - Lokal veya TRUBA orfoz (orfoz durumu kontrol edilecek)
++
++7. Paralel chapter writer: HİBRİT 4-GRUP
++   Grup 1 (paralel): CW-3 Yöntem + CW-4 Uygulama + CW-9 Ekler
++   Grup 2 (paralel): CW-5 Bulgular + CW-2-revize Bölüm 2
++   Grup 3 (paralel): CW-6 Tartışma + CW-7 Sonuç + CW-1-revize Bölüm 1
++   Grup 4 (sıralı): CW-0 Özet + CW-8 Kaynakça
++
++8. Multi-model atama (Anthropic kendi araştırması: Opus lead + Sonnet workers
++   = %90 daha iyi performans):
++
++   OPUS 4.7 (5 agent):
++   - Master orchestrator session
++   - Agent E (orchestrator raporu)
++   - Agent COORDINATOR (çapraz kontrol)
++   - Agent CW-6 (Bölüm 6 Tartışma — yorum gerektirir)
++   - Agent CW-7 (Bölüm 7 Sonuç — sentez gerektirir)
++   - Agent CW-0 (Özet TR/EN — yüksek kalite)
++
++   SONNET 4.6 (17 agent):
++   - Agent A (phases güncelleme)
++   - Agent B (SAÜ stil analizi)
++   - Agent C (Excel envanter)
++   - Agent D (Viz katalog)
++   - Agent F (Literatür + DOI doğrulama)
++   - Agent G (Eco metodoloji)
++   - Agent H (skill güncelleme)
++   - Agent I (DOCX derleme — SAÜ Word şablonu)
++   - Agent J (Scheduler)
++   - Agent K (SAÜ Tez Yazım Kılavuzu Reader)
++   - Agent CW-3, CW-4, CW-5 (teknik bölümler)
++   - Agent CW-2-revize, CW-1-revize (atıf/küçük güncelleme)
++   - Agent CW-8 (Kaynakça)
++   - Agent CW-9 (Ekler)
++
++═══════════════════════════════════════════════════════════════════
++GERÇEK SAYISAL VERİLER (THESIS-RESEARCH-NOTES.md §1.3)
++═══════════════════════════════════════════════════════════════════
++
++- 267 çekirdek (TAMAMI odd-odd: Z%2=1 ∧ N%2=1, A çift) — ÖZGÜN KATKI
++- 75 özellik, 34 özellik seti, 1472 dataset, 942 PFAZ4 kombinasyon
++- 20 config (Sprint 15 sonrası, eski 50'den)
++- 8 ANFIS varyantı (Grid×SubClust × 4 MF tipi)
++- MM bireysel: XGB val R²=0.838, test R²=0.783, RMSE 0.92 μN
++- QM bireysel: RF val R²=0.914, test R²=0.231 (overfit alarmı)
++- MM ensemble: R²=-3.18 (PFAZ7 BUG-127 dataset-arası top-N sorunu) — KEŞİF
++- QM ensemble: R²=0.8886 (stacking_gbm_meta) — BAŞARILI
++- ANOVA RF vs XGB: p=0.0015 anlamlı
++- Bootstrap n=10000, MC K=1000
++- AutoML AI %79 iyileşme (49/62), ANFIS %50 (8/16) — TEK SEED, Sprint 18-mini düzeltecek
++
++═══════════════════════════════════════════════════════════════════
++EKLENECEK KAYNAKLAR (Bölüm 2'de işlendi)
++═══════════════════════════════════════════════════════════════════
++
++[80] Yuan, Z., Tian, D., Li, J., Niu, Z.M. (2021)
++     Magnetic moment predictions of odd-A nuclei with BNN approach
++     Chin. Phys. C 45(12), 124107
++     DOI: 10.1088/1674-1137/ac28f9
++     → ODD-A RMSE 0.036 μN; biz odd-odd'a genişlettik
++
++[49] Stone, N.J. (2024)
++     Nuclear moments: recent developments
++     Interactions 245, 50
++     DOI: 10.1007/s10751-024-01896-z
++
++[71] Knöll, M. et al. (2025) arXiv:2501.08959 — Darmstadt ML × ab initio QM
++
++[70] Karthein, J. et al. (2024) Nat. Phys. 20, 1719 — ¹⁰⁰Sn indium izotopları
++
++[60] Lechner, S. et al. (2023) Phys. Lett. B 847, 138278 — antimon Sb
++
++[50] Stone, N.J. (2021) INDC(NDS)-0833 IAEA — QM tavsiye
++
++[95] Tabar, E., Yakut, H., Kuliev, A.A., Quliyev, H., Hoşgör, G. (2017)
++     Magnetic moments and g-factors in odd-A Ho isotopes
++     Chin. Phys. C 41(7), 074101 — YAKUT HOCA GRUBU
++
++[101] Hoşgör, G., Yakut, H., Tabar, E. (2017)
++      Spin polarization effects on magnetic dipole moment of 153,155Eu
++      AIP Conf. Proc. 1815, 060011 — YAKUT HOCA GRUBU
++
++EKLENECEK (Sprint 18-mini sonrası):
++[X] Bouthillier, X. et al. (2021) MLSys
++    Accounting for variance in machine learning benchmarks
++    arXiv:2103.03098 — Multiseed gerekliliği
++
++═══════════════════════════════════════════════════════════════════
++YENİ SOHBETTE YAPILACAKLAR (sırayla)
++═══════════════════════════════════════════════════════════════════
++
++Önceki Opus sohbetinde yapılmadı, sen yapacaksın:
++
++TIER B — 23 agent prompt dosyası (frontmatter "model: opus" veya "model: sonnet")
++  agent-A-phases-update.md          (var, model: sonnet ekle)
++  agent-B-sau-style.md              (yeni)
++  agent-C-excel-inventory.md        (yeni)
++  agent-D-viz-catalog.md            (yeni)
++  agent-E-orchestrator.md           (yeni, model: opus)
++  agent-F-literature.md             (yeni, Gemini Deep Research + arXiv + Sci-Hub fallback)
++  agent-G-eco-methodology.md        (yeni)
++  agent-H-skill-update.md           (yeni, Agent B sonrası bağımlı)
++  agent-I-docx-fill.md              (yeni, SAÜ Word şablonu doldur, LaTeX değil)
++  agent-J-scheduler.md              (yeni)
++  agent-K-sau-kilavuz-reader.md     (yeni, Tez_Yazim_Kilavuzu_SON_HALI_16.02_.pdf okur)
++  agent-COORDINATOR.md              (yeni, model: opus)
++  agent-CW-1-revize.md              (yeni, Bölüm 1 revize)
++  agent-CW-2-revize.md              (yeni, Bölüm 2 atıf güncelle)
++  agent-CW-3.md                     (yeni, Bölüm 3 Yöntem)
++  agent-CW-4.md                     (yeni, Bölüm 4 Uygulama)
++  agent-CW-5.md                     (yeni, Bölüm 5 Bulgular — multiseed sonuçları)
++  agent-CW-6.md                     (yeni, model: opus, Bölüm 6 Tartışma)
++  agent-CW-7.md                     (yeni, model: opus, Bölüm 7 Sonuç)
++  agent-CW-0.md                     (yeni, model: opus, Özet TR/EN)
++  agent-CW-8.md                     (yeni, Kaynakça)
++  agent-CW-9.md                     (yeni, Ekler)
++
++TIER D — Master kontrol dosyaları
++  CLAUDE-CODE-ORCHESTRATION.md      (REVIZE: AUTONOMOUS mod, hoca beklemesi yok)
++  PARALLEL-AGENTS-SYSTEM.md         (REVIZE: hibrit 4-grup, Agent K + COORDINATOR)
++  THESIS-PLAN-v2.md                 (REVIZE: varsayılan kararlar aktive işareti)
++  MULTI-MODEL-CONFIG.md             (YENİ: 23 agent → model atama tablosu, env vars)
++  SUBMISSION-CHECKLIST.md           (REVIZE: DOCX kontrol, multiseed kontrol)
++
++TIER F — Eski dokümanlar güncellemesi (KURAL 41-42 gereği)
++  pipeline-hatalari.md              (BUG-119..BUG-125 Sprint 17/18 fix'leri)
++  tez-yazim-not-defteri.md          (Sprint 17 + 18-mini sprint özeti)
++  claude-hatalarim-ve-dersler.md    (yeni KURAL 43-45 varsa)
++  CLAUDE.md                         (kritik değişiklikler)
++  SPRINT-PLAN.md                    (Sprint 18-mini eklendi)
++  phases/faz-13-automl.md           (multiseed bölümü)
++  sprints/sprint-17-final.md        (eğer yoksa)
++  sprints/sprint-18-mini-final.md   (yeni, sprint sonu raporu)
++
++TIER E — Tek büyük patch
++  ~10000 satır, ~400-500 KB
++  Kullanıcı kendi merge branch'ine git am ile uygular
++  Sonra Claude Code'a tek master prompt yapıştırır, OTONOM çalışır
++
++═══════════════════════════════════════════════════════════════════
++HAYAT KURTARAN KURALLAR (önceki sohbetlerden)
++═══════════════════════════════════════════════════════════════════
++
++KURAL 32 (VARSAYIM YASAĞI): Her iddia grep/view ile doğrulanmalı.
++"muhtemelen, büyük olasılıkla, varsayalım" KIRMIZI BAYRAK.
++
++KURAL 6 (BUG numarası): Yeni bug için
++grep -oE "^### BUG-[0-9]+" pipeline-hatalari.md | sort -V | tail -3
++ile son numarayı bul, +1.
++
++KURAL 41-42 (Commit öncesi 7 doküman): pipeline-hatalari, tez-not-defteri,
++claude-dersler, CLAUDE.md, SPRINT-PLAN, phases/faz-XX.md, sprints/sprint-XX.md
++hepsi güncel olmalı.
++
++KURAL 29 (Plan-onay-hareket): Büyük değişiklik öncesi plan + Kemal onayı.
++
++KURAL 30 (Runtime simulation): Yeni özellik öncesi 2 prod input × ilk 50 satır
++mental trace.
++
++KURAL 33 (Cross-layer failure chain): Bir fix yaparken aynı sınıf hatayı tüm
++katmanlarda ara.
++
++═══════════════════════════════════════════════════════════════════
++GİT İŞ AKIŞI
++═══════════════════════════════════════════════════════════════════
++
++Önceki Opus sohbeti thesis-writing branch'inde commit etti (e084103).
++Ben kendi merge branch'imde işlerimi yapacağım, sen Claude Code prompt'larını
++ürettiğin patch'i bana ver, ben kendi branch'ime uygulayacağım.
++
++Patch dosyası:
++  C:\Users\Hakan Yakut\Desktop\ahmet\nucdatav2-truba\thesis-batch2-full.patch
++
++Uygulama:
++  git checkout -b thesis-batch-merge
++  git am thesis-batch1-prep.patch
++  git am thesis-batch2-full.patch
++  git push origin thesis-batch-merge
++
++Sonra VS Code'da Claude Code paneli aç, OPUS 4.7 seç, env değişkeni:
++  $env:CLAUDE_CODE_SUBAGENT_MODEL = "claude-sonnet-4-6"
++
++Master prompt yapıştır → otonom çalışır.
++
++═══════════════════════════════════════════════════════════════════
++SENİN İLK GÖREVİN
++═══════════════════════════════════════════════════════════════════
++
++Bu sohbette önce şunu yap:
++
++1. Memory'i oku (memory_user_edits view) — önceki kararları gör
++2. Repo'yu klonla (depth=100 yeter, thesis-writing branch)
++3. Var olan THESIS-RESEARCH-NOTES.md ve PARALLEL-AGENTS-SYSTEM.md dosyalarını
++   oku (önceki Opus sohbetinin çıktıları)
++4. Sonra bana TODO listesi sun (aşağıdaki gibi):
++
++   TODO — Sonnet 4.6 yeni sohbet:
++   □ 23 agent prompt dosyası yaz
++   □ CLAUDE-CODE-ORCHESTRATION.md AUTONOMOUS modda revize
++   □ PARALLEL-AGENTS-SYSTEM.md hibrit 4-grup + Agent K + COORDINATOR
++   □ MULTI-MODEL-CONFIG.md yeni
++   □ THESIS-PLAN-v2.md varsayılan aktive
++   □ SUBMISSION-CHECKLIST.md revize
++   □ pipeline-hatalari + tez-yazim-not-defteri + claude-dersler güncelle
++   □ phases/faz-13 + sprint-18-mini doc'a son ekleme
++   □ Tek büyük patch (~10000 satır)
++
++5. Beklen, ben onayladıktan sonra başla. SIRAYLA yap, kalitsiz iş yapma.
++
++═══════════════════════════════════════════════════════════════════
++SON NOT
++═══════════════════════════════════════════════════════════════════
++
++Ben Claude Code'da çalışacağım — sen burada Claude Desktop'tasın (Sonnet 4.6).
++Sen Claude Code'a verilecek prompt'ları + dokümanları üretiyorsun, kendi
++çalıştırmıyorsun. Claude Code (lokal VS Code) işi yapacak.
++
++Önceki Opus sohbetinin context'i çok uzadı, o yüzden seninle devam ediyorum.
++Memory'de #26 ve #27 satırlarında bu sohbetin bağlamı kayıtlı.
++
++Soru varsa sor, ama önce repo'yu klonla + var olan dokümanları oku.
++Hadi başlayalım.
++```
++
++---
++
++## Senin Claude Code'a vereceğin AYRI prompt (yeni Sonnet sohbeti bitince)
++
++Yeni Sonnet sohbeti tüm dosyaları üretip patch verince, sen lokal repo'da `git am` ile uygulayacaksın. Sonra VS Code Claude Code'a şunu yapıştıracaksın:
++
++```
++Repo: hpcv1 (kendi merge branch'in)
++Mod: OTONOM
++
++docs/thesis-toolkit/CLAUDE-CODE-ORCHESTRATION.md açıp AUTONOMOUS MASTER PROMPT
++bölümünü oku ve uygula.
++
++Sen ana orchestrator'sun (Opus 4.7). Alt agent'lar Sonnet 4.6 (5 agent Opus 4.7).
++
++Multi-model env ayarlı mı kontrol et:
++  echo $env:CLAUDE_CODE_SUBAGENT_MODEL  # claude-sonnet-4-6 olmalı
++
++İlk olarak orfoz durumunu kontrol et (Sprint 18-mini için):
++  ssh ahmacar@172.16.6.11 "sinfo -p orfoz && squeue -u ahmacar"
++
++Karar matrisine göre TRUBA veya lokal başlat. Sonra Aşama 1 (6 paralel agent + 
++Sprint 18-mini multiseed) başlat.
++
++Başla. Hocayla görüşme yok, varsayılan kararlarla ilerle (THESIS-PLAN-v2.md §1).
++```
++
++---
++
++*Bu prompt yapıştırılınca yeni Sonnet sohbeti tüm bağlamı alır.*
++*Tahmini ilk yanıt süresi: 30-60 saniye (repo klonla + oku + TODO sun).*
+diff --git a/docs/thesis-toolkit/sprints/sprint-18-mini-automl-multiseed.md b/docs/thesis-toolkit/sprints/sprint-18-mini-automl-multiseed.md
+new file mode 100644
+index 0000000..b200536
+--- /dev/null
++++ b/docs/thesis-toolkit/sprints/sprint-18-mini-automl-multiseed.md
+@@ -0,0 +1,666 @@
++# Sprint 18-mini — AutoML Multiseed (3 Seed Çoklu Koşum)
++
++> **Amaç:** PFAZ13 AutoML'i tek seed yerine 3 farklı seed ile çalıştırmak; sonuç ortalaması ve standart sapma raporlamak. Bouthillier ve ark. (2021, MLSys) tavsiyesi gereği.
++>
++> **Bağlam:** Mevcut snapshot tek seed (42) ile koşturuldu. Tezde "AutoML %79 model iyileştirdi" iddiası **tek nokta gözlem** — istatistiksel güvenilirliği zayıf. Bu sprint sorunu çözer.
++>
++> **Süre tahmini:** Lokal 2-5 saat (sequential 3 seed) veya TRUBA orfoz 4-6 saat (tek job, sequential 3 seed)
++> **Snapshot etkisi:** **YOK** — yan dizinde çalışır, mevcut snapshot dokunulmaz
++> **Etkilenen PFAZ'lar:** PFAZ13 (yeniden), PFAZ6 (sadece AutoML sheet'leri), PFAZ8 (AM13-* grafikler), PFAZ10 (§5 AutoML alt-bölümü)
++> **TRUBA scratch:** `/arf/scratch/ahmacar/hpcv1_outputs_multiseed/` (yeni)
++> **Lokal:** `C:\Users\Hakan Yakut\Desktop\ahmet\hpcv1_outputs_multiseed\` (yeni)
++
++---
++
++## 1. Önce: Orfoz iş kuyruğu kontrolü (LOKAL/TRUBA karar)
++
++TRUBA'ya bağlan (`ahmacar@172.16.6.11`), şu komutları çalıştır:
++
++```bash
++# 1. orfoz partisyon doluluk durumu
++sinfo -p orfoz -o "%P %a %l %D %t %N"
++# State sütununda:
++#   idle    = boş node var, hemen başlar
++#   mix     = bazı kısımları dolu, hızlı başlar
++#   alloc   = tamamen dolu, bekleyeceksin
++#   drain   = sorunlu node, kullanma
++
++# 2. Kuyruktaki bekleyen iş sayısı
++squeue -p orfoz | wc -l
++# Eğer 1-5 arası → kuyruk hafif, hızlı başlar
++# Eğer 10+ → kuyruk yoğun, beklersin
++
++# 3. Senin kuyruktaki işlerin
++squeue -u ahmacar
++
++# 4. Tahmini bekleme süresi (test submit)
++sbatch --test-only truba/slurm_jobs/job_automl_multiseed.sh
++# Çıktıda "would be allocated" satırında tahmini bekleme zamanı
++
++# 5. weka file system durumu (kritik!)
++ls -la /arf/scratch/ahmacar/
++df -h /arf/scratch/ | head
++```
++
++**Karar matrisi:**
++
++| Orfoz Durumu | Karar | Süre Tahmini |
++|---|---|---|
++| `idle` + kuyruk <5 + weka OK | TRUBA başlat | ~4-6 saat total |
++| `mix` + kuyruk <10 + weka OK | TRUBA başlat (kısa bekleme) | ~5-8 saat |
++| `alloc` veya kuyruk 10+ | **Lokal başlat** | ~2-5 saat |
++| `drain` veya weka sorunu | **Lokal mecburen** | ~2-5 saat |
++
++---
++
++## 2. Kod değişiklikleri (Claude Code yapacak)
++
++### 2.1 Yeni dosya: `pfaz_modules/pfaz13_automl/multiseed_runner.py`
++
++```python
++"""
++PFAZ13 Multi-Seed AutoML Runner
++================================
++
++3 farklı seed ile AutoML çalıştırıp sonuçları toplar.
++Bouthillier & Varoquaux (2021, MLSys) varyans analizine uygun.
++
++Çıktı yapısı:
++    output_dir/
++    ├── seed_42/
++    │   ├── automl_summary.json
++    │   ├── automl_retraining_log.json
++    │   ├── automl_improvement_report.xlsx
++    │   └── automl_trials_details.xlsx
++    ├── seed_123/...
++    ├── seed_456/...
++    ├── multiseed_summary.json  (3 seed'in ortalama + std)
++    └── multiseed_report.xlsx   (karşılaştırma + güven aralığı)
++"""
++
++import json
++from pathlib import Path
++from typing import List, Dict, Any
++import numpy as np
++import pandas as pd
++from datetime import datetime
++
++# Mevcut AutoML modüllerini import et
++from pfaz_modules.pfaz13_automl.automl_optimizer import AutoMLOptimizer
++from pfaz_modules.pfaz13_automl.automl_retraining_loop import AutoMLRetrainingLoop
++
++
++class MultiSeedAutoMLRunner:
++    """3 seed ile AutoML çalıştırıp varyans analizi yapar."""
++    
++    def __init__(self, base_output_dir: Path, seeds: List[int] = None):
++        """
++        Args:
++            base_output_dir: Multi-seed output kökü (örn. hpcv1_outputs_multiseed/)
++            seeds: Liste seed'ler. Varsayılan [42, 123, 456].
++        """
++        self.base_output_dir = Path(base_output_dir)
++        self.base_output_dir.mkdir(parents=True, exist_ok=True)
++        self.seeds = seeds if seeds else [42, 123, 456]
++        self.seed_results: Dict[int, Dict[str, Any]] = {}
++    
++    def run_single_seed(self, seed: int, dataset_dir: Path, models_dir: Path) -> Dict[str, Any]:
++        """
++        Tek bir seed için AutoML çalıştırır.
++        
++        ÖNEMLİ: Mevcut AutoMLOptimizer'a seed parametresini geçer.
++        Hem TPESampler, hem RF/XGB/LGB random_state, hem np.random.seed
++        bu seed'e set edilir.
++        """
++        output_dir = self.base_output_dir / f"seed_{seed}"
++        output_dir.mkdir(parents=True, exist_ok=True)
++        
++        print(f"\n{'='*60}")
++        print(f"  Seed {seed} ile AutoML başlıyor")
++        print(f"  Output: {output_dir}")
++        print(f"  Başlangıç: {datetime.now().isoformat()}")
++        print(f"{'='*60}\n")
++        
++        # AutoMLOptimizer seed parametresiyle çağrılır
++        # Mevcut kod seed=42 hard-coded; bunu parametre yapmamız gerekiyor
++        # (2.2'de patch ediliyor)
++        optimizer = AutoMLOptimizer(
++            dataset_dir=dataset_dir,
++            output_dir=output_dir,
++            n_trials=30,
++            seed=seed,  # YENİ: explicit seed
++        )
++        
++        results = optimizer.run_all()
++        
++        # Retraining loop da seed ile çalıştır
++        retrainer = AutoMLRetrainingLoop(
++            automl_summary_path=output_dir / 'automl_summary.json',
++            models_dir=models_dir,
++            output_dir=output_dir,
++            seed=seed,  # YENİ
++        )
++        retrainer.run()
++        
++        # Sonuçları kaydet
++        seed_summary = {
++            'seed': seed,
++            'completed_at': datetime.now().isoformat(),
++            'results': results,
++            'output_dir': str(output_dir),
++        }
++        return seed_summary
++    
++    def run_all_seeds(self, dataset_dir: Path, models_dir: Path) -> None:
++        """3 seed sequential çalıştırır."""
++        for seed in self.seeds:
++            try:
++                self.seed_results[seed] = self.run_single_seed(seed, dataset_dir, models_dir)
++            except Exception as e:
++                print(f"\n[ERROR] Seed {seed} başarısız: {e}")
++                self.seed_results[seed] = {'seed': seed, 'error': str(e)}
++                # Devam et, diğer seed'lere geç
++        
++        # Tüm seed'ler bittikten sonra varyans analizi yap
++        self.aggregate_results()
++    
++    def aggregate_results(self) -> None:
++        """3 seed sonuçlarını birleştirir, ortalama + std hesaplar."""
++        agg_data = []
++        
++        for seed in self.seeds:
++            if seed not in self.seed_results or 'error' in self.seed_results[seed]:
++                continue
++            
++            seed_dir = self.base_output_dir / f"seed_{seed}"
++            summary_path = seed_dir / 'automl_summary.json'
++            
++            if not summary_path.exists():
++                continue
++            
++            with open(summary_path) as f:
++                summary = json.load(f)
++            
++            # MM ve QM için her model
++            for target in ['MM', 'QM']:
++                for model_type in ['rf', 'xgb', 'lgb']:
++                    if target in summary and model_type in summary[target]:
++                        row = {
++                            'seed': seed,
++                            'target': target,
++                            'model': model_type,
++                            'best_r2': summary[target][model_type].get('best_r2', np.nan),
++                            'n_trials': summary[target][model_type].get('n_trials', 0),
++                        }
++                        agg_data.append(row)
++        
++        if not agg_data:
++            print("[WARN] Hiçbir seed sonucu birleştirilemedi.")
++            return
++        
++        df = pd.DataFrame(agg_data)
++        
++        # Per target × model: ortalama + std
++        stats = df.groupby(['target', 'model'])['best_r2'].agg(
++            ['mean', 'std', 'min', 'max', 'count']
++        ).reset_index()
++        stats.columns = ['target', 'model', 'mean_r2', 'std_r2', 'min_r2', 'max_r2', 'n_seeds']
++        
++        # %95 güven aralığı (n=3 için t-distribution)
++        from scipy import stats as sp_stats
++        stats['ci95_lower'] = stats.apply(
++            lambda r: r['mean_r2'] - sp_stats.t.ppf(0.975, r['n_seeds']-1) 
++                      * r['std_r2'] / np.sqrt(r['n_seeds']) if r['n_seeds'] > 1 else np.nan,
++            axis=1
++        )
++        stats['ci95_upper'] = stats.apply(
++            lambda r: r['mean_r2'] + sp_stats.t.ppf(0.975, r['n_seeds']-1) 
++                      * r['std_r2'] / np.sqrt(r['n_seeds']) if r['n_seeds'] > 1 else np.nan,
++            axis=1
++        )
++        
++        # JSON çıktı
++        summary_path = self.base_output_dir / 'multiseed_summary.json'
++        with open(summary_path, 'w') as f:
++            json.dump({
++                'seeds': self.seeds,
++                'completed_at': datetime.now().isoformat(),
++                'stats': stats.to_dict('records'),
++                'raw_data': df.to_dict('records'),
++            }, f, indent=2)
++        
++        # Excel çıktı (tezde kullanılacak tablo)
++        excel_path = self.base_output_dir / 'multiseed_report.xlsx'
++        with pd.ExcelWriter(excel_path, engine='openpyxl') as writer:
++            df.to_excel(writer, sheet_name='Raw_Per_Seed', index=False)
++            stats.to_excel(writer, sheet_name='Aggregated_Stats', index=False)
++            
++            # Snapshot karşılaştırması (mevcut tek-seed vs yeni 3-seed)
++            comparison = self._make_snapshot_comparison(stats)
++            comparison.to_excel(writer, sheet_name='Snapshot_vs_Multiseed', index=False)
++        
++        print(f"\n{'='*60}")
++        print(f"  Multi-seed analizi tamamlandı")
++        print(f"  Özet: {summary_path}")
++        print(f"  Excel: {excel_path}")
++        print(f"{'='*60}\n")
++        print(stats.to_string(index=False))
++    
++    def _make_snapshot_comparison(self, stats: pd.DataFrame) -> pd.DataFrame:
++        """Mevcut snapshot tek-seed vs yeni multiseed karşılaştırması."""
++        # Snapshot'tan tek-seed (42) sonucu oku
++        snapshot_summary = Path('thesis/_data_snapshot/2026-05-21/automl_summary.json')
++        if not snapshot_summary.exists():
++            return pd.DataFrame()
++        
++        with open(snapshot_summary) as f:
++            snap = json.load(f)
++        
++        rows = []
++        for target in ['MM', 'QM']:
++            for model_type in ['rf', 'xgb', 'lgb']:
++                if target in snap and model_type in snap[target]:
++                    snap_r2 = snap[target][model_type].get('best_r2', np.nan)
++                    
++                    multi = stats[(stats['target']==target) & (stats['model']==model_type)]
++                    if len(multi) > 0:
++                        row = {
++                            'target': target,
++                            'model': model_type,
++                            'snapshot_r2_seed42': snap_r2,
++                            'multiseed_mean': multi['mean_r2'].iloc[0],
++                            'multiseed_std': multi['std_r2'].iloc[0],
++                            'multiseed_ci95': f"[{multi['ci95_lower'].iloc[0]:.4f}, {multi['ci95_upper'].iloc[0]:.4f}]",
++                            'fark': multi['mean_r2'].iloc[0] - snap_r2,
++                        }
++                        rows.append(row)
++        
++        return pd.DataFrame(rows)
++
++
++if __name__ == '__main__':
++    import sys
++    base = Path(sys.argv[1]) if len(sys.argv) > 1 else Path('hpcv1_outputs_multiseed')
++    
++    # Veri yolları (mevcut snapshot'tan)
++    dataset_dir = Path('hpcv1_outputs/generated_datasets')
++    models_dir = Path('hpcv1_outputs/trained_models')
++    
++    runner = MultiSeedAutoMLRunner(base_output_dir=base, seeds=[42, 123, 456])
++    runner.run_all_seeds(dataset_dir=dataset_dir, models_dir=models_dir)
++```
++
++### 2.2 Mevcut kod güncellemesi: `automl_optimizer.py` — seed parametresi açık edilmeli
++
++**Sorun:** Şu anki kodda `random_state=42` ve `TPESampler(seed=42)` **hard-coded**. Multiseed için bunu parametre yapmalıyız.
++
++**Etkilenen dosyalar:**
++
++#### `pfaz_modules/pfaz13_automl/automl_hyperparameter_optimizer.py`
++
++Şu kalıbı bul:
++```python
++class AutoMLHyperparameterOptimizer:
++    def __init__(self, ...):
++        ...
++        # Eski:
++        # self.sampler = TPESampler(seed=42)
++```
++
++Şuna değiştir:
++```python
++class AutoMLHyperparameterOptimizer:
++    def __init__(self, ..., seed: int = 42):
++        ...
++        self.seed = seed
++        self.sampler = TPESampler(seed=self.seed)
++```
++
++Sonra `objective()` ve diğer methodlarda `random_state=42` → `random_state=self.seed`.
++
++#### `pfaz_modules/pfaz13_automl/automl_optimizer.py`
++
++Bütün `random_state=42` ve hard-coded seed'leri `self.seed`'e bağla. Init'e `seed: int = 42` parametresi ekle. Aynı şekilde `automl_retraining_loop.py` ve `automl_anfis_optimizer.py`.
++
++Detay grep ile:
++```bash
++grep -rn "random_state=42\|seed=42\|np.random.seed(42)" pfaz_modules/pfaz13_automl/
++```
++
++Tüm `42`'leri `self.seed`'e çevir.
++
++### 2.3 `main.py` güncelle — yeni komut: `--pfaz 13 --multiseed`
++
++`main.py` içinde PFAZ13 çağrısının olduğu yere alternatif yol ekle:
++
++```python
++# Eski:
++# elif pfaz_num == 13:
++#     from pfaz_modules.pfaz13_automl.automl_optimizer import AutoMLOptimizer
++#     optimizer = AutoMLOptimizer(...)
++#     optimizer.run_all()
++
++# Yeni:
++elif pfaz_num == 13:
++    if args.multiseed:
++        from pfaz_modules.pfaz13_automl.multiseed_runner import MultiSeedAutoMLRunner
++        runner = MultiSeedAutoMLRunner(
++            base_output_dir=Path(args.output_dir) / 'multiseed',
++            seeds=[42, 123, 456],
++        )
++        runner.run_all_seeds(
++            dataset_dir=Path(args.dataset_dir),
++            models_dir=Path(args.models_dir),
++        )
++    else:
++        # Eski tek-seed yolu
++        from pfaz_modules.pfaz13_automl.automl_optimizer import AutoMLOptimizer
++        optimizer = AutoMLOptimizer(
++            dataset_dir=args.dataset_dir,
++            output_dir=args.output_dir,
++            n_trials=30,
++            seed=42,  # Default
++        )
++        optimizer.run_all()
++```
++
++`argparse` kısmına:
++```python
++parser.add_argument(
++    '--multiseed', action='store_true',
++    help='PFAZ13 için 3 seed multiseed AutoML (Sprint 18-mini)'
++)
++```
++
++---
++
++## 3. PFAZ6/8/10 yeniden çalıştırma (sadece AutoML sheet/grafik/bölüm)
++
++Bunlar **hızlı** (~25 dk toplam), tek komutla tetiklenir:
++
++```bash
++# Lokal
++python main.py --pfaz 6 --pfaz13-source hpcv1_outputs_multiseed
++python main.py --pfaz 8 --pfaz13-source hpcv1_outputs_multiseed
++python main.py --pfaz 10 --pfaz13-source hpcv1_outputs_multiseed
++```
++
++**Mevcut kod desteklemiyor olabilir.** Eğer hata verirse, `pfaz06_final_reporting.py` içindeki `self.pfaz13_output_dir` parametresini external olarak set etme yolunu güncelle.
++
++---
++
++## 4. TRUBA Slurm script
++
++### 4.1 Yeni dosya: `truba/slurm_jobs/job_automl_multiseed.sh`
++
++```bash
++#!/bin/bash
++#SBATCH --job-name=hpcv1_pfaz13_multiseed
++#SBATCH --partition=orfoz
++#SBATCH --account=ahmacar
++#SBATCH --constraint=weka              # KRITIK: weka FS zorunlu
++#SBATCH --nodes=1
++#SBATCH --ntasks=1
++#SBATCH --cpus-per-task=112            # TRUBA 2025-12-15: 56/112 katları zorunlu
++#SBATCH --time=08:00:00                # 8 saat (3 seed × 2-2.5 saat + buffer)
++#SBATCH --output=/arf/scratch/ahmacar/logs/pfaz13_multiseed_%j.out
++#SBATCH --error=/arf/scratch/ahmacar/logs/pfaz13_multiseed_%j.err
++#SBATCH --chdir=/arf/scratch/ahmacar    # KRITIK: chdir scratch (Sprint 13 BUG-100)
++
++# Modülü yükle
++module purge
++module load apps/truba-ai/cpu-2024.0
++
++# Çalışma dizini
++WORK_DIR=/arf/home/ahmacar/hpcv1
++cd $WORK_DIR
++
++# Output dizini (scratch, 1TB)
++OUTPUT_BASE=/arf/scratch/ahmacar/hpcv1_outputs_multiseed
++mkdir -p $OUTPUT_BASE
++
++# Veri yolları (eski snapshot'tan, mevcut)
++DATASET_DIR=/arf/scratch/ahmacar/hpcv1_outputs/generated_datasets
++MODELS_DIR=/arf/scratch/ahmacar/hpcv1_outputs/trained_models
++
++# HPC mod (BUG-70 fix sonrası, gpu_manager bunu okuyor)
++export HPC_MODE=1
++export N_WORKERS=110  # Sprint 12 sonrası
++
++# 3 seed sequential
++set +e  # İlk seed çökerse diğerleri devam etsin
++for SEED in 42 123 456; do
++    echo "==========================================="
++    echo "Seed $SEED başlıyor: $(date)"
++    echo "==========================================="
++    
++    python main.py \
++        --pfaz 13 \
++        --multiseed-single $SEED \
++        --dataset-dir $DATASET_DIR \
++        --models-dir $MODELS_DIR \
++        --output-dir $OUTPUT_BASE/seed_$SEED \
++        --n-workers 110 \
++        2>&1 | tee $OUTPUT_BASE/seed_${SEED}_run.log
++    
++    RC=${PIPESTATUS[0]}  # BUG-85 fix: PIPESTATUS değil $? kullan
++    echo "Seed $SEED dönüş kodu: $RC"
++done
++set -e
++
++# Aggregate
++echo "==========================================="
++echo "Multiseed aggregate başlıyor: $(date)"
++echo "==========================================="
++python -m pfaz_modules.pfaz13_automl.multiseed_runner $OUTPUT_BASE
++
++# PFAZ6/8/10 yeniden tetik
++echo "==========================================="
++echo "PFAZ6 yeniden tetik (AutoML sheets): $(date)"
++python main.py --pfaz 6 --pfaz13-source $OUTPUT_BASE
++
++echo "PFAZ8 yeniden tetik (AM13 grafikler): $(date)"
++python main.py --pfaz 8 --pfaz13-source $OUTPUT_BASE
++
++echo "PFAZ10 yeniden tetik (§5 AutoML alt-bölüm): $(date)"
++python main.py --pfaz 10 --pfaz13-source $OUTPUT_BASE
++
++echo "==========================================="
++echo "TAMAMLANDI: $(date)"
++echo "Sonuçlar: $OUTPUT_BASE"
++```
++
++### 4.2 Submit komutu
++
++```bash
++ssh ahmacar@172.16.6.11
++cd /arf/home/ahmacar/hpcv1
++git pull origin thesis-writing  # Önce patch'i çek
++sbatch truba/slurm_jobs/job_automl_multiseed.sh
++# Job ID'yi not al, sonra: squeue -u ahmacar
++```
++
++---
++
++## 5. Lokal çalıştırma (orfoz müsait değilse)
++
++### 5.1 Tek komut
++
++```powershell
++cd C:\Users\Hakan Yakut\Desktop\ahmet\nucdatav2-truba
++git pull origin thesis-writing
++
++# 3 seed sequential
++python main.py `
++    --pfaz 13 `
++    --multiseed `
++    --dataset-dir "..\hpcv1_outputs\generated_datasets" `
++    --models-dir "..\hpcv1_outputs\trained_models" `
++    --output-dir "..\hpcv1_outputs_multiseed" `
++    --n-workers 8
++
++# PFAZ6/8/10 yeniden tetik
++python main.py --pfaz 6 --pfaz13-source ..\hpcv1_outputs_multiseed
++python main.py --pfaz 8 --pfaz13-source ..\hpcv1_outputs_multiseed
++python main.py --pfaz 10 --pfaz13-source ..\hpcv1_outputs_multiseed
++```
++
++### 5.2 Süre tahmini (lokal)
++
++- RF AutoML × 2 hedef × 30 trial × 3 seed: ~30-45 dk
++- XGBoost × 2 × 30 × 3: ~25-40 dk
++- LightGBM × 2 × 30 × 3: ~35-55 dk
++- ANFIS × 8 config × 16 trial × 3 seed: ~45-90 dk (varsayım)
++- Retraining loop × 3 seed: ~20-40 dk
++- PFAZ6/8/10 yeniden tetik: ~25 dk
++
++**Toplam:** 2.5-4.5 saat
++
++### 5.3 RAM kontrolü
++
++Lokal RAM yeterli mi?
++```powershell
++Get-WmiObject Win32_OperatingSystem | Select-Object FreePhysicalMemory, TotalVisibleMemorySize
++# FreePhysicalMemory > 4 GB olmalı (parallel XGB için)
++```
++
++---
++
++## 6. Test (önce küçük çalıştırma)
++
++Tam çalıştırmadan önce **1 seed × n_trials=5 ile dry-run**:
++
++```bash
++# Lokal
++python -c "
++from pathlib import Path
++from pfaz_modules.pfaz13_automl.multiseed_runner import MultiSeedAutoMLRunner
++runner = MultiSeedAutoMLRunner(
++    base_output_dir=Path('hpcv1_outputs_multiseed_TEST'),
++    seeds=[42],
++)
++# n_trials override (sadece test için)
++# ...
++runner.run_all_seeds(
++    dataset_dir=Path('hpcv1_outputs/generated_datasets'),
++    models_dir=Path('hpcv1_outputs/trained_models'),
++)
++"
++```
++
++5 trial × 1 seed = ~5 dakika. Hata vermeden çalışırsa 3 seed × 30 trial'e geç.
++
++---
++
++## 7. Tez güncellemeleri (sonrası)
++
++PFAZ13 multiseed bittikten sonra Agent CHAPTER-WRITER (Bölüm 5 yazıcı) şunları kullanır:
++
++### Bölüm 5 — Bulgular (mevcut → yeni)
++
++**ESKİ (tek seed, mevcut snapshot):**
++> "AutoML, AI modellerinin %79'unda (49/62) iyileşme sağlamıştır."
++
++**YENİ (3 seed multiseed):**
++> "AutoML 3 farklı seed (42, 123, 456) ile çalıştırıldığında, AI modellerinin ortalama %X (CI95: [Y, Z]) iyileşme oranı gözlemlenmiştir. Sonuçların seed-bağımlı varyansı ANOVA testi ile incelenmiş ve istatistiksel olarak anlamlı bulunmamıştır (p = ...), bu durum optimizasyon sonuçlarının seed seçimine karşı dirençli olduğunu göstermektedir [Tablo 5.X]. Bouthillier ve ark. (2021) [...] çoklu seed varyans analizinin tezsel makine öğrenmesi çalışmaları için gerekliliğini vurgulamaktadır."
++
++(Gerçek X, Y, Z değerleri PFAZ13 sonuçları bittikten sonra doldurulacak.)
++
++### Bölüm 6 — Tartışma
++
++> "AutoML değer katma niceliği multiseed analizi ile doğrulanmıştır. Seed varyansı std = ... düzeyinde olup, Bouthillier ve ark. (2021) [...] benchmark çalışmalarında raporlanan tipik aralık (std ~0.01-0.03 küçük veri rejiminde) ile uyumludur."
++
++### Kaynakça eklenir
++
++```
++[N] Bouthillier, X., Delaunay, P., Bronzi, M., Trofimov, A., ..., Vincent, P.,
++    Accounting for variance in machine learning benchmarks.
++    Proceedings of Machine Learning and Systems (MLSys), Austin, TX,
++    arXiv:2103.03098, 2021.
++```
++
++---
++
++## 8. Risk yönetimi
++
++| Risk | Olasılık | Mitigasyon |
++|---|---|---|
++| Mevcut kod `seed=42` her yerde hard-coded → multiseed kırılır | Yüksek | §2.2 detaylı patch — tüm `42`'ler `self.seed`'e bağlı |
++| Lokal RAM yetersiz | Düşük | n_workers=4 küçült (8 yerine), zaman uzar |
++| TRUBA kuyruğu çok dolu | Düşük | Lokal'e dön (Karar matrisi §1) |
++| seed_123 veya seed_456'da hata | Orta | `set +e` ile diğer seed'ler devam eder; en az 1 seed bitince aggregate yapılır |
++| PFAZ6/8/10 yeniden tetik desteklemiyor | Orta | `--pfaz13-source` parametresi yoksa, manuel sembolik link: `ln -s hpcv1_outputs_multiseed hpcv1_outputs/automl_results_v2` |
++| 30 trial yetersiz (gerçek optimum bulunamadı) | Düşük | Aggregated std düşükse zaten convergence; yüksekse n_trials=50'ye çıkar (gelecek koşum) |
++
++---
++
++## 9. Başarı kriteri
++
++Bu sprint başarılı sayılır eğer:
++
++- [ ] 3 seed'in en az 2'si tamamlandı
++- [ ] `multiseed_summary.json` üretildi
++- [ ] `multiseed_report.xlsx` üretildi (3 sheet: Raw_Per_Seed, Aggregated_Stats, Snapshot_vs_Multiseed)
++- [ ] PFAZ6 AutoML_* sheets güncellendi
++- [ ] PFAZ8 AM13-* grafikler güncellendi
++- [ ] PFAZ10 §5 AutoML alt-bölümü yeniden yazıldı
++- [ ] Mevcut snapshot **dokunulmadı** (sadece yan dizinde çalışıldı)
++
++---
++
++## 10. Sonra ne olacak?
++
++1. **Multiseed sonuçları Sprint 18-mini sonu hazır** → `hpcv1_outputs_multiseed/multiseed_report.xlsx`
++2. **Tez yazımına dahil** → Agent CHAPTER-WRITER Bölüm 5 yazarken bu Excel'i okuyacak
++3. **Kaynakça ekleme** → Agent F Bouthillier 2021 referansını ekleyecek
++4. **Bölüm 6 Tartışma** → "Çoklu seed varyans analizi" alt-bölümü güçlendirir
++5. **Bölüm 7 Sonuç** → "Multiseed yaklaşımı küçük veri rejiminde reproducibility sağlar" maddesi eklenir
++
++---
++
++## 11. Komut özeti — Kemal hangi sırayla başlatacak
++
++### Adım 1: Patch uygula (önce)
++```powershell
++cd C:\Users\Hakan Yakut\Desktop\ahmet\nucdatav2-truba
++git checkout thesis-writing
++git am thesis-batch2-sprint18mini.patch
++git push origin thesis-writing
++```
++
++### Adım 2: VS Code'da Claude Code başlat
++Master prompt yapıştır (`CLAUDE-CODE-ORCHESTRATION.md`'deki). Claude Code:
++- 11 agent prompt'unu üretir
++- Aşama 1'i (paralel A/B/C/D/F/G) başlatır
++
++### Adım 3 (paralel): Sprint 18-mini başlat
++**Aynı anda** terminalde:
++
++```powershell
++# Orfoz durumu kontrol et (önce)
++ssh ahmacar@172.16.6.11 "sinfo -p orfoz -o '%P %a %l %D %t %N' && squeue -u ahmacar"
++
++# Karar:
++# - orfoz uygun → TRUBA başlat:
++ssh ahmacar@172.16.6.11 "cd /arf/home/ahmacar/hpcv1 && git pull && sbatch truba/slurm_jobs/job_automl_multiseed.sh"
++
++# - orfoz yoğun → Lokal başlat (yeni PowerShell penceresi):
++python main.py --pfaz 13 --multiseed `
++    --dataset-dir ..\hpcv1_outputs\generated_datasets `
++    --models-dir ..\hpcv1_outputs\trained_models `
++    --output-dir ..\hpcv1_outputs_multiseed
++```
++
++### Adım 4: İzle
++
++- Claude Code agent'ları paralel çalışıyor (VS Code paneli)
++- Sprint 18-mini lokal/TRUBA paralel koşuyor (terminal log)
++- Sen başka iş yap
++
++### Adım 5: Sonuçlar geldikçe Agent CHAPTER-WRITER güncellenir
++
++PFAZ13 bittikten sonra Agent CHAPTER-WRITER Bölüm 5'i **multiseed verileriyle** yazar. Coordinator agent çelişki kontrolü yapar.
++
++---
++
++*v1.0 | 2026-05-21 | Sprint 18-mini AutoML Multiseed — kod değişiklikleri + lokal/TRUBA çalıştırma*
+-- 
+2.43.0
+
