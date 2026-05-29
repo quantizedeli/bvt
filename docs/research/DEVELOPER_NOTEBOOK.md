@@ -223,3 +223,11 @@ Sprint biten her ayın sonunda, "Ne öğrendim" satırlarından çıkan **tekrar
 **Sonraki commit'te dikkat:** patch/sprint05-final-qa → master merge PR. Merge öncesi: pytest 182 PASS, inter_module_audit 51/51 PASS, visual_regression 5/5 PASS. Output audit'teki 3 FAIL level1 PNG eksikliği kabul edilmiş açık borç (level1 sim hiç koşulmadı). bvt_studio/ MISSING 4 dosya Marimo sprint için bekleniyor.
 
 ---
+
+### 2026-05-29 — [Sprint 10 / C3+A2+D2+D-016] — JR-fiziksel L18, TRUBA grid flag, replikasyon doğrulama
+
+**Ne yaptım:** (C3) L18'e `--jr-fiziksel` flag eklendi — D-013 JR sleep-state α-band gücünü (uyanik/rem/nrem) hesaplayıp rapora ekliyor, geriye uyumlu (α-ratio Uyanık/NREM 199× ✓). (A2) `kos_faz_g`'ye `grid` parametresi + level19'a `--grid {default,high_res}` flag eklendi, grid cache hash'ine dahil; slurm script eski manuel override notu kaldırılıp `--grid high_res` kullanacak şekilde güncellendi (high_res 80×80×100 koşumu 958s/enstrüman — D-008 TRUBA gerekçesini doğruladı). (D2) `reproduction_report.py` çalıştırıldı: 12/13 (%92), tek FAIL Celardo 2014. (D-016) Hopf limit-cycle araştırma planı docs/research'e yazıldı.
+
+**Ne öğrendim:** D2'yi önce statik kod analiziyle "9/13, FAIL=Mossbridge-2017" diye tahmin etmiştim — runtime çürüttü (gerçek 12/13, FAIL=Celardo 2014). Tolerans + geq/leq eşik tiplerini koddan okumak yanıltıcı; replikasyon durumu yalnız reproduction_report.py çıktısından okunur (§14.5 kanıt-önce). Ayrı ders: workflow worktree'leri disk-full anında bozuk base'den dallanıp tüm sprint geçmişini "silinmiş" gösterebiliyor — worktree işlerini merge öncesi `git log` ile base doğrula.
+
+**Sonraki commit'te dikkat:** Faz 2 (C1 L3 H_tetik, C2 L4 Kuramoto+SL) seri yapılacak. Celardo 2014 tek FAIL — 13/13 için E-serisi metriğini L11 halka modeline bağlama fırsatı (Sprint 11). DEFERRED_DECISIONS.md'ye D-009 (kısmen kapandı: grid flag eklendi) + D-016 (yeni) işlenecek.

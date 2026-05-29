@@ -43,12 +43,22 @@ def kos_faz_g(
     cache_dir: str = DEFAULT_CACHE_DIR,
     no_cache: bool = False,
     verbose: bool = True,
+    grid: tuple[int, int, int] | None = None,
 ) -> PipelineSonuc:
-    """FAZ G boru hattını tek giriş ile koş."""
+    """FAZ G boru hattını tek giriş ile koş.
+
+    Sprint 09 A2 (D-009): `grid` ile voxel çözünürlüğü override edilebilir
+    (None = HEAD_GRID_DEFAULT 32×32×40; TRUBA HIGH_RES için 80×80×100).
+    Grid cache hash'ine dahil → farklı çözünürlük ayrı cache.
+    """
+    from src.core.constants import HEAD_GRID_DEFAULT
+    if grid is None:
+        grid = HEAD_GRID_DEFAULT
     os.makedirs(cache_dir, exist_ok=True)
     params = {
         "isim": isim, "spl_db": spl_db,
         "sure_dakika": sure_dakika, "ses_kaynagi": ses_kaynagi,
+        "grid": tuple(grid),
     }
     sha8 = _hash_params(params)
     cache_path = os.path.join(cache_dir, f"pipeline_{sha8}.npz")
@@ -68,7 +78,7 @@ def kos_faz_g(
     )
 
     # M2 voxel haritasi
-    harita = voxel_haritasi_uret()
+    harita = voxel_haritasi_uret(grid=grid)
 
     # M3 FDTD — D-008 sonrası NumPy
     # FDTD süresi: yüksek frekanslarda CFL küçük dt → çok adım → memory.

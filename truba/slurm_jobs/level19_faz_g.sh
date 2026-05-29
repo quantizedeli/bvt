@@ -54,12 +54,13 @@ python -c "import numpy, scipy, mne; print(f'np={numpy.__version__} sp={scipy.__
 python -c "from src.models.acoustic import kos_faz_g; print('FAZ G import OK')"
 
 # Ana koşum — 22 enstrüman + HIGH_RES (80×80×100) + sure_dakika=1.0 (60 sn fiziksel)
-# NOT: --grid high_res flag Sprint 08'de eklenecek; şu an manuel constants.py overrride
+# Sprint 09 A2 (D-009): --grid high_res flag eklendi (eski manuel override kaldırıldı).
 echo "[$(date)] FAZ G top5 (test) başlıyor..."
 python simulations/level19_volumetric_acoustic.py \
     --frekanslar top5 \
     --sure-dakika 1.0 \
     --spl-db 70.0 \
+    --grid high_res \
     --anim
 
 echo "[$(date)] FAZ G tam katalog (22 enstrüman) başlıyor..."
@@ -67,6 +68,7 @@ python simulations/level19_volumetric_acoustic.py \
     --frekanslar tum \
     --sure-dakika 1.0 \
     --spl-db 70.0 \
+    --grid high_res \
     --anim \
     --anim-aspect both
 

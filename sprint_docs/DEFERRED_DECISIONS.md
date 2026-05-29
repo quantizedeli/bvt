@@ -100,6 +100,15 @@
 
 ### D-009 — TRUBA HPC (TÜBİTAK ULAKBIM) ile büyük ölçekli FAZ G koşumu
 
+> **KISMEN KAPANDI (2026-05-29 Sprint 10 A2):** Yazılım hazırlığı tamamlandı.
+> `kos_faz_g(grid=...)` parametresi + level19 `--grid {default,high_res}` flag
+> eklendi (eski manuel constants.py override kaldırıldı). Slurm script
+> `--grid high_res` kullanıyor. **Doğrulama:** high_res 80×80×100 tek enstrüman
+> koşumu yerelde 958s sürdü (32³ için 119s) — D-008'in "tam katalog CPU
+> infeasible" tespitini sayısal doğruladı. **Açık kalan:** gerçek TRUBA
+> başvurusu/koşumu (donanım erişimi gerektiren kısım) — geri-dönüş
+> tetikleyicileri hâlâ geçerli.
+
 | | |
 |---|---|
 | **Karar başlığı** | Uzun süreli FAZ G simülasyonlarını çalıştırma altyapısı |
@@ -180,7 +189,7 @@
 | **Karar başlığı** | Jansen-Rit gerçek 10 Hz limit-cycle α osilasyonu (Grimbert-Faugeras Hopf rejimi) |
 | **Mevcut durum (Sprint 09 S1)** | JR motoru fixed-point regime'da; kanonik params (A_e=3.25, A_i=22) sabit I_p ile peak hep 1 Hz, power 1e-65 (limit-cycle yok). White-noise input → DC + broadband sigmoid transmission. Α-band güç broadband proxy. |
 | **Ertelenen (Sprint 10'a)** | (a) Band-limited noise input (Wendling 2002 std + 1-30 Hz BP filter), (b) Grimbert-Faugeras 2006 bifurcation diagram'da I_p ∈ [125, 175] limit-cycle bölge taraması, (c) Hopf detection algoritması (Jacobian eigenvalue → Im part), (d) A_e/A_i parameter region map (10 Hz peak emergence). |
-| **Hazırlık çıktısı** | `scripts/jr_bifurcation_explore.py` (Sprint 09 S1 hibrit follow-up) — sabit I_p × parametre 2D tarama, peak frekans haritası. PNG: `output/level6/JR_bifurcation_map.png`. |
+| **Hazırlık çıktısı** | `scripts/jr_bifurcation_explore.py` (Sprint 09 S1 hibrit follow-up) — sabit I_p × parametre 2D tarama, peak frekans haritası. PNG: `output/level6/JR_bifurcation_map.png`. **Detaylı araştırma planı (Sprint 10):** `docs/research/D016_hopf_limit_cycle_alpha_plan_2026-05-29.md` (Grimbert-Faugeras/Ableidinger/Dijkstra literatür + 4-adım uygulama). |
 | **Geri-dönüş tetikleyici** | L6 makale §6 fiziksel temel ihtiyacı; veya BVT pre-stimulus α öngörüsünün limit-cycle (gerçek osilatör) gerektirdiği bir validasyon |
 | **Riski azaltan** | D-013 broadband proxy spec kabul kriterini (2× ratio) karşıladı; D-016 blocking değil, bilim derinleştirici |
 

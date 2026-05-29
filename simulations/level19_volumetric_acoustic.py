@@ -122,7 +122,14 @@ def main():
     parser.add_argument("--anim", action="store_true")
     parser.add_argument("--anim-aspect", default="16x9",
                         choices=["16x9", "9x16", "both"])
+    parser.add_argument("--grid", default="default",
+                        choices=["default", "high_res"],
+                        help="Voxel çözünürlüğü: default 32×32×40 (yerel CPU) | "
+                             "high_res 80×80×100 (D-009 TRUBA HPC)")
     args = parser.parse_args()
+
+    from src.core.constants import HEAD_GRID_DEFAULT, HEAD_GRID_HIGH_RES
+    grid_secim = HEAD_GRID_HIGH_RES if args.grid == "high_res" else HEAD_GRID_DEFAULT
 
     os.makedirs(args.output, exist_ok=True)
     print(f"\n{'='*60}")
@@ -132,6 +139,7 @@ def main():
     print(f"  Frekanslar: {frekanslar}")
     print(f"  SPL: {args.spl_db} dB | Süre: {args.sure_dakika} dk")
     print(f"  Ses kaynağı: {args.ses_kaynagi}")
+    print(f"  Grid: {args.grid} {grid_secim}")
     print()
 
     sonuclar: dict[str, PipelineSonuc] = {}
@@ -143,6 +151,7 @@ def main():
                 sure_dakika=args.sure_dakika,
                 ses_kaynagi=args.ses_kaynagi,
                 no_cache=args.no_cache,
+                grid=grid_secim,
             )
             sonuclar[isim] = sonuc
             dt = time.time() - t0
