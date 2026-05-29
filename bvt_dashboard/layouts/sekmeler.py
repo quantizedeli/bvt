@@ -229,11 +229,32 @@ def hero_strip() -> dbc.Container:
 
     satir2 = dbc.Row([
         _hero_card("Hero 05", "Frequency Atlas", "Sound & Coherence",
-                   thumb_path="hero05_thumbnail.png", interactive_path="hero05_interactive.html", audio_path="audio/hero05_binaural_10hz.wav", coming_soon=False),
+                   thumb_path=None, preview_path="hero05_preview_sonic.mp4",
+                   interactive_path="hero05_interactive.html",
+                   audio_path="audio/hero05_soundtrack_54s.wav", coming_soon=False),
         dbc.Col(width=9),  # boş alan
     ], className="mb-4 g-0")
 
     return dbc.Container([satir1, satir2], fluid=True, className="px-0")
+
+
+def sonic_compare_panel() -> dbc.Card:
+    return dbc.Card(
+        dbc.CardBody([
+            html.H6("Sonic Compare — dry / room / exposed",
+                    style={"color": "#6bdcff", "textTransform": "uppercase", "fontSize": "12px"}),
+            dbc.Row([
+                dbc.Col([html.Small("Dry"), html.Audio(src="/assets/audio/dry_demo_40s.wav", controls=True,
+                                                       style={"width": "100%"})], width=4),
+                dbc.Col([html.Small("Room / Hall"), html.Audio(src="/assets/audio/room_hall_demo_40s.wav", controls=True,
+                                                               style={"width": "100%"})], width=4),
+                dbc.Col([html.Small("Exposed / Ritual"), html.Audio(src="/assets/audio/exposure_ritual_demo_40s.wav", controls=True,
+                                                                    style={"width": "100%"})], width=4),
+            ]),
+        ]),
+        className="mb-4",
+        style={"background": "#0f1530", "border": "1px solid #1e2a50"},
+    )
 
 
 def ana_layout():
@@ -243,6 +264,10 @@ def ana_layout():
                 style={"color": "#4fc3f7", "fontWeight": "bold"}),
         html.P("Plotly Dash interaktif simülasyon arayüzü | python bvt_dashboard/app.py",
                className="text-center text-muted mb-3", style={"fontSize": "12px"}),
+        html.Div([
+            dbc.Button("Open Experience Gallery", href="/assets/experience/index.html",
+                       target="_blank", color="info", outline=True, size="sm"),
+        ], className="text-center mb-3"),
 
         # Hero animation strip
         html.H6("🎬 Hero Animations",
@@ -250,6 +275,7 @@ def ana_layout():
                        "textTransform": "uppercase", "letterSpacing": "1px",
                        "marginBottom": "10px"}),
         hero_strip(),
+        sonic_compare_panel(),
 
         dbc.Tabs([
             _sekme_halka(),
