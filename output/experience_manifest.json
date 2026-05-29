@@ -1,0 +1,23 @@
+{
+  "missing": [],
+  "audio": [
+    {
+      "name": "dry_demo_40s.wav",
+      "channels": 2,
+      "duration_s": 40.0,
+      "peak": 0.272
+    },
+    {
+      "name": "room_hall_demo_40s.wav",
+      "channels": 2,
+      "duration_s": 40.0,
+      "peak": 0.563
+    },
+    {
+      "name": "exposure_ritual_demo_40s.wav",
+      "channels": 2,
+      "duration_s": 40.0,
+      "peak": 0.563
+    }
+  ]
+}
