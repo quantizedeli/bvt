@@ -50,6 +50,18 @@ def main() -> None:
                         help="Çıktı dizini")
     parser.add_argument("--html", action="store_true",
                         help="HTML çıktısı da üret (her zaman üretilir)")
+    parser.add_argument("--drive", action="store_true",
+                        help="H_tetik parametrik tetikleme terimini ekle "
+                             "(C1: tam H_BVT = H_0+H_int+H_tetik)")
+    parser.add_argument("--c-gate", type=float, default=0.5,
+                        help="H_tetik koherans kapı değeri [0,1] "
+                             "(C₀=0.3 altı → kapı kapalı)")
+    parser.add_argument("--akustik-tetik", action="store_true",
+                        help="C1 akustik varyant: FAZ G akustik basıncı "
+                             "zaman-değişen kapıyı sürer, gözlemlenebilir "
+                             "Schumann uyarımı (domino-amplifiye yol, §5)")
+    parser.add_argument("--akustik-freq", type=float, default=None,
+                        help="Akustik modülasyon frekansı Hz (None → F_S1)")
     args = parser.parse_args()
 
     print("=" * 60)
@@ -72,11 +84,24 @@ def main() -> None:
     # Lindblad simülasyonu
     from src.solvers.lindblad import lindblad_coz
     print("Lindblad simülasyonu başlıyor...")
+    if args.akustik_tetik:
+        print(f"  H_tetik AKUSTİK varyant AKTİF (C1): "
+              f"freq={'F_S1' if args.akustik_freq is None else args.akustik_freq} Hz")
+    elif args.drive:
+        print(f"  H_tetik AKTİF (C1): C_gate={args.c_gate} "
+              f"({'kapı açık' if args.c_gate > 0.3 else 'kapı KAPALI'})")
+    _ak_kwargs = {}
+    if args.akustik_freq is not None:
+        _ak_kwargs["akustik_freq"] = args.akustik_freq
     t_arr, expect_vals = lindblad_coz(
         t_end=args.t_end,
         n_points=args.n_points,
         alpha_heart=args.alpha,
-        verbose=True
+        verbose=True,
+        include_drive=args.drive,
+        C_gate=args.c_gate,
+        akustik_tetik=args.akustik_tetik,
+        **_ak_kwargs,
     )
 
     n_heart = expect_vals[0]

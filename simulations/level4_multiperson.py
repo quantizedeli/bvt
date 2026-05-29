@@ -99,6 +99,52 @@ def kuramoto_bvt_simule(
     )
 
 
+def stuart_landau_simule(
+    N: int,
+    t_end: float = 200.0,
+    lambda_par: float = 0.2,
+    gamma: float = 0.05,
+    seed: int = 42,
+) -> dict:
+    """
+    C2 — N osilatör için Stuart-Landau ağı (genlik + faz birlikte).
+
+    Saf Kuramoto faz dinamiğinin aksine, SL hem genlik hem faz evrimi
+    içerir; r_t = |⟨e^{iφ}⟩| genlik kollapsı/büyümesiyle modüle olur.
+    M6 `noral_kutle.stuart_landau_aglari_koz` yeniden kullanılır.
+
+    Parametreler
+    ------------
+    N          : int — osilatör sayısı
+    t_end      : float — süre (s)
+    lambda_par : float — lineer büyüme oranı (λ>0 → limit-cycle)
+    gamma      : float — nonlineer sönüm
+    seed       : int — rng tohumu
+
+    Döndürür
+    --------
+    dict: {"t", "r_t", "x", "y", "genlik_ort"} — SL ağ sonucu
+
+    Referans: noral_kutle.stuart_landau_aglari_koz; CLAUDE.md §3 (M6).
+    """
+    from src.models.acoustic.noral_kutle import stuart_landau_aglari_koz
+
+    fs = 10.0  # 0.1 Hz kalp dinamiği için yeterli örnekleme
+    nt = int(t_end * fs)
+    # Forsing yok (özerk senkronizasyon) — kalp doğal frekansı OMEGA_HEART.
+    F_t = np.zeros((nt, N))
+    sl = stuart_landau_aglari_koz(
+        N=N, fs=fs, t_end=t_end, F_t=F_t,
+        omega_rad_s=OMEGA_HEART, lambda_par=lambda_par,
+        gamma=gamma, rng_seed=seed,
+    )
+    genlik = np.sqrt(sl["x"] ** 2 + sl["y"] ** 2)
+    return {
+        "t": sl["t"], "r_t": sl["r_t"], "x": sl["x"], "y": sl["y"],
+        "genlik_ort": float(np.mean(genlik[-nt // 5:])),
+    }
+
+
 def superradyans_analizi(N_max: int = 25) -> tuple:
     """
     N=1..N_max için süperradyans kazanımını hesaplar.
@@ -286,6 +332,61 @@ def sekil_n_tarama(tarama: dict, output_dir: str) -> None:
     print(f"  N-tarama PNG: {out}")
 
 
+def sekil_kuramoto_vs_sl(
+    N_values: list, K: float, output_dir: str, t_end: float = 200.0,
+) -> dict:
+    """C2 — Kuramoto (saf faz) vs Stuart-Landau (genlik+faz) karşılaştırması.
+
+    2 panel: (sol) r(t) eğrileri her iki model birkaç N için,
+    (sağ) kararlı r_∞ vs N — iki model yan yana.
+
+    Döndürür
+    --------
+    dict: {N: {"kuramoto_r": ..., "sl_r": ..., "sl_genlik": ...}}
+    """
+    os.makedirs(output_dir, exist_ok=True)
+    karsilastirma = {}
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
+
+    renk = plt.cm.plasma(np.linspace(0.1, 0.85, len(N_values)))
+    for N, c in zip(N_values, renk):
+        t_k, _, r_k = kuramoto_simule(N=N, K=K, t_end=t_end, n_t=500)
+        sl = stuart_landau_simule(N=N, t_end=t_end)
+        ax1.plot(t_k, r_k, color=c, lw=1.6, label=f"Kuramoto N={N}")
+        ax1.plot(sl["t"], sl["r_t"], color=c, lw=1.2, ls="--", alpha=0.8,
+                 label=f"SL N={N}")
+        karsilastirma[N] = {
+            "kuramoto_r": float(r_k[-1]),
+            "sl_r": float(np.mean(sl["r_t"][-len(sl["r_t"]) // 5:])),
+            "sl_genlik": sl["genlik_ort"],
+        }
+
+    ax1.set_xlabel("Zaman (s)"); ax1.set_ylabel("Sıra parametresi r(t)")
+    ax1.set_title("Kuramoto (düz) vs Stuart-Landau (kesik)")
+    ax1.legend(fontsize=7, ncol=2); ax1.grid(alpha=0.3); ax1.set_ylim(0, 1.08)
+
+    N_list = sorted(karsilastirma.keys())
+    kr = [karsilastirma[n]["kuramoto_r"] for n in N_list]
+    sr = [karsilastirma[n]["sl_r"] for n in N_list]
+    x = np.arange(len(N_list))
+    ax2.bar(x - 0.2, kr, width=0.4, color="#2980B9", label="Kuramoto r_∞")
+    ax2.bar(x + 0.2, sr, width=0.4, color="#E67E22", label="Stuart-Landau r_∞")
+    ax2.axvline(N_C_SUPERRADIANCE, color="green", ls="--", alpha=0.4)
+    ax2.set_xticks(x); ax2.set_xticklabels(N_list)
+    ax2.set_xlabel("Kişi sayısı N"); ax2.set_ylabel("Kararlı r_∞")
+    ax2.set_title("Model karşılaştırması: r_∞(N)")
+    ax2.legend(fontsize=9); ax2.grid(alpha=0.3, axis="y")
+
+    fig.suptitle("BVT Level 4 — C2: Kuramoto + Stuart-Landau (genlik+faz)",
+                 fontsize=13, fontweight="bold")
+    plt.tight_layout()
+    out = os.path.join(output_dir, "L4_kuramoto_vs_SL.png")
+    plt.savefig(out, dpi=150, bbox_inches="tight")
+    plt.close()
+    print(f"  [C2] Kuramoto vs SL karşılaştırma: {out}")
+    return karsilastirma
+
+
 def sekil_kaydet(sonuclar: dict, N_arr: np.ndarray, I_arr: np.ndarray,
                  output_dir: str, html: bool) -> None:
     """Şekilleri PNG ve HTML olarak kaydeder."""
@@ -417,6 +518,9 @@ def main():
                         help="Simülasyon süresi (s)")
     parser.add_argument("--K", type=float, default=None,
                         help="Kuramoto bağlaşım kuvveti (rad/s)")
+    parser.add_argument("--stuart-landau", action="store_true",
+                        help="C2: Stuart-Landau (genlik+faz) modunu da koş ve "
+                             "Kuramoto ile karşılaştır (mevcut akış değişmez)")
     args = parser.parse_args()
 
     K = args.K if args.K is not None else KAPPA_EFF * 0.1
@@ -457,6 +561,20 @@ def main():
         sekil_n_tarama(tarama, args.output)
     except Exception as e:
         print(f"  [UYARI] N taraması atlandı: {e}")
+
+    # C2 — Stuart-Landau karşılaştırması (opsiyonel)
+    if args.stuart_landau:
+        print("\n--- C2: Kuramoto vs Stuart-Landau (genlik+faz) ---")
+        try:
+            sl_N = [n for n in (5, 11, 20) if n <= args.N] or [args.N]
+            kars = sekil_kuramoto_vs_sl(sl_N, K=K, output_dir=args.output,
+                                        t_end=min(args.t_end, 200.0))
+            for n in sorted(kars):
+                print(f"    N={n:3d}: Kuramoto r_∞={kars[n]['kuramoto_r']:.3f} | "
+                      f"SL r_∞={kars[n]['sl_r']:.3f} | "
+                      f"SL ⟨genlik⟩={kars[n]['sl_genlik']:.3f}")
+        except Exception as e:
+            print(f"  [UYARI] Stuart-Landau karşılaştırması atlandı: {e}")
 
     # Şekiller
     print("\n--- Şekiller Kaydediliyor ---")

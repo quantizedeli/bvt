@@ -231,3 +231,11 @@ Sprint biten her ayın sonunda, "Ne öğrendim" satırlarından çıkan **tekrar
 **Ne öğrendim:** D2'yi önce statik kod analiziyle "9/13, FAIL=Mossbridge-2017" diye tahmin etmiştim — runtime çürüttü (gerçek 12/13, FAIL=Celardo 2014). Tolerans + geq/leq eşik tiplerini koddan okumak yanıltıcı; replikasyon durumu yalnız reproduction_report.py çıktısından okunur (§14.5 kanıt-önce). Ayrı ders: workflow worktree'leri disk-full anında bozuk base'den dallanıp tüm sprint geçmişini "silinmiş" gösterebiliyor — worktree işlerini merge öncesi `git log` ile base doğrula.
 
 **Sonraki commit'te dikkat:** Faz 2 (C1 L3 H_tetik, C2 L4 Kuramoto+SL) seri yapılacak. Celardo 2014 tek FAIL — 13/13 için E-serisi metriğini L11 halka modeline bağlama fırsatı (Sprint 11). DEFERRED_DECISIONS.md'ye D-009 (kısmen kapandı: grid flag eklendi) + D-016 (yeni) işlenecek.
+
+### 2026-05-30 — [Sprint 10 / C1+C2] — H_tetik L3 entegrasyonu + Stuart-Landau L4
+
+**Ne yaptım:** (C1) H_tetik'i L3 QuTiP Lindblad'e entegre ettim — iki opt-in varyant: `--drive` (saf kuantum bare SI, `surucu_operatoru_qutip` + zaman-bağımlı `[H0,[H1,cos(ω_s t)]]`) ve `--akustik-tetik` (rad/s efektif kuplaj, zaman-değişen akustik kapı, `akustik_katsayi` closure). lindblad_coz'a include_drive/C_gate/akustik_* parametreleri, geriye uyumlu. 3 yeni test. (C2) L4'e `--stuart-landau` opsiyonel modu — `noral_kutle.stuart_landau_aglari_koz` reuse, mevcut Kuramoto dokunulmadı; `sekil_kuramoto_vs_sl` karşılaştırma figürü. 3 yeni test.
+
+**Ne öğrendim:** Windows'ta QuTiP string-coefficient (`"cos(w*t)"`) Cython/MSVC compile istiyor — Python fonksiyon coefficient gerektirmiyor, onu kullandım (taşınabilirlik dersi). Bare H_tetik genliği 9.2e-19, dekoherans (~0.5) yanında ihmal edilebilir → kapı açık olsa bile Δ⟨n̂_Sch⟩=0.0; bu §5 enerji-paradoksunu doğruluyor (çıplak kuplaj minik, etki domino amplifikasyondan). Akustik varyant rad/s kuplajla gözlemlenebilir (-1.8e-5). SL limit-cycle genliği √(λ/γ)=2.0 teoriyle birebir (2.095) — noral_kutle SL doğru çalışıyor; kuplajsız olduğu için r düşük (Kuramoto faz-kuplajı senkronize ediyor, SL etmiyor — beklenen kontrast).
+
+**Sonraki commit'te dikkat:** C1/C2 commit sonrası kapanış: memory güncelle (kayıp-dersi: sprint görev kartları git'e yazılmalı) + v9.8 tag. SPRINT_10 dökümanı hiç yazılmadı — gelecekte sprint başında §16 disiplini gereği oluşturulmalı.
