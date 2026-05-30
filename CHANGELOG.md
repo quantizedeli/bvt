@@ -5,6 +5,32 @@ Bu dosya projedeki her önemli değişikliği kaydeder.
 
 ---
 
+## v9.10-sprint12 — 2026-05-30 (Celardo 2014 → 13/13 reprodüksiyon TAMAM)
+
+### S3 — Celardo 2014 halka süperradyans (KAPALI, reprodüksiyon 12/13 → 13/13)
+- **Kök neden (QA):** `level11_celardo_replicate` lokalize tek-site |0⟩ başlangıcı +
+  topoloji-bağımsız kolektif jump (Q=ones) kullanıyordu → halka ve doğrusal zincir
+  **aynı** γ_φ^cr veriyordu (ring_bonus %0, kasıtlı FAIL). Üstelik γ_φ^cr eşiği her
+  topolojinin kendi max hızına göreliydi (bias).
+- **Fix (`level11_celardo_replicate.py`):**
+  - `haken_strobl_decay_rate`: simetrik süperradyant durum |s⟩=(1/√N)Σ|j⟩ başlangıcı
+    (halkada k=0 öz-durumu → korunur; doğrusalda alt-radyant tuzaklara döner) +
+    tek-kanal kolektif çürüme −(γ/2){Q,ρ} + saf dephasing + yarı-ömür hızı.
+  - `find_critical_dephasing`: **mutlak** NΓ/2 eşiği (her iki topoloji için aynı
+    referans → adil kıyas).
+  - `J_CELARDO = 20·γ` (Celardo light-harvesting coherent-coupling rejimi, J/γ≈20).
+- **Doğrulama:** ring_bonus = **%27.0** (hedef 35, tolerans [14,56] ✓),
+  γ_φ^cr/(Nγ) = 1.107 (Celardo ölçekleme yasası ✓). **reproduction_report 13/13 (%100).**
+
+### QA taraması (QA engineer)
+- `output_audit.py`: 0 FAIL (5 pre-existing dublike-PNG WARN).
+- `bvt_tutarlilik_denetimi.py`: 4 FAIL → **0 FAIL** düzeltildi. Sebep: checker hâlâ
+  silinmiş Marimo `bvt_studio/*.py` dosyalarını arıyordu (CLAUDE.md §9/§12 Marimo
+  kalıcı bırakıldı) → güncel `bvt_dashboard/app.py`+`layouts/sekmeler.py`'ye yöneltildi.
+- `inter_module_audit.py`: 51 PASS / 0 FAIL.
+
+---
+
 ## v9.9-sprint11 — 2026-05-30 (Fiziksel Derinleştirme: D-016 + D-017 KAPALI)
 
 ### S1 D-016 — JR gerçek 10 Hz Hopf limit-cycle α emergence (KAPALI)

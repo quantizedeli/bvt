@@ -82,14 +82,23 @@ Heuristic default korundu. 2 yeni test (`test_d017_*`).
 
 ---
 
-## S3 (ops.) — Celardo 2014 → 13/13
+## S3 (ops.) — Celardo 2014 → 13/13 ✅ KAPALI (2026-05-30)
 
 **Sorun (Sprint 10 D2):** Tek FAIL Celardo 2014, halka süperradyans bonusu
 γ_φ^cr = %0 (hedef ~%35). "L11 ile doğrulandı" notuyla kasıtlı fail.
 
-**Plan:** E-serisi Celardo-2014 metriğini L11 halka modeline bağla VEYA
-γ_φ^cr dephasing-critical ölçümünü Haken-Strobl yerine Kuramoto+Form A
-çerçevesinde düzelt. Reproduction_report tolerans/metrik revizyonu.
+**Kök neden (QA):** `haken_strobl_decay_rate` lokalize |0⟩ başlangıcı +
+topoloji-bağımsız kolektif jump (Q=ones) + her-topoloji-kendi-max'ına-göreli
+eşik → halka=doğrusal (bonus %0).
+
+**Fix:** simetrik süperradyant durum |s⟩ başlangıcı (halkada k=0 öz-durumu →
+dephasing'e dayanıklı; doğrusalda alt-radyant tuzaklara döner) + yarı-ömür hızı
++ **mutlak NΓ/2 eşiği** + Celardo coherent-coupling rejimi (`J_CELARDO=20·γ`).
+**Sonuç:** ring_bonus %27.0 (tolerans [14,56] ✓), γ_φ^cr/(Nγ)=1.107 (Celardo
+ölçekleme ✓), **reproduction_report 13/13**.
+
+**QA bonus fix:** `bvt_tutarlilik_denetimi.py` silinmiş Marimo bvt_studio
+dosyalarını arıyordu (4 sahte FAIL) → güncel Dash dashboard'a yöneltildi (0 FAIL).
 
 ---
 
@@ -103,7 +112,7 @@ hesap onayı → rsync → sbatch → sonuç indirme. Kullanıcı TRUBA erişimi
 
 ## Sprint 11 kapanış kontrol listesi
 
-- [x] S1 D-016 `[x]`, S2 D-017 `[x]`, S3 `[~]` (Celardo derin fizik — ertelendi),
+- [x] S1 D-016 `[x]`, S2 D-017 `[x]`, **S3 Celardo `[x]` (2026-05-30 ek oturum, 13/13)**,
       S4 `[~]` (TRUBA donanım erişimine bağlı)
 - [x] `pytest tests/ -q` → 0 fail (aşağıda)
 - [x] CHANGELOG v9.9-sprint11 girişi (DEVELOPER_NOTEBOOK repo'da yok; CHANGELOG canlı doc)

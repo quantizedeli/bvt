@@ -33,6 +33,9 @@ def _run_l8(extra_args: list[str], output_dir: str) -> subprocess.CompletedProce
         "--t-end", "10",   # hızlı test için kısa süre
     ] + extra_args
     # encoding="utf-8" + errors="replace": Windows cp1254 decode hatasını önler
+    # timeout=300: --ses-kuplaj modu Plotly→PNG export için tarayıcı (kaleido)
+    # başlatır; idle koşumda ~80s ama yüklü makinede 120s'i aşabiliyordu (flaky
+    # TimeoutExpired). 300s yavaş/yüklü donanıma headroom verir (Sprint 12 QA fix).
     return subprocess.run(
         cmd,
         stdout=subprocess.PIPE,
@@ -40,7 +43,7 @@ def _run_l8(extra_args: list[str], output_dir: str) -> subprocess.CompletedProce
         encoding="utf-8",
         errors="replace",
         cwd=project_root,
-        timeout=120,
+        timeout=300,
     )
 
 

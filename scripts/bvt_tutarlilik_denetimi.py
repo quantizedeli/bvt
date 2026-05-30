@@ -158,11 +158,10 @@ BEKLENEN_DOSYALAR = [
     "src/viz/animations.py",
     "src/viz/plots_interactive.py",
     "src/viz/theme.py",
-    # Marimo studio
-    "bvt_studio/bvt_dashboard.py",
-    "bvt_studio/nb01_halka_topoloji.py",
-    "bvt_studio/nb04_uclu_rezonans.py",
-    "bvt_studio/nb09_literatur_explorer.py",
+    # İnteraktif arayüz — Plotly Dash (Marimo KALICI BIRAKILDI, CLAUDE.md §9/§12;
+    # eski bvt_studio/*.py archive/marimo_deprecated/ altına taşındı).
+    "bvt_dashboard/app.py",
+    "bvt_dashboard/layouts/sekmeler.py",
     # Agent dosyaları
     ".claude/agents/bvt-simulate.md",
     ".claude/agents/bvt-marimo.md",

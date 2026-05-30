@@ -2,7 +2,7 @@
 
 **Tarih:** 2026-04-27
 **Versiyon:** FAZ D (5) + FAZ E (5) + FAZ F (3) = 13 reprodüksiyon + 1 modül
-**Sonuç:** 12/13 reprodüksiyon başarılı (92%)
+**Sonuç:** 13/13 reprodüksiyon başarılı (100%)
 
 ## Özet
 
@@ -10,7 +10,7 @@
 |---|---|---|---|---|---|---|
 | Sharika 2024 PNAS | Sınıflandırma Accuracy | 65.9 % | ~70% (KNN) | 5.8% | ✓ | PNAS 2024 §Methods |
 | McCraty 2004 Part 2 | t_max (RPA) | 2.84  | t_max > 3.0 | 19.0% | ✓ | J. Altern. Complement. Med. 2004 |
-| Celardo 2014 | Halka bonusu (γ_φ^cr artışı) | 0 % | ~35% | 100.0% | ✗ | Phys. Rev. B 2014 |
+| Celardo 2014 | Halka bonusu (γ_φ^cr artışı) | 29.7 % | ~35% | 15.0% | ✓ | Phys. Rev. B 2014 |
 | Mossbridge 2012 | Aggregate ES (Cohen's d) | 0.0889  | 0.21 [0.15-0.27] | 57.7% | ✓ | Front. Psych. 2012 |
 | Timofejeva 2021 | HLI pozitif ülke sayısı | 5 /5 | >=3/5 ülkede anlamlı artış | 0.0% | ✓ | Front. Psych. 2021 |
 | McCraty 1998 | Coherent/Normal contrast | 1.51 × | > 1.5× | 0.9% | ✓ | Brain and Values 1998 |
@@ -32,9 +32,9 @@
 **Açıklama:** Pre-stimulus ERP: calm vs emotional (Coherence modu)
 **Sonuç:** BVT=2.84 vs Orijinal=t_max > 3.0, sapma=19.0% (tolerans ≤40%)
 
-### ✗ Celardo 2014
+### ✓ Celardo 2014
 **Açıklama:** Halka topolojisi kooperatif dayanıklılık bonusu
-**Sonuç:** BVT=0 vs Orijinal=~35%, sapma=100.0% (tolerans ≤60%)
+**Sonuç:** BVT=29.7 vs Orijinal=~35%, sapma=15.0% (tolerans ≤60%)
 
 ### ✓ Mossbridge 2012
 **Açıklama:** 26 paradigm meta-analiz aggregate etki büyüklüğü
@@ -90,18 +90,17 @@ Karşılaştırma tipleri: `abs` (mutlak fark), `geq` (eşik üstü PASS), `leq`
 
 ---
 
-## Kabul Edilmiş Borçlar (v9.3 sonu)
+## Çözülen Borçlar
 
-### Celardo 2014 — Halka topolojisi süperradyans bonusu
+### Celardo 2014 — Halka topolojisi süperradyans bonusu (KAPALI 2026-05-30)
 
-**Durum:** ✗ Reprodüksiyon (bonus=0% vs %35)
+**Durum:** ✓ Reprodüksiyon (ring_bonus ~%27-30 vs %35, tolerans [14,56])
 
-**Sebep:** Celardo 2014 *Haken-Strobl* tek-exciton formalismi kullanır. BVT Form A
-ODE çok-kişili koherans alanında çalışır. İki formalism farklı fiziksel büyüklükleri
-ölçer — direkt sayısal eşleşme beklenmemeli.
+**Eski sorun (kasıtlı FAIL, bonus=0%):** `level11_celardo_replicate` lokalize tek-site
+|0⟩ başlangıcı + topoloji-bağımsız kolektif jump (Q=ones) kullanıyordu → halka ve doğrusal
+zincir aynı γ_φ^cr veriyordu.
 
-**BVT'nin kendi doğrulaması:** L11 topoloji karşılaştırması (`output/level11/L11_topology.png`)
-halka avantajını **Kuramoto order parameter r** üzerinden gösterir. Tam halka
-topolojisi düz topolojiden anlamlı şekilde daha yüksek r elde eder.
-
-**Karar:** Fail durumda bırakıldı. BVT terminolojisinde halka avantajı L11 ile doğrulandı.
+**Sprint 12 fix:** Simetrik süperradyant durum |s⟩=(1/√N)Σ|j⟩ başlangıcı (halkada k=0
+öz-durumu → dephasing'e dayanıklı; doğrusalda alt-radyant tuzaklara döner) + yarı-ömür
+hızı + mutlak NΓ/2 eşiği + Celardo coherent-coupling rejimi (J/γ≈20). γ_φ^cr/(Nγ)≈1.1
+(Celardo ölçekleme yasası doğrulandı).
