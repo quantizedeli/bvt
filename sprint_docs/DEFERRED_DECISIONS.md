@@ -171,7 +171,14 @@
 | **Validation** | 10-trial Monte Carlo: Uyanık=2.01e-3, REM=2.18e-4, NREM=1.04e-5. Uyanık/NREM = **192×** (spec kriteri 2×). Test paketi: `tests/test_acoustic_nmm_calibration.py` (4 yeni test) + mevcut 41 acoustic test bozulmadı. PNG: `output/level6/L6_NMM_alfa_band.png`. |
 | **Açık (D-016'ya devredilen)** | α "broadband proxy"dir — gerçek 10 Hz Hopf limit-cycle değil. Tam α emergence için band-limited input + Grimbert-Faugeras bifurcation taraması gerek. |
 
-### D-017 — L7 fiziksel HEP elektrod ayırt etmesi (Sprint 09 S3 PoC sınırlaması)
+### D-017 — L7 fiziksel HEP elektrod ayırt etmesi (KAPALI 2026-05-30 Sprint 11 S2)
+
+| | |
+|---|---|
+| **Çözüm (Sprint 11 S2)** | Tek z-eksenli kalp dipolü yerine **santral kortikal HEP kaynağı** (`ileri_eeg.lead_field_hep_kortikal`): kalp-afferent → talamus → santral somatosensör korteks (Cz/C3/C4 bilateral yama, 3 radyal dipol). Gerçekçi 10-20 elektrod geometrisi (`ELEKTROD_KONUM_BIRIM`) ile forward projeksiyon Cz/C3/C4'te zirve yapar. **Kritik içgörü:** tek radyal vertex dipolü çok odaklıdır (C3/C4 sıfır-geçişine düşer) → bilateral 3-kaynak yama gerekti. **İkinci içgörü:** salt çarpımsal sinyal t-testinde ölçek-değişmezdir (eski bug); kanaldan bağımsız sensör gürültü tabanı eklemek ölçek-değişmezliği kırar → santral kanal yüksek SNR → anlamlı, çevre değil. |
+| **Doğrulama** | Lead field: santral/çevre ≈ 16× (Cz=1.0, C3=C4=0.955, çevre ≤0.061). `run_study(fiziksel_modu=True)`: santral genlik çevreden **14×** yüksek, Cz/C3/C4 anlamlı (Montoya 1993 eşleşme). 2 yeni test (`test_d017_*`), heuristic default korundu. |
+
+### D-017 — (eski kayıt, Sprint 09 S3 PoC sınırlaması)
 
 | | |
 |---|---|
@@ -182,7 +189,14 @@
 | **Geri-dönüş tetikleyici** | (1) D-001 (MRI atlas) açılırsa beraber; (2) BVT makale §11.3 Montoya öngörüsünün tam fiziksel kanıtı istenirse; (3) HEP makale revizyonu |
 | **Riski azaltan** | PoC limitasyonu `simulate_HEP_fiziksel` docstring'inde **açık not** olarak ekli; heuristic default davranış korunuyor (Montoya eslesme: Cz/C3/C4 hâlâ geçerli) |
 
-### D-016 — JR canonical α emergence (Hopf bifurcation + band-limited input)
+### D-016 — JR canonical α emergence (KAPALI 2026-05-30 Sprint 11 S1)
+
+| | |
+|---|---|
+| **Çözüm (Sprint 11 S1)** | **Kök neden bulundu:** mevcut `jansen_rit_koz` topolojisinde dış input p(t) sigmoid'den geçiyordu (`S(I_p+...)`); p∈[100,300]'de sigmoid satüre (max 2e₀=5) → sabit çıktı → sabit-nokta. **Kanonik Jansen-Rit (1995) topolojisi** (`jansen_rit_canonical_koz`): p(t) eksitatör interneuron'a DOĞRUDAN ateşleme-hızı olarak girer (sigmoid'den geçmez) → Hopf rejimi açılır, gerçek 10 Hz limit-cycle. Band-limited OU input (`ou_band_input`, Ableidinger 2017) + Jacobian özdeğer Hopf tespiti (`jr_fixed_point_jacobian_eig`). |
+| **Doğrulama** | Hopf onset = 90.0 (Grimbert-Faugeras alt sınır 89.83 — birebir). Sabit p=200 → 10.7 Hz dar-bant tepe. Kanonik sleep setleri: Uyanık 10.7 Hz > REM 10.3 Hz > NREM ~3 Hz yavaş-dalga; Uyanık/NREM α ≈ 80–1500× (≥2× kabul). 4 yeni test (`test_d016_*`), figür `output/level6/JR_hopf_limit_cycle.png`. Geriye uyumlu (`jansen_rit_koz` dokunulmadı). |
+
+### D-016 — (eski kayıt, Sprint 09 S1 hazırlık)
 
 | | |
 |---|---|

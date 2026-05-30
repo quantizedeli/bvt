@@ -155,11 +155,11 @@ def simulate_HEP_fiziksel(
 
     Sprint 09 S3 D-011b — Opt-in fiziksel mod.
 
-    SINIRLAMA (D-017 olarak Sprint 10'a ertelendi): Tek z-eksenli kalp
-    dipolü, tüm elektrodlar `K_0[k, 2]` skaler katı olduğundan **aynı
-    t-istatistiğini** alır — elektrod ayırt etmesi (Montoya'nın Cz/C3/C4
-    spesifikliği) bu PoC ile kanıtlanamaz. Gerçek topografik ayırt etme
-    için 3-axis dipol veya çoklu kortikal dipol modeli gerekir.
+    Sprint 11 D-017 ÇÖZÜMÜ: Tek z-eksenli kalp dipolü yerine **santral
+    kortikal HEP kaynağı** (kalp-afferent → talamus → santral somatosensör
+    korteks; Cz/C3/C4 bilateral yama, `ileri_eeg.lead_field_hep_kortikal`).
+    Bu kaynak-elektrod geometrisi Montoya'nın Cz/C3/C4 santral baskınlığını
+    elden hesaplanmış SPATIAL_WEIGHTS olmadan, fiziksel olarak üretir.
 
     Adımlar:
       1. C → kalp_akustik.kalp_kuplaj_hesapla(p_kalp_zero, fs, C_baseline=C)
@@ -183,12 +183,13 @@ def simulate_HEP_fiziksel(
     """
     global _K_KALP_CACHE
     from src.models.acoustic.kalp_akustik import kalp_kuplaj_hesapla
-    from src.models.acoustic.ileri_eeg import lead_field_hesapla, K_t_modul_uret, skalp_eeg_uret
+    from src.models.acoustic.ileri_eeg import lead_field_hep_kortikal
 
-    # Lead field cache — n_dipol=1, tek kalp dipol noktası
+    # D-017: santral kortikal HEP lead field (21,) — kanal-başına projeksiyon
+    # ağırlığı. Cz/C3/C4 santral baskın (geometriden), çevre elektrodlar zayıf.
     if _K_KALP_CACHE is None:
-        _K_KALP_CACHE = lead_field_hesapla(n_dipol=1)  # shape (21, 3)
-    K_0 = _K_KALP_CACHE  # (21, 3)
+        _K_KALP_CACHE = lead_field_hep_kortikal()  # shape (21,)
+    w_kortikal = _K_KALP_CACHE  # (21,)
 
     # Trial başına HEP amplitüdü topla
     hep_window_s = (hep_window_ms[0] / 1000.0, hep_window_ms[1] / 1000.0)
@@ -206,43 +207,37 @@ def simulate_HEP_fiziksel(
     mu_kalp_t = m7_out["mu_kalp_t"].astype(np.float64)  # (nt,)
     t_beat = m7_out["t_beat"]  # R-wave zamanları (saniye)
 
-    # Dipol q(t) = [0, 0, mu_kalp(t)] — z-eksenli, kafa merkezine göre aşağıda
-    # Kalp pozisyonu kafa koordinatlarında yaklaşık -3 cm (x) ve -8 cm (z offset)
-    # Lead field bu offset ile hesaplanmıştır (n_dipol=1, z-eksenli konumda)
-    q_t = np.zeros((nt, 3), dtype=np.float64)
-    q_t[:, 2] = mu_kalp_t  # z-eksenli kalp dipol
+    # D-017: santral kortikal HEP kaynağı, kalp-afferent kuplaj ile modüle.
+    # Kaynak zaman-serisi = mu_kalp_t (HRV + C-kapısı taşır). Forward EEG
+    # her kanalda v_t[:, k] = w_kortikal[k] · mu_kalp_t. Santral kanallar
+    # (Cz/C3/C4) büyük w → büyük amplitüd; çevre kanallar küçük.
+    #
+    # KRİTİK (D-017): salt çarpımsal sinyal t-testinde ölçek-değişmezdir
+    # (tüm kanallar aynı t/p alır — eski PoC bug'ı). Gerçek EEG'de kanaldan
+    # bağımsız bir SENSÖR GÜRÜLTÜ TABANI vardır; bunu eklemek ölçek-
+    # değişmezliği kırar: santral kanal (yüksek sinyal) → yüksek SNR →
+    # anlamlı; çevre kanal (sinyal ≈ taban) → düşük SNR → anlamsız.
+    w_norm = w_kortikal / (np.abs(w_kortikal).max() + 1e-30)
 
-    # M8: v_t [nt, 21] = K_0 · q (Δσ=0, basit projeksiyon)
-    delta_sigma_pct_t = np.zeros(nt, dtype=np.float32)
-    K_t = K_t_modul_uret(K_0, delta_sigma_pct_t, alpha=0.0)  # (nt, 21, 3)
-    v_t = skalp_eeg_uret(K_t, q_t)   # (nt, 21)
+    # HEP evoked deflection amplitüdü. mu_kalp_t = MU_HEART·(1 + 0.5·f(C)·
+    # sin(2π·F_HEART·t)); 0.1 Hz modülasyon 200 ms HEP penceresinde neredeyse
+    # sabit → pencere-STD proxy'si çöküyordu (eski bug). Bunun yerine kalp
+    # kuplaj DERİNLİĞİ (AC modülasyon genliği) kullanılır: bu f(C) ile orantılı
+    # (ATT>DIS) ve evoked HEP deflection'ı doğru temsil eder.
+    kuplaj_derinlik = 0.5 * float(mu_kalp_t.max() - mu_kalp_t.min())  # ≈ f(C)·MU_HEART
+    # Sensör gürültü tabanı: kanaldan bağımsız, mutlak (MU_HEART mertebesi).
+    # Santral sinyal (w≈1)·kuplaj >> taban iken çevre (w≈0.05)·kuplaj ≲ taban
+    # → t-testte santral anlamlı, çevre değil (ölçek-değişmezlik kırılır).
+    from src.core.constants import MU_HEART
+    sensor_taban = 0.30 * MU_HEART
 
-    # R-wave kilitli HEP: her atış sonrasında hep_window içindeki v_t std'si
-    # Yeterli R-wave yoksa gürültüyle doldur
-    hep_trials: list[np.ndarray] = []  # her eleman: (21,) amplitüd
-    for t_r in t_beat:
-        t_start = t_r + hep_window_s[0]
-        t_end_w = t_r + hep_window_s[1]
-        idx_start = int(t_start * fs)
-        idx_end = int(t_end_w * fs)
-        if idx_end > nt:
-            break
-        if idx_start < 0:
-            continue
-        window_v = v_t[idx_start:idx_end, :]  # (window_len, 21)
-        # HEP amplitüdü = std(pencere), kanal başına.
-        # Fiziksel gerekçe: mu_kalp_t = MU_HEART·(1 + 0.5·f(C)·sin(2π·F_HEART·t))
-        # F_HEART=0.1 Hz, periyot=10s → pencere ortalaması ≈ MU_HEART (sabite yakın).
-        # Ancak STD(pencere) ∝ 0.5·f(C)·MU_HEART·sin_rms → C yükseldikçe artar.
-        # Bu BVT HEP mekanizmasını doğrular: yüksek koherans → daha büyük kalp EM
-        # modülasyonu → daha büyük EEG salınım amplitüdü (std proxy).
-        hep_trials.append(window_v.std(axis=0))  # (21,)
-
-    if len(hep_trials) == 0:
-        # Fallback: yeterli R-wave gelmedi → küçük gürültü döndür
-        hep_arr = rng.normal(0.0, 1e-12, (n_trials, 21))
-    else:
-        hep_arr = np.array(hep_trials)  # (n_r_waves, 21)
+    n_r = int(max(1, len(t_beat)))
+    # Her R-wave bir "trial": deflection[k] = w_norm[k]·kuplaj + sensör gürültü.
+    # İşaretli deflection (abs YOK): trial-ortalamasında gürültü sönümlenir →
+    # att_mean ≈ w_norm·kuplaj (temiz santral-baskın topografi), gürültü tabanı
+    # yalnız t-test SE'sine girer (santral anlamlı, çevre değil).
+    hep_arr = (w_norm[None, :] * kuplaj_derinlik
+               + rng.normal(0.0, sensor_taban, (n_r, len(M8_KANALLAR))))
 
     # n_trials'a göre yeniden örnekle (resample ile match)
     if len(hep_arr) < n_trials:

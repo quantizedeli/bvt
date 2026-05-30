@@ -12,6 +12,9 @@ from simulations.level7_HEP_topography_replicate import (
     run_study,
     ELECTRODES,
 )
+from src.models.acoustic.ileri_eeg import (
+    lead_field_hep_kortikal, STANDART_KANALLAR,
+)
 
 
 def test_fiziksel_imza_19_elektrod():
@@ -69,3 +72,35 @@ def test_fiziksel_mod_calisir():
     assert "dis_mean" in cz_stat
     assert "p_value" in cz_stat
     assert "t_stat" in cz_stat
+
+
+# ====================================================================
+# Sprint 11 D-017 — Elektrod-spesifik HEP santral baskınlık testleri
+# ====================================================================
+
+def test_d017_kortikal_lead_field_santral_baskin():
+    """D-017: santral kortikal lead field Cz/C3/C4'te zirve, çevrede söner."""
+    w = np.abs(lead_field_hep_kortikal())
+    w = w / w.max()
+    idx = {ch: i for i, ch in enumerate(STANDART_KANALLAR)}
+    santral = np.mean([w[idx["Cz"]], w[idx["C3"]], w[idx["C4"]]])
+    cevre = np.mean([w[idx[c]] for c in ("O1", "O2", "Fp1", "Fp2", "T7", "T8")])
+    assert santral > 5.0 * cevre, (
+        f"Santral ({santral:.3f}) çevreden ({cevre:.3f}) belirgin yüksek değil"
+    )
+    # C3/C4 simetrik
+    assert abs(w[idx["C3"]] - w[idx["C4"]]) < 0.05
+
+
+def test_d017_fiziksel_santral_genlik_baskin():
+    """D-017 kabul: fiziksel modda Cz/C3/C4 HEP genliği çevreden belirgin yüksek."""
+    study = run_study(n_subj=30, n_trials=80, rng_seed=42, fiziksel_modu=True)
+    es = study["elec_stats"]
+    santral = np.mean([es[e]["att_mean"] for e in ("Cz", "C3", "C4")])
+    cevre = np.mean([abs(es[e]["att_mean"])
+                     for e in ("O1", "O2", "Fp1", "Fp2", "T5", "T6")])
+    assert santral > 3.0 * cevre, (
+        f"Santral genlik {santral:.3e} çevre {cevre:.3e}'den ≥3× değil"
+    )
+    # Montoya beklentisi: Cz/C3/C4 anlamlı
+    assert {"Cz", "C3", "C4"} <= study["significant_electrodes"]

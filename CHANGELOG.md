@@ -5,6 +5,49 @@ Bu dosya projedeki her önemli değişikliği kaydeder.
 
 ---
 
+## v9.9-sprint11 — 2026-05-30 (Fiziksel Derinleştirme: D-016 + D-017 KAPALI)
+
+### S1 D-016 — JR gerçek 10 Hz Hopf limit-cycle α emergence (KAPALI)
+- **Kök neden:** `jansen_rit_koz` topolojisinde dış input p(t) sigmoid'den geçiyordu
+  (`S(I_p+...)`); p∈[100,300]'de sigmoid satüre → sabit-nokta, limit-cycle yok.
+  Sprint 09 D-013 "broadband proxy"sinin gerçek nedeni buydu.
+- **Eklendi `src/models/acoustic/noral_kutle.py`:**
+  - `jansen_rit_canonical_koz()` — kanonik Jansen-Rit 1995 topolojisi: p(t) eksitatör
+    interneuron'a doğrudan ateşleme-hızı girer (sigmoid'den geçmez) → Hopf rejimi
+    → gerçek 10 Hz limit-cycle. Opsiyonel `max_step` (geriye uyumlu).
+  - `ou_band_input()` — band-limited Ornstein-Uhlenbeck renkli gürültü (Ableidinger 2017).
+  - `jr_fixed_point_jacobian_eig()` / `dsigmoid_jr()` — Jacobian özdeğer Hopf tespiti.
+- **Eklendi `constants.py`:** `JR_C_CANONICAL`, `JR_CANONICAL_SLEEP_SETS` (uyanik/rem/nrem),
+  `JR_HOPF_RANGE = (89.83, 315.70)` (Grimbert-Faugeras 2006).
+- **Doğrulama:** Hopf onset = 90.0 (literatür 89.83 birebir); sabit p=200 → 10.7 Hz
+  dar-bant tepe; Uyanık 10.7 Hz > REM 10.3 Hz > NREM ~3 Hz; Uyanık/NREM α ≥ 2×.
+  Figür `output/level6/JR_hopf_limit_cycle.png`. `jansen_rit_koz` dokunulmadı.
+
+### S2 D-017 — L7 elektrod-spesifik HEP santral baskınlık (KAPALI)
+- **Sorun:** tek z-eksenli kalp dipolü → tüm elektrodlar `K_0[k,2]·mu_kalp_t` skaler katı
+  → aynı t-istatistiği (Montoya Cz/C3/C4 spesifikliği kanıtlanamıyordu).
+- **Eklendi `src/models/acoustic/ileri_eeg.py`:**
+  - `lead_field_hep_kortikal()` — santral kortikal HEP kaynağı (Cz/C3/C4 bilateral
+    sensörimotor yama, 3 radyal dipol); 10-20 elektrod geometrisi `ELEKTROD_KONUM_BIRIM`.
+  - **İçgörü 1:** tek radyal vertex dipolü çok odaklıdır (C3/C4 sıfır-geçişine düşer) →
+    bilateral 3-kaynak yama. **İçgörü 2:** t-testi ölçek-değişmez → kanaldan bağımsız
+    sensör gürültü tabanı eklemek anlamlılığı santral kanallarda lokalize eder.
+- **Güncellendi `level7_HEP_topography_replicate.py`:** `simulate_HEP_fiziksel` artık
+  kortikal lead field + sensör tabanı kullanır. Santral/çevre genlik **14×**,
+  Cz/C3/C4 anlamlı. Heuristic default korundu.
+
+### Test
+- `tests/test_acoustic_nmm_calibration.py` +4 test (D-016), `test_level7_fiziksel_hep.py`
+  +2 test (D-017). Hepsi geçti; regresyon yok.
+
+### Ertelendi
+- **S3 (Celardo 2014 → 13/13):** opsiyonel. Kök neden: Haken-Strobl collective jump
+  operatörü `Q=ones` topolojiden bağımsız → ring/linear süperradyans farkı çıkmıyor.
+  Gerçek topoloji-bağımlı süperradyans (Form A) derin fizik işi → ertelendi.
+- **S4 (D-009 TRUBA submission):** donanım/hesap erişimine bağlı; yazılım hazır (Sprint 10 A2).
+
+---
+
 ## v9.3.1 — 2026-05-18 (FAZ E+F Kalibrasyonu + Multiagent QA)
 
 ### Eklendi

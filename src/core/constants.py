@@ -299,6 +299,7 @@ JR_A4: Final[float]         = 33.6
 JR_E0_PER_S: Final[float]   = 2.5     # max firing/2
 JR_V0_MV: Final[float]      = 6.0
 JR_R_PER_MV: Final[float]   = 0.56
+JR_C_CANONICAL: Final[float] = 135.0  # Jansen-Rit 1995 bağlantı sabiti (C1=C)
 
 # Sprint 09 D-013 — Sleep-state JR parametre setleri (broadband sleep proxy).
 # A_e (excitatory gain) sleep'te azalır (Mukamel et al neural gain hipotezi),
@@ -321,6 +322,20 @@ JR_PARAM_SETS: Final[dict] = {
     "nrem":    {"A_e": 2.8, "A_i": 29.0, "b_e": 100.0, "b_i": 50.0,
                 "I_p_mean": 80.0,  "I_p_std": 20.0},
 }
+
+# Sprint 11 D-016 — Kanonik JR sleep-state setleri (GERÇEK 10 Hz limit-cycle).
+# `jansen_rit_canonical_koz` ile kullanılır: input p(t) sigmoid'den geçmez,
+# eksitatör interneuron'a doğrudan girer → Hopf rejimi (p∈[~90,315]) α üretir.
+# p_mean Hopf aralığında (Grimbert-Faugeras 2006), A_e/A_i gain sleep-derinliği:
+#   Uyanık: güçlü α (10.7 Hz), REM: zayıf α (10.3 Hz), NREM: yavaş-dalga (~4 Hz).
+# 10-trial koşumda Uyanık/NREM α ≈ 1500× (spec ≥2×); D-016 kabul kriteri.
+JR_CANONICAL_SLEEP_SETS: Final[dict] = {
+    "uyanik": {"A_e": 3.4, "A_i": 22.0, "p_mean": 220.0, "p_std": 25.0},
+    "rem":    {"A_e": 3.1, "A_i": 22.0, "p_mean": 155.0, "p_std": 25.0},
+    "nrem":   {"A_e": 2.9, "A_i": 28.0, "p_mean": 125.0, "p_std": 25.0},
+}
+# Grimbert-Faugeras 2006 Hopf bifurcation aralığı (sabit input, kanonik param)
+JR_HOPF_RANGE: Final[tuple] = (89.83, 315.70)
 
 # Kalp pozisyonu voxel uzayında (cm ofset, beyin merkezi referans)
 KALP_VOXEL_OFFSET_CM: Final[tuple] = (0.0, -3.0, -8.0)

@@ -21,12 +21,144 @@ from src.core.constants import (
     JR_AE_MV, JR_AI_MV, JR_BE_PER_S, JR_BI_PER_S,
     JR_A1, JR_A2, JR_A3, JR_A4,
     JR_E0_PER_S, JR_V0_MV, JR_R_PER_MV,
+    JR_C_CANONICAL,
 )
 
 
 def sigmoid_jr(v_mv):
     """S(v) = 2e₀/(1+exp(r·(v₀-v)))."""
     return 2.0 * JR_E0_PER_S / (1.0 + np.exp(JR_R_PER_MV * (JR_V0_MV - v_mv)))
+
+
+def dsigmoid_jr(v_mv):
+    """S'(v) = 2e₀·r·exp(r(v₀-v)) / (1+exp(r(v₀-v)))² — Jacobian için."""
+    ex = np.exp(JR_R_PER_MV * (JR_V0_MV - v_mv))
+    return 2.0 * JR_E0_PER_S * JR_R_PER_MV * ex / (1.0 + ex) ** 2
+
+
+def ou_band_input(
+    nt: int, fs: float,
+    p_mean: float = 200.0, p_std: float = 25.0,
+    tau_s: float = 0.020, rng_seed: int = 42,
+) -> np.ndarray:
+    """Band-limited (renkli) Ornstein-Uhlenbeck input — Ableidinger 2017.
+
+    Sabit beyaz gürültü yerine korelasyon zamanı tau_s olan renkli gürültü
+    üretir (köşe frekansı 1/(2π·tau_s) ≈ 8 Hz, α-bandına yakın). JR Hopf
+    rejimini uyarmak için kullanılır.
+
+    dx = -(x - p_mean)/tau dt + sigma·sqrt(2/tau) dW  →  durağan std = sigma.
+    Referans: Ableidinger et al. 2017, "A stochastic version of the Jansen
+    and Rit neural mass model" (J. Math. Neurosci. 7:8).
+    """
+    rng = np.random.default_rng(rng_seed)
+    dt = 1.0 / fs
+    x = np.empty(nt)
+    x[0] = p_mean
+    a_ou = dt / tau_s
+    noise_amp = p_std * np.sqrt(2.0 * dt / tau_s)
+    w = rng.standard_normal(nt)
+    for k in range(nt - 1):
+        x[k + 1] = x[k] + a_ou * (p_mean - x[k]) + noise_amp * w[k]
+    return x
+
+
+def jansen_rit_canonical_koz(
+    p_t: np.ndarray,
+    fs: float,
+    A_e: float = JR_AE_MV,
+    A_i: float = JR_AI_MV,
+    b_e: float = JR_BE_PER_S,
+    b_i: float = JR_BI_PER_S,
+    C: float = JR_C_CANONICAL,
+    max_step: float | None = None,
+) -> dict:
+    """Kanonik Jansen-Rit (1995) — gerçek 10 Hz limit-cycle α (D-016).
+
+    Mevcut `jansen_rit_koz`'tan FARK: dış input p(t) sigmoid'den GEÇMEZ;
+    eksitatör interneuron denklemine doğrudan ateşleme-hızı terimi olarak
+    girer. Bu, kanonik α limit-cycle rejimini (Hopf, p∈[~90, 315]) açar.
+
+      ÿ₀ + 2a·ẏ₀ + a²·y₀ = A·a·S(y₁ - y₂)            (piramidal)
+      ÿ₁ + 2a·ẏ₁ + a²·y₁ = A·a·[p(t) + C₂·S(C₁·y₀)]   (eksitatör IN)
+      ÿ₂ + 2b·ẏ₂ + b²·y₂ = B·b·C₄·S(C₃·y₀)            (inhibitör IN)
+      EEG = y₁ - y₂
+
+    C₁=C, C₂=0.8C, C₃=C₄=0.25C (Jansen-Rit 1995 oranları).
+    Referans: Jansen-Rit 1995; Grimbert-Faugeras 2006 (Hopf analizi).
+    """
+    nt = len(p_t)
+    t = np.arange(nt) / fs
+    C1, C2, C3, C4 = C, 0.8 * C, 0.25 * C, 0.25 * C
+    a, b = float(b_e), float(b_i)
+    A, B = float(A_e), float(A_i)
+
+    def rhs(t_now, y):
+        y0, y1, y2, y3, y4, y5 = y
+        idx = int(min(t_now * fs, nt - 1))
+        p = p_t[idx]
+        return [
+            y3, y4, y5,
+            A * a * sigmoid_jr(y1 - y2) - 2 * a * y3 - a ** 2 * y0,
+            A * a * (p + C2 * sigmoid_jr(C1 * y0)) - 2 * a * y4 - a ** 2 * y1,
+            B * b * (C4 * sigmoid_jr(C3 * y0)) - 2 * b * y5 - b ** 2 * y2,
+        ]
+
+    ms = (1.0 / fs) if max_step is None else float(max_step)
+    sol = solve_ivp(
+        rhs, (0.0, t[-1]), np.zeros(6), t_eval=t,
+        method="RK45", rtol=1e-6, max_step=ms,
+    )
+    eeg = sol.y[1] - sol.y[2]
+    return {"t": sol.t, "eeg": eeg, "y_full": sol.y}
+
+
+def jr_fixed_point_jacobian_eig(
+    p_const: float,
+    A_e: float = JR_AE_MV, A_i: float = JR_AI_MV,
+    b_e: float = JR_BE_PER_S, b_i: float = JR_BI_PER_S,
+    C: float = JR_C_CANONICAL,
+) -> np.ndarray:
+    """Kanonik JR sabit-nokta Jacobian özdeğerleri (Hopf tespiti).
+
+    Sabit input p_const için denge noktasını fsolve ile bul, analitik
+    Jacobian'ın özdeğerlerini döndür. Re(λ)>0 → limit-cycle (Hopf sonrası).
+    Referans: Grimbert-Faugeras 2006, Re(λ) işaret değişimi = Hopf noktası.
+    """
+    from scipy.optimize import fsolve
+    C1, C2, C3, C4 = C, 0.8 * C, 0.25 * C, 0.25 * C
+    a, b = float(b_e), float(b_i)
+    A, B = float(A_e), float(A_i)
+
+    def steady(yv):
+        y0, y1, y2 = yv
+        return [
+            A / a * sigmoid_jr(y1 - y2) - y0,
+            A / a * (p_const + C2 * sigmoid_jr(C1 * y0)) - y1,
+            B / b * (C4 * sigmoid_jr(C3 * y0)) - y2,
+        ]
+
+    y0s, y1s, y2s = fsolve(steady, [0.1, A / a * p_const, 0.1], full_output=False)
+    # Jacobian (6×6): durumlar [y0,y1,y2,y3,y4,y5]
+    J = np.zeros((6, 6))
+    J[0, 3] = J[1, 4] = J[2, 5] = 1.0
+    Sp = dsigmoid_jr(y1s - y2s)
+    Sp_c1 = dsigmoid_jr(C1 * y0s)
+    Sp_c3 = dsigmoid_jr(C3 * y0s)
+    # dy3
+    J[3, 0] = -a ** 2
+    J[3, 1] = A * a * Sp
+    J[3, 2] = -A * a * Sp
+    J[3, 3] = -2 * a
+    # dy4
+    J[4, 0] = A * a * C2 * Sp_c1 * C1
+    J[4, 1] = -a ** 2
+    J[4, 4] = -2 * a
+    # dy5
+    J[5, 0] = B * b * C4 * Sp_c3 * C3
+    J[5, 2] = -b ** 2
+    J[5, 5] = -2 * b
+    return np.linalg.eigvals(J)
 
 
 def jansen_rit_koz(
