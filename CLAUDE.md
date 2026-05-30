@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Proje:** Birliğin Varlığı Teoremi (BVT) / Theorem of the Unity of Existence  
 **Yazar:** Ahmet Kemal Acar | **Güncelleme:** Mayıs 2026  
-**Durum:** v9.7-sprint09-S1 — Sprint 09 S1 D-013 KAPALI (JR-NMM sleep-state kalibrasyon, Uyanık/NREM α 192× ratio); kalan Sprint 09 hedefleri: S2 D-015 (RR-interval HRV), S3-S6.
+**Durum:** v9.9-sprint11 — Sprint 11 S1 D-016 KAPALI (JR kanonik gerçek 10 Hz Hopf limit-cycle α, `jansen_rit_canonical_koz`, Hopf onset ~90 Hz, Uyanık/NREM 108×) + S2 D-017 KAPALI (L7 santral kortikal HEP, Cz/C3/C4 santral/çevre 14×); test 277 passed/1 skipped/0 regresyon. Ertelendi: S3 Celardo 13/13 (Form-A süperradyans derin fizik), S4 D-009 TRUBA submission (donanım erişimi).
 
 **Bu CLAUDE.md ile birlikte oku:**
 1. **`sprint_docs/`** — 9 sprint dökümanı (analiz raporu + Sprint 00-04 + 4 checklist)
