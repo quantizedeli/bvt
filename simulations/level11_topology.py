@@ -142,21 +142,24 @@ def sekil_karsilastirma(sonuclar: dict, output_path: str) -> None:
     ax.set_ylim(0, 1.05)
     ax.grid(True, alpha=0.3)
 
-    # Panel 2: Son r değerleri çubuk grafik
+    # Panel 2: Final ortalama koherans <C>_son çubuk grafik.
+    # NOT: r(son) topolojiler arasında doyuyor (hepsi ~1.0, ayırt etmez).
+    # Final koherans <C> topoloji bağlantısıyla monoton artar (Düz<...<Halka+Temas)
+    # ve BVT'nin "bağlantı → koherans" tezini doğrudan gösterir → ayırt edici.
     ax = axes[0, 1]
     isimler = list(sonuclar.keys())
+    C_sonlar = [float(np.mean(sonuclar[i]["C_t"][:, -1])) for i in isimler]
     r_sonlar = [sonuclar[i]["r_son"] for i in isimler]
     renkler = [sonuclar[i]["renk"] for i in isimler]
-    bars = ax.bar(range(len(isimler)), r_sonlar, color=renkler, edgecolor="white", lw=1.5)
+    bars = ax.bar(range(len(isimler)), C_sonlar, color=renkler, edgecolor="white", lw=1.5)
     ax.set_xticks(range(len(isimler)))
     ax.set_xticklabels(isimler, rotation=15, ha="right", fontsize=10)
-    ax.set_ylabel("r(son) — Son senkronizasyon")
-    ax.set_title("Topoloji Bazında Son Senkronizasyon")
-    ax.set_ylim(0, 1.1)
-    ax.axhline(0.8, color="gray", ls="--", alpha=0.6)
-    for bar, val in zip(bars, r_sonlar):
+    ax.set_ylabel("⟨C⟩_son — Final ortalama koherans")
+    ax.set_title("Topoloji Bazında Final Koherans (r_son hepsi≈1.0 doyar)")
+    ax.set_ylim(0, max(C_sonlar) * 1.25)
+    for bar, val, rs in zip(bars, C_sonlar, r_sonlar):
         ax.text(bar.get_x() + bar.get_width() / 2, val + 0.01,
-                f"{val:.3f}", ha="center", fontsize=9)
+                f"⟨C⟩={val:.3f}\n(r={rs:.2f})", ha="center", fontsize=8)
     ax.grid(True, axis="y", alpha=0.3)
 
     # Panel 3: Ortalama koherans C(t) zaman serileri
@@ -260,7 +263,7 @@ def main() -> None:
         fig = make_subplots(
             rows=2, cols=2,
             subplot_titles=["r(t) — Kuramoto Düzen Parametresi",
-                            "Son Senkronizasyon r(son)",
+                            "Final Koherans ⟨C⟩_son (r_son≈1.0 doyar)",
                             "Ortalama Koherans <C>(t)",
                             "Etkin Süperradyans Eşiği N_c"],
             vertical_spacing=0.12, horizontal_spacing=0.1,
@@ -280,12 +283,12 @@ def main() -> None:
         fig.add_hline(y=0.8, line_dash="dot", line_color="white", opacity=0.5,
                       annotation_text="r=0.8 esigi", row=1, col=1)
 
-        r_sonlar = [sonuclar[i]["r_son"] for i in isim_listesi]
+        C_sonlar = [float(np.mean(sonuclar[i]["C_t"][:, -1])) for i in isim_listesi]
         n_c_vals = [sonuclar[i]["N_c_etkin"] for i in isim_listesi]
         bar_renkler = [renkler_plotly.get(i, "white") for i in isim_listesi]
 
-        fig.add_trace(go.Bar(x=isim_listesi, y=r_sonlar, marker_color=bar_renkler,
-            text=[f"{v:.3f}" for v in r_sonlar], textposition="outside",
+        fig.add_trace(go.Bar(x=isim_listesi, y=C_sonlar, marker_color=bar_renkler,
+            text=[f"{v:.3f}" for v in C_sonlar], textposition="outside",
             showlegend=False), row=1, col=2)
         fig.add_trace(go.Bar(x=isim_listesi, y=n_c_vals, marker_color=bar_renkler,
             text=[f"{v:.1f}" for v in n_c_vals], textposition="outside",

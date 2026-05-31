@@ -342,7 +342,10 @@ def N_kisi_tam_dinamik(
         "C_t": C_t,
         "phi_t": phi_t,
         "r_t": r_t,
-        "N_c_etkin": N_C_SUPERRADIANCE / (1 + f_geometri),
+        # N_c = γ/κ × 100 (süperradyans eşiği formülü, constants ile tutarlı).
+        # Eski `N_C_SUPERRADIANCE/(1+f_geometri)` fiziksel değildi; gerçek değer
+        # efektif γ ve κ'dan türetilir (ring → κ↑ ve γ↓ → N_c↓).
+        "N_c_etkin": gamma_etkin / kappa_etkin * 100.0,
         "V_matrix": V,
         "V_norm": V_norm,
         "gamma_etkin": gamma_etkin,
