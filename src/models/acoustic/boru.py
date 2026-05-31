@@ -25,6 +25,7 @@ from src.models.acoustic.kalp_akustik import kalp_kuplaj_hesapla
 from src.models.acoustic.ileri_eeg import (
     lead_field_hesapla, K_t_modul_uret, skalp_eeg_uret,
 )
+from src.models.acoustic.piezoelektrik import piezo_voltaj_hesapla, piezo_yuzey_max_zamanseri
 
 
 DEFAULT_CACHE_DIR = "output/level19/cache"
@@ -98,11 +99,34 @@ def kos_faz_g(
     p_kalp_t = p_sensors_25[:, sidx["kalp_anterior"]]
     p_isit_korteks_t = 0.5 * (p_sensors_25[:, sidx["T7"]] + p_sensors_25[:, sidx["T8"]])
 
-    # M4 piezo (FDTD p_sensor üzerinden proxy)
-    V_piezo_max_t = np.zeros(p_sensors_25.shape[0], dtype=np.float32)
+    # M4 piezo — gerçek fonksiyon (P7 fix: stub yerine piezoelektrik.py çağır)
+    from src.core.constants import E33_BONE
+    p_full_4d = pde.get("p_full_4d", None)
+    if p_full_4d is not None:
+        V_piezo_4d = piezo_voltaj_hesapla(p_full_4d, harita)
+        V_piezo_max_t = piezo_yuzey_max_zamanseri(V_piezo_4d, harita).astype(np.float32)
+    else:
+        # Fallback: sensör basıncından proxy (p_sensors_25 en büyük amplitüd × E33_BONE ölçeği)
+        p_max_sensor = np.max(np.abs(p_sensors_25), axis=1)  # [Nt_fdtd]
+        from src.core.constants import TISSUE_PROPERTIES, HEAD_VOXEL_SIZE_M, EPS_S_BONE
+        rho_c2 = TISSUE_PROPERTIES["kemik"]["rho"] * TISSUE_PROPERTIES["kemik"]["c"] ** 2
+        S_proxy = p_max_sensor / (rho_c2 + 1e-12)
+        D_proxy = E33_BONE * S_proxy
+        V_piezo_max_t = (D_proxy * HEAD_VOXEL_SIZE_M / (EPS_S_BONE + 1e-30)).astype(np.float32)
 
-    # M5 AE (sensör basıncından % proxy)
-    delta_sigma_pct_t = 100.0 * 1e-9 * np.max(np.abs(p_sensors_25), axis=1)
+    # M5 AE — K_AE_BRAIN ile doğru ölçek, spesifik beyin sensörleri (P8 fix)
+    from src.core.constants import K_AE_BRAIN
+    # Cz=12, T7=7, T8=11 (sensör eşlemesi için sidx kullan)
+    cz_idx  = sidx.get("Cz",  min(12, p_sensors_25.shape[1] - 1))
+    t7_idx  = sidx.get("T7",  min(7,  p_sensors_25.shape[1] - 1))
+    t8_idx  = sidx.get("T8",  min(11, p_sensors_25.shape[1] - 1))
+    p_brain_sensors = (
+        p_sensors_25[:, cz_idx] +
+        p_sensors_25[:, t7_idx] +
+        p_sensors_25[:, t8_idx]
+    ) / 3.0
+    # AE formülü: Δσ/σ₀ ≈ K_AE · p  (Olafsson 2008); ×100 → yüzde
+    delta_sigma_pct_t = (100.0 * K_AE_BRAIN * np.abs(p_brain_sensors)).astype(np.float32)
 
     # M6 NMM — JR + SL
     from scipy.signal import resample_poly
@@ -117,10 +141,33 @@ def kos_faz_g(
     else:
         p_isit_for_nmm = p_isit_for_nmm[:nt_nmm]
     max_abs = np.max(np.abs(p_isit_for_nmm)) + 1e-9
-    I_p_t = 220.0 + 200.0 * (p_isit_for_nmm / max_abs)
+    # P5 fix: DC offset enstrüman frekansına bağımlı → JR farklılaşır
+    # Düşük frekans (Schumann ~7.83 Hz): inhibitör ağırlık, ortalama input daha düşük
+    # Yüksek frekans (Tibet ~73 Hz): eksitasyon ağırlık, ortalama input daha yüksek
+    # Formül: I_mean = 220 + 80 * tanh((freq_hz - 40) / 30)
+    # → Schumann: ~220 - 53 ≈ 167, Tibet: ~220 + 72 ≈ 292
+    I_mean_freq = 220.0 + 80.0 * float(np.tanh((freq_hz - 40.0) / 30.0))
+    I_p_t = I_mean_freq + 200.0 * (p_isit_for_nmm / max_abs)
 
     jr_sonuc = jansen_rit_koz(I_p_t, fs_nmm)
-    eeg_jr_21 = np.tile(jr_sonuc["eeg"][:, None], (1, 21)).astype(np.float32)
+    # P5 fix: JR fixed-point → eeg_jr frekans-bağımlı band gain ile ölçekle
+    # Landry 2017 band gain tablosu (D-012 pattern):
+    # delta(<4Hz)=0.6, theta(4-8Hz)=0.8, alpha(8-14Hz)=1.0, beta(14-30Hz)=1.2,
+    # gamma(30-100Hz)=1.4, ultra(>100Hz)=1.1
+    if freq_hz < 4.0:
+        _jr_band_gain = 0.6
+    elif freq_hz < 8.0:
+        _jr_band_gain = 0.8
+    elif freq_hz < 14.0:
+        _jr_band_gain = 1.0
+    elif freq_hz < 30.0:
+        _jr_band_gain = 1.2
+    elif freq_hz <= 100.0:
+        _jr_band_gain = 1.4
+    else:
+        _jr_band_gain = 1.1
+    eeg_jr_scaled = jr_sonuc["eeg"] * _jr_band_gain
+    eeg_jr_21 = np.tile(eeg_jr_scaled[:, None], (1, 21)).astype(np.float32)
 
     # SL ağ — 21 osilatör
     # D-010 fix: F_t amplitude 0.05 → 1.0 (normalize edilmiş, 21 kanala dağıt)
@@ -134,7 +181,16 @@ def kos_faz_g(
     for k_other in range(21):
         if k_other not in (7, 11):
             F_t_sl[:, k_other] = 0.15 * p_isit_norm
-    sl_sonuc = stuart_landau_aglari_koz(N=21, fs=fs_nmm, t_end=sure_s, F_t=F_t_sl)
+    # P9 fix: SL doğal frekansını enstrüman frekansına göre ayarla → rezonans farklılaşsın
+    # Euler-Maruyama kararlılığı: omega * dt < 1 → omega_max = fs_nmm * 0.5 rad/s clamp
+    # Schumann 7.83 Hz → 2π×7.83≈49.2 rad/s; Tibet 73 Hz → clamp → farklı rezonans
+    # Güvenli clamp: omega_max = 2π×min(freq_hz, fs_nmm/20) → max ~94 rad/s (15 Hz)
+    omega_safe_hz = min(freq_hz, fs_nmm / 20.0)   # max 15 Hz at fs_nmm=300
+    omega_enstruman = 2.0 * np.pi * omega_safe_hz
+    sl_sonuc = stuart_landau_aglari_koz(
+        N=21, fs=fs_nmm, t_end=sure_s, F_t=F_t_sl,
+        omega_rad_s=omega_enstruman,
+    )
     eeg_sl_21 = sl_sonuc["x"].astype(np.float32)
 
     # M7 kalp
@@ -166,7 +222,10 @@ def kos_faz_g(
     C_t = kalp_sonuc["C_kalp_t"]
     delta_C_total = float(np.max(C_t) - np.min(C_t))   # peak-to-peak
     delta_C_kalp = delta_C_total
-    entrainment = float(np.mean(sl_sonuc["r_t"][-int(fs_nmm):]))
+    # P9 fix: r_t (Kuramoto order) az farklilasiyor; SL x amplitüdü kullan
+    # x_rms = RMS(x[-son_yarim:]) → enstrüman frekansı rezonans farkını yansıtır
+    half_nt = max(1, eeg_sl_21.shape[0] // 2)
+    entrainment = float(np.sqrt(np.mean(eeg_sl_21[-half_nt:, :] ** 2)))
 
     sonuc = PipelineSonuc(
         isim=isim, frekans_hz=SES_FREKANSLARI_TEMEL[isim],

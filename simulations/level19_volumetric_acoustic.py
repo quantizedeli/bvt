@@ -117,7 +117,7 @@ def main():
     parser.add_argument("--ses-kaynagi", default="sentetik",
                         choices=["sentetik", "wav"])
     parser.add_argument("--spl-db", type=float, default=70.0)
-    parser.add_argument("--sure-dakika", type=float, default=0.005)
+    parser.add_argument("--sure-dakika", type=float, default=1.0)
     parser.add_argument("--no-cache", action="store_true")
     parser.add_argument("--anim", action="store_true")
     parser.add_argument("--anim-aspect", default="16x9",

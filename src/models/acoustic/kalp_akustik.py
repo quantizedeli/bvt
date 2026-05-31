@@ -231,8 +231,22 @@ def hrv_metrikleri_uret(
 
     Referans: Task Force of ESC/NASPE (1996). Circulation 93(5):1043-1065.
     """
-    if len(signal) < max(4, int(fs * 4)):
-        return {"rmssd": 0.0, "sdnn": 0.0, "lf_hf": 0.0, "lf_power": 0.0, "hf_power": 0.0}
+    sure_s = len(signal) / fs
+    if sure_s < 4.0:
+        import warnings
+        warnings.warn(
+            f"hrv_metrikleri_uret: sinyal süresi {sure_s:.2f}s < 4s "
+            "— HRV Welch analizi için yetersiz. NaN döndürülüyor.",
+            RuntimeWarning,
+            stacklevel=2,
+        )
+        return {
+            "rmssd": float("nan"),
+            "sdnn": float("nan"),
+            "lf_hf": float("nan"),
+            "lf_power": float("nan"),
+            "hf_power": float("nan"),
+        }
 
     nperseg = min(len(signal), int(fs * 60))
     freqs, psd = welch(signal, fs=fs, nperseg=nperseg)
