@@ -93,12 +93,47 @@ def _damping_factor_3d(grid: tuple[int, int, int], pml_width: int = 3) -> np.nda
     return damp
 
 
+def _fdtd_kwave_matlab(
+    harita: dict,
+    p_src: np.ndarray,
+    fs_src: float,
+    sure_s: float = 0.05,
+    kaynak_pozisyon_cm: tuple[float, float, float] = (0.0, -10.0, 0.0),
+    save_every: int | None = None,
+) -> dict[str, Any]:
+    """
+    MATLAB Engine + k-Wave kspaceFirstOrder3D arka ucu (D-008 deferred GPU yolu).
+
+    MATLAB Engine import başarısız olursa ImportError fırlatır (çağıran numpy'ye düşer).
+    Başarılı olursa numpy fdtd_kos ile aynı çıktı şeklini döner.
+    """
+    try:
+        import matlab.engine  # type: ignore
+    except ImportError as exc:
+        raise ImportError(
+            "matlab.engine bulunamadı — MATLAB Engine for Python kurulu değil. "
+            "backend='numpy' kullanın veya MATLAB kurulumunu kontrol edin."
+        ) from exc
+
+    import warnings
+    warnings.warn(
+        "backend='kwave': MATLAB Engine + k-Wave desteği taslak aşamasında. "
+        "Tam implementasyon D-008 (TRUBA GPU) kapsamında. "
+        "Şimdilik numpy FDTD'ye düşülüyor.",
+        RuntimeWarning,
+        stacklevel=3,
+    )
+    raise ImportError("kwave backend henüz implement edilmedi — numpy'ye düş.")
+
+
 def fdtd_kos(
     harita: dict,
     p_src: np.ndarray,
     fs_src: float,
     sure_s: float = 0.05,
     kaynak_pozisyon_cm: tuple[float, float, float] = (0.0, -10.0, 0.0),
+    save_every: int | None = None,
+    backend: str = "numpy",
 ) -> dict[str, Any]:
     """
     Heterojen ortamda saf NumPy leap-frog FDTD ile akustik dalgayı çöz.
@@ -109,14 +144,33 @@ def fdtd_kos(
         fs_src: kaynak sample rate (Hz)
         sure_s: simülasyon süresi (s); 32³ grid için default 0.05s makul
         kaynak_pozisyon_cm: kafa merkezi referans ofset (kafadan 10 cm önde)
+        save_every: None → p_4d=None (bellek-güvenli, mevcut davranış).
+            int K → her K adımda bir basınç alanı float32 olarak kaydedilir;
+            donen dict'e "p_4d" eklenir, shape (Nt//K, nx, ny, nz).
+        backend: "numpy" (varsayılan) veya "kwave" (MATLAB Engine + k-Wave).
+            "kwave" seçilirse MATLAB Engine import edilmeye çalışılır; başarısızsa
+            numpy'ye düşülür ve RuntimeWarning verilir.
 
     Returns:
         dict:
             - p_sensors: [Nt_sim, 25] sensör zamanseri (Pa)
             - sensor_idx: dict[ad → 0..24]
-            - p_4d: None (default kapalı, bellek)
+            - p_4d: None (save_every=None) | np.ndarray float32 (Nt//K, nx, ny, nz)
             - fs_sim, dt, t_sim
     """
+    # backend="kwave" → MATLAB Engine dene, başarısızsa numpy'ye düş
+    if backend == "kwave":
+        import warnings
+        try:
+            return _fdtd_kwave_matlab(
+                harita, p_src, fs_src, sure_s, kaynak_pozisyon_cm, save_every
+            )
+        except ImportError as exc:
+            warnings.warn(
+                f"backend='kwave' başarısız ({exc}). numpy FDTD'ye düşülüyor.",
+                RuntimeWarning,
+                stacklevel=2,
+            )
     grid = harita["meta"]["grid"]
     dx = harita["meta"]["voxel_size_m"]
     # float64: heterojen ortamda (rho_c²~1e10) float32 hızla overflow
@@ -166,6 +220,16 @@ def fdtd_kos(
     n_sensor = len(all_named_pos)
     p_sensors = np.zeros((Nt, n_sensor), dtype=np.float32)
 
+    # p_4d alt-örnekleme tamponu
+    _save_every = int(save_every) if save_every is not None else None
+    if _save_every is not None and _save_every > 0:
+        n_frames = Nt // _save_every
+        p_4d_buf: np.ndarray | None = np.zeros(
+            (n_frames, nx, ny, nz), dtype=np.float32
+        )
+    else:
+        p_4d_buf = None
+
     # Staggered grid yoğunluk ortalaması: velocity node'larında aritmetik
     # ortalama. Heterojen ortamda interface'lerde stabiliteyi sağlar.
     rho_x = 0.5 * (rho[:-1, :, :] + rho[1:, :, :])
@@ -197,11 +261,18 @@ def fdtd_kos(
         for s_idx, pos in enumerate(all_named_pos):
             p_sensors[t_idx, s_idx] = p[pos]
 
+        # p_4d alt-örnekleme kaydı
+        if p_4d_buf is not None and _save_every is not None:
+            if t_idx % _save_every == 0:
+                frame_idx = t_idx // _save_every
+                if frame_idx < p_4d_buf.shape[0]:
+                    p_4d_buf[frame_idx] = p.astype(np.float32)
+
     sensor_idx = _sensor_idx_dict(harita)
     return {
         "p_sensors":   p_sensors,
         "sensor_idx":  sensor_idx,
-        "p_4d":        None,
+        "p_4d":        p_4d_buf,
         "fs_sim":      float(fs_sim),
         "dt":          float(dt),
         "t_sim":       t_sim,

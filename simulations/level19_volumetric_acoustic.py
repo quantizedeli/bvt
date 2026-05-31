@@ -107,6 +107,100 @@ def sekil_eeg_kalp(sonuc: PipelineSonuc, output_dir: str) -> None:
     print(f"  PNG: {out_path}")
 
 
+def _volumetrik_render(sonuc: "PipelineSonuc", args: "argparse.Namespace",
+                        grid_secim: tuple, output_dir: str) -> None:
+    """
+    --volumetrik bayragi aktif oldugunda FDTD p_4d cagrilir +
+    pyvista_volumetric.render_volumetrik_sahne ile MP4 uretilir.
+    Agir render; import'lar lazy (modül yoksa anlamli hata).
+    """
+    # Lazy import: dalga_pde
+    try:
+        from src.models.acoustic.dalga_pde import fdtd_kos
+    except ImportError as exc:
+        print(f"    [HATA] dalga_pde import edilemedi: {exc}")
+        return
+
+    # Lazy import: pyvista_volumetric
+    try:
+        from src.viz.pyvista_volumetric import render_volumetrik_sahne
+    except ImportError as exc:
+        print(f"    [HATA] pyvista_volumetric import edilemedi: {exc}")
+        print("      'pip install pyvista' gereklidir.")
+        return
+
+    # Kaynagi ayarla: dolayli => oda kosesi
+    oda_modu = (args.maruz_kalma == "dolayli")
+    if oda_modu:
+        kaynak_pos = np.array([-1.0, -1.0, -1.0])  # oda kosesi
+    else:
+        kaynak_pos = np.zeros(3)  # merkez (direkt)
+
+    # Topoloji konumlari (tek degil ise)
+    topo_positions = None
+    if args.topoloji != "tek":
+        try:
+            from src.models.topology_layout import topoloji_yerlesim
+        except ImportError as exc:
+            print(f"    [HATA] topology_layout import edilemedi: {exc}")
+            return
+        topo_dict = topoloji_yerlesim(topo=args.topoloji, N=6)
+        topo_positions = topo_dict["positions"]
+
+    # Kucuk grid ile guvenli FDTD kosusu (save_every ile p_4d)
+    nx, ny, nz = grid_secim
+    print(f"    [volumetrik] FDTD grid={grid_secim} backend={args.backend} ...")
+    try:
+        fdtd_sonuc = fdtd_kos(
+            nx=nx, ny=ny, nz=nz,
+            save_every=10,
+            backend=args.backend,
+        )
+    except TypeError:
+        # eski imzada save_every/backend yoksa geriye uyumlu cagri
+        fdtd_sonuc = fdtd_kos(nx=nx, ny=ny, nz=nz)
+
+    p_4d = fdtd_sonuc.get("p_4d")
+    t_grid = fdtd_sonuc.get("t_grid", sonuc.t_grid)
+
+    # voxel_harita: basit kubus (kafa topoloji)
+    voxel_harita = np.zeros(grid_secim, dtype=np.float32)
+    cx, cy, cz = nx // 2, ny // 2, nz // 2
+    r_kafa = min(nx, ny, nz) // 4
+    for xi in range(nx):
+        for yi in range(ny):
+            for zi in range(nz):
+                if (xi - cx) ** 2 + (yi - cy) ** 2 + (zi - cz) ** 2 < r_kafa ** 2:
+                    voxel_harita[xi, yi, zi] = 1.0
+
+    elektrot_pos = np.array([[cx, cy, cz + r_kafa]], dtype=float)
+    kalp_pos_arr = np.array([[cx, cy, cz - r_kafa * 2]], dtype=float)
+
+    if p_4d is None:
+        print("    [UYARI] p_4d alinamadi (save_every desteklenmiyor). "
+              "Render statik voxel ile devam ediyor.")
+        p_4d = np.zeros((1, nx, ny, nz), dtype=np.float32)
+
+    out_mp4 = os.path.join(output_dir, f"level19_{sonuc.isim}_volumetrik.mp4")
+    print(f"    [volumetrik] render_volumetrik_sahne -> {out_mp4}")
+    try:
+        render_volumetrik_sahne(
+            voxel_harita=voxel_harita,
+            p_4d=p_4d,
+            t_grid=t_grid,
+            elektrot_pos=elektrot_pos,
+            kalp_pos=kalp_pos_arr,
+            out_path=out_mp4,
+            fps=20,
+            exposure=args.maruz_kalma,
+            topo_positions=topo_positions,
+            oda=oda_modu,
+        )
+        print(f"    [volumetrik] MP4 kaydedildi: {out_mp4}")
+    except Exception as exc:
+        print(f"    [HATA] render_volumetrik_sahne: {exc}")
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="BVT Level 19 — Volumetric Acoustic FAZ G"
@@ -124,8 +218,24 @@ def main():
                         choices=["16x9", "9x16", "both"])
     parser.add_argument("--grid", default="default",
                         choices=["default", "high_res"],
-                        help="Voxel çözünürlüğü: default 32×32×40 (yerel CPU) | "
-                             "high_res 80×80×100 (D-009 TRUBA HPC)")
+                        help="Voxel cozunurlugu: default 32x32x40 (yerel CPU) | "
+                             "high_res 80x80x100 (D-009 TRUBA HPC)")
+    # Wave 4 yeni flagler
+    parser.add_argument("--topoloji", default="tek",
+                        choices=["tek", "egg", "ring", "flat", "contact"],
+                        help="Coklu-kisi yerlesim topolojisi (tek=varsayilan, geriye uyumlu)")
+    parser.add_argument("--maruz-kalma", default="direkt",
+                        choices=["direkt", "dolayli"],
+                        dest="maruz_kalma",
+                        help="Ses maruz kalma modu: direkt (merkez kaynak) | "
+                             "dolayli (oda kosesi + oda=True)")
+    parser.add_argument("--volumetrik", action="store_true",
+                        help="FDTD save_every + PyVista volumetrik render (agir; "
+                             "pyvista kurulu olmali)")
+    parser.add_argument("--backend", default="numpy",
+                        choices=["numpy", "kwave"],
+                        help="FDTD backend: numpy (varsayilan) | "
+                             "kwave (MATLAB Engine + k-Wave gerektirir)")
     args = parser.parse_args()
 
     from src.core.constants import HEAD_GRID_DEFAULT, HEAD_GRID_HIGH_RES
@@ -137,9 +247,11 @@ def main():
     print(f"{'='*60}")
     frekanslar = _frekans_listesi_secim(args.frekanslar)
     print(f"  Frekanslar: {frekanslar}")
-    print(f"  SPL: {args.spl_db} dB | Süre: {args.sure_dakika} dk")
-    print(f"  Ses kaynağı: {args.ses_kaynagi}")
+    print(f"  SPL: {args.spl_db} dB | Sure: {args.sure_dakika} dk")
+    print(f"  Ses kaynagi: {args.ses_kaynagi}")
     print(f"  Grid: {args.grid} {grid_secim}")
+    print(f"  Topoloji: {args.topoloji} | Maruz kalma: {args.maruz_kalma}")
+    print(f"  Backend: {args.backend} | Volumetrik: {args.volumetrik}")
     print()
 
     sonuclar: dict[str, PipelineSonuc] = {}
@@ -156,24 +268,27 @@ def main():
             sonuclar[isim] = sonuc
             dt = time.time() - t0
             print(
-                f"    [{dt:5.1f}s] ΔC={sonuc.delta_C_total:+.5f} "
+                f"    [{dt:5.1f}s] dC={sonuc.delta_C_total:+.5f} "
                 f"r={sonuc.entrainment_skoru:.3f} "
                 f"LF/HF={sonuc.hrv_metrics.get('lf_hf', 0):.2f}"
             )
+            # --volumetrik aktif ise agir render
+            if args.volumetrik:
+                _volumetrik_render(sonuc, args, grid_secim, args.output)
         except Exception as e:
             print(f"    [HATA] {isim}: {e}")
 
     if not sonuclar:
-        print("Hiçbir frekans koşamadı. Çıkıyor.")
+        print("Hicbir frekans kosамади. Cikiyor.")
         return 1
 
-    print(f"\n  Şekiller üretiliyor...")
+    print(f"\n  Sekiller uretiliyor...")
     sekil_ozet(sonuclar, args.output)
     for isim, sonuc in sonuclar.items():
         sekil_eeg_kalp(sonuc, args.output)
 
     if args.anim:
-        print(f"\n  Animasyonlar (--anim) üretiliyor...")
+        print(f"\n  Animasyonlar (--anim) uretiliyor...")
         try:
             from src.viz.akustik_animasyon import render_tum_animasyonlar
             for isim, sonuc in sonuclar.items():
@@ -181,10 +296,10 @@ def main():
                     sonuc, args.output, aspect=args.anim_aspect
                 )
         except ImportError:
-            print("    [UYARI] src.viz.akustik_animasyon mevcut değil "
-                  "(Task 14 henüz uygulanmadı). PNG-only mode.")
+            print("    [UYARI] src.viz.akustik_animasyon mevcut degil "
+                  "(Task 14 henuz uygulanmadi). PNG-only mode.")
 
-    print(f"\n  Tüm çıktılar: {os.path.abspath(args.output)}")
+    print(f"\n  Tum ciktilar: {os.path.abspath(args.output)}")
     return 0
 
 
