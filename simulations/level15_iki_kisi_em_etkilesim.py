@@ -107,9 +107,10 @@ def iki_kisi_senaryosu(
     snapshots = {}
     for t_snap in [5, 30, 55]:
         t_idx = min(int(t_snap / 0.05), sonuc["phi_t"].shape[1] - 1)
+        _GRID_N_SNAP = 80
         try:
             _, _, _, B_mag = toplam_em_alan_3d(
-                t_idx, konumlar, momentler, grid_extent=3.0, grid_n=30
+                t_idx, konumlar, momentler, grid_extent=3.0, grid_n=_GRID_N_SNAP
             )
             snapshots[t_snap] = B_mag
         except Exception:
@@ -148,9 +149,11 @@ def main():
               f"ΔC₂={s['C_t'][1, -1] - s['C_t'][1, 0]:+.3f}")
 
     # 9-panel grafik
+    _GRID_N_MAIN = 80
+    _mid_z_main = _GRID_N_MAIN // 2
     fig, axs = plt.subplots(3, 3, figsize=(18, 14))
     fig.patch.set_facecolor("white")
-    mid_z = 30 // 2
+    mid_z = _mid_z_main
 
     for i, (label, d, sonuc, konum, snaps) in enumerate(sonuclar):
         # Sütun 1: EM alan t=30s
@@ -278,6 +281,100 @@ def main():
     r_ref = float(np.mean(s_ref["r_t"][half:]))
     if r_ref < 0.90:
         print(f"  [UYARI] d=0.9m r_mean={r_ref:.3f} < 0.90 — HeartMath mesafesi kilitli olmali!")
+
+    # ── Plotly interaktif HTML ──────────────────────────────────────────
+    print("\nPlotly HTML üretiliyor...")
+    try:
+        import plotly.graph_objects as go
+        from plotly.subplots import make_subplots
+
+        _GRID_N_HTML = 80
+        _mid_z_html = _GRID_N_HTML // 2
+        _x_ax_html = np.linspace(-3, 3, _GRID_N_HTML).tolist()
+        _senaryo_renkler = ["steelblue", "orangered", "gold"]
+
+        _fig_html = make_subplots(
+            rows=2, cols=3,
+            subplot_titles=[
+                f"EM Alan t=30s — {sonuclar[0][0]}",
+                f"EM Alan t=30s — {sonuclar[1][0]}",
+                f"EM Alan t=30s — {sonuclar[2][0]}",
+                "r(t) — 3 Senaryo",
+                "⟨C⟩(t) — Koherans",
+                "C₁(t) vs C₂(t) (Temas)",
+            ],
+            vertical_spacing=0.14, horizontal_spacing=0.08,
+        )
+
+        # EM heatmaps (row 1)
+        for _col_idx, (label, d, sonuc, konum, snaps) in enumerate(sonuclar):
+            _snap_b = snaps.get(30)
+            if _snap_b is not None and _snap_b.shape[2] > _mid_z_html:
+                _B_sl = np.log10(_snap_b[:, :, _mid_z_html] + 1e-2)
+            elif _snap_b is not None:
+                _B_sl = np.log10(_snap_b[:, :, _snap_b.shape[2] // 2] + 1e-2)
+            else:
+                _B_sl = np.zeros((_GRID_N_HTML, _GRID_N_HTML))
+            _fig_html.add_trace(go.Heatmap(
+                z=_B_sl.T.tolist(), x=_x_ax_html, y=_x_ax_html,
+                colorscale="Hot", zmin=-2, zmax=float(np.max(_B_sl)),
+                showscale=(_col_idx == 2),
+                colorbar=dict(title="log₁₀|B|(pT)") if _col_idx == 2 else None,
+            ), row=1, col=_col_idx + 1)
+            _fig_html.add_trace(go.Scatter(
+                x=konum[:, 0].tolist(), y=konum[:, 1].tolist(),
+                mode="markers", marker=dict(size=10, color="cyan"),
+                showlegend=False,
+            ), row=1, col=_col_idx + 1)
+
+        # r(t) — 3 senaryo (row 2, col 1)
+        for _col_idx, (label, d, sonuc, konum, snaps) in enumerate(sonuclar):
+            _fig_html.add_trace(go.Scatter(
+                x=sonuc["t"].tolist(), y=sonuc["r_t"].tolist(),
+                mode="lines",
+                line=dict(color=_senaryo_renkler[_col_idx], width=2),
+                name=label,
+            ), row=2, col=1)
+        _fig_html.add_hrect(y0=0.8, y1=1.05, fillcolor="green",
+                            opacity=0.1, row=2, col=1)
+        _fig_html.add_hrect(y0=0.0, y1=0.3, fillcolor="red",
+                            opacity=0.08, row=2, col=1)
+
+        # <C>(t) — tüm senaryoların ortalaması (row 2, col 2)
+        for _col_idx, (label, d, sonuc, konum, snaps) in enumerate(sonuclar):
+            _C_ort = np.mean(sonuc["C_t"], axis=0)
+            _fig_html.add_trace(go.Scatter(
+                x=sonuc["t"].tolist(), y=_C_ort.tolist(),
+                mode="lines",
+                line=dict(color=_senaryo_renkler[_col_idx], width=2),
+                name=f"⟨C⟩ {label}",
+            ), row=2, col=2)
+
+        # C₁(t) ve C₂(t) — son senaryo (temas) (row 2, col 3)
+        _label_son, _, _sonuc_son, _, _ = sonuclar[-1]
+        _fig_html.add_trace(go.Scatter(
+            x=_sonuc_son["t"].tolist(), y=_sonuc_son["C_t"][0].tolist(),
+            mode="lines", line=dict(color="lime", width=2),
+            name="Kişi 1 (yüksek C₀)",
+        ), row=2, col=3)
+        _fig_html.add_trace(go.Scatter(
+            x=_sonuc_son["t"].tolist(), y=_sonuc_son["C_t"][1].tolist(),
+            mode="lines", line=dict(color="salmon", width=2),
+            name="Kişi 2 (düşük C₀)",
+        ), row=2, col=3)
+
+        _fig_html.update_layout(
+            title=dict(
+                text="BVT Level 15 — İki Kişi EM Etkileşimi: Paralel → HeartMath → Seri",
+                font=dict(size=16),
+            ),
+            width=1600, height=950, template="plotly_dark",
+        )
+        _html_path = os.path.join(args.output, "L15_iki_kisi_em_etkilesim.html")
+        _fig_html.write_html(_html_path, include_plotlyjs="cdn")
+        print(f"  HTML: {_html_path}")
+    except Exception as _e:
+        print(f"  [UYARI] Plotly HTML oluşturulamadı: {_e}")
 
     # Veri kaydet
     np.savez(

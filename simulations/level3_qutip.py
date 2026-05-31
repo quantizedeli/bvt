@@ -141,7 +141,7 @@ def main() -> None:
                 ax.set_title(f"QuTiP: {label}")
                 ax.grid(True, alpha=0.3)
 
-            fig.suptitle("BVT Level 3 — Lindblad Zaman Evrimi", fontsize=13)
+            fig.suptitle(f"BVT Level 3 — Lindblad Zaman Evrimi (t_end={args.t_end}s)", fontsize=13)
             fig.tight_layout()
             fig_path = os.path.join(args.output, "B1_lindblad_evolution.png")
             fig.savefig(fig_path, dpi=300, bbox_inches="tight")

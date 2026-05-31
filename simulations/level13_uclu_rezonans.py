@@ -20,6 +20,7 @@ Fiziksel Hamiltoniyen (BVT Bölüm 4.3 uyumlu):
 
 Çıktılar:
     - output/level13/L13_uclu_rezonans.png (6 panel)
+    - output/level13/L13_uclu_rezonans.html (interaktif Plotly)
     - output/level13/L13_uclu_rezonans_data.npz
 
 Çalıştırma:
@@ -39,6 +40,7 @@ from scipy.signal import savgol_filter
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+import plotly.graph_objects as go
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -331,6 +333,77 @@ def figur_uclu_rezonans_6panel(sonuc: dict, output_path: str, mode: str = "light
     plt.close()
 
 
+def figur_uclu_rezonans_html(sonuc: dict, output_path: str) -> None:
+    """
+    Üçlü rezonans zaman serilerini interaktif Plotly HTML olarak dışa aktar.
+
+    4 iz: R_total, C_KB, eta_BS, eta_KS — ortak zaman ekseninde.
+
+    Not: Koherans build-up ~sn ölçeği KAPPA-kuplaj katmanıdır;
+         fizyolojik 1-5 dk HeartMath build-up ayrı vagal katmandır (L17).
+
+    Referans: BVT_Makale, Bölüm 13.
+    """
+    t = sonuc["t"]
+    fig = go.Figure()
+
+    fig.add_trace(go.Scatter(
+        x=t, y=sonuc["R_total"],
+        mode="lines",
+        name="R_toplam",
+        line=dict(color="#1f77b4", width=3),
+        hovertemplate="t=%{x:.2f}s<br>R_toplam=%{y:.4f}<extra></extra>",
+    ))
+    fig.add_trace(go.Scatter(
+        x=t, y=sonuc["C_KB"],
+        mode="lines",
+        name="C_KB (Savgol)",
+        line=dict(color="#ff7f0e", width=2.5),
+        hovertemplate="t=%{x:.2f}s<br>C_KB=%{y:.4f}<extra></extra>",
+    ))
+    fig.add_trace(go.Scatter(
+        x=t, y=sonuc["eta_BS"],
+        mode="lines",
+        name="η_BS (Beyin-Schumann)",
+        line=dict(color="#2ca02c", width=2.5),
+        hovertemplate="t=%{x:.2f}s<br>η_BS=%{y:.4f}<extra></extra>",
+    ))
+    fig.add_trace(go.Scatter(
+        x=t, y=sonuc["eta_KS"],
+        mode="lines",
+        name="η_KS (Kalp-Ψ_Sonsuz)",
+        line=dict(color="#9467bd", width=2.5),
+        hovertemplate="t=%{x:.2f}s<br>η_KS=%{y:.4f}<extra></extra>",
+    ))
+
+    fig.add_hline(
+        y=0.3, line_dash="dash", line_color="gray",
+        annotation_text="C₀ eşiği = 0.3", annotation_position="bottom right",
+    )
+
+    fig.update_layout(
+        title=dict(
+            text=(
+                "BVT Level 13 — Kalp↔Beyin↔Schumann↔Ψ_Sonsuz Üçlü Rezonans Dinamiği<br>"
+                "<sup>Not: ~sn koherans build-up = KAPPA-kuplaj katmanı; "
+                "fizyolojik 1-5 dk HeartMath build-up = ayrı vagal katman (L17)</sup>"
+            ),
+            font=dict(size=15),
+        ),
+        xaxis=dict(title="Zaman (s)", showgrid=True, gridcolor="#e0e0e0"),
+        yaxis=dict(title="Rezonans Metriği [0-1]", showgrid=True, gridcolor="#e0e0e0"),
+        legend=dict(x=0.01, y=0.99, bgcolor="rgba(255,255,255,0.8)"),
+        hovermode="x unified",
+        plot_bgcolor="white",
+        paper_bgcolor="white",
+        width=1100,
+        height=500,
+    )
+
+    fig.write_html(output_path, include_plotlyjs="cdn")
+    print(f"  HTML: {output_path}")
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="BVT Level 13: Üçlü Rezonans Dinamiği"
@@ -358,6 +431,10 @@ def main():
     out_png = os.path.join(args.output, "L13_uclu_rezonans.png")
     figur_uclu_rezonans_6panel(sonuc, out_png, mode=args.mode)
     print(f"  PNG: {out_png}")
+
+    print("Plotly HTML üretiliyor...")
+    out_html = os.path.join(args.output, "L13_uclu_rezonans.html")
+    figur_uclu_rezonans_html(sonuc, out_html)
 
     print("\n=== ÜÇLÜ REZONANS ÖZET ===")
     print(f"Son kalp-beyin koherans  : {sonuc['C_KB'][-1]:.3f}")

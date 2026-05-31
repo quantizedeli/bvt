@@ -35,7 +35,7 @@ from src.core.constants import (
     G_EFF, KAPPA_EFF, N_C_SUPERRADIANCE,
     ES_MOSSBRIDGE, ES_DUGGAN, C_THRESHOLD, HBAR,
     F_S1, Q_S1, SCHUMANN_FREQS_HZ, SCHUMANN_Q_FACTORS,
-    B_SCHUMANN, B_EARTH_SURFACE,
+    B_SCHUMANN, B_EARTH_SURFACE, GAMMA_DEC,
 )
 
 F_SCH      = F_S1                           # 7.83 Hz
@@ -161,7 +161,7 @@ def main() -> None:
     kappa_3d  = np.logspace(-3, 1, 60)
     N_3d_2    = np.arange(2, 51, dtype=float)
     K_m, N_m2 = np.meshgrid(kappa_3d, N_3d_2)
-    gamma_dec = 0.1
+    gamma_dec = GAMMA_DEC
     Nc_m      = gamma_dec / np.maximum(K_m, 1e-10)
     C_kol_m   = np.where(N_m2 < Nc_m, N_m2.astype(float), N_m2.astype(float)**2 / Nc_m)
     C_kol_log = np.log10(np.maximum(C_kol_m, 1.0))

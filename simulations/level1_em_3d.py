@@ -135,8 +135,8 @@ def main() -> None:
                         help="Radyal nokta sayısı (varsayılan: 80)")
     parser.add_argument("--n-theta", type=int, default=90,
                         help="Açısal nokta sayısı (varsayılan: 90)")
-    parser.add_argument("--r-max", type=float, default=3.0,
-                        help="Maksimum yarıçap (m) (varsayılan: 3.0 — McCraty 2003: 8-10 ft)")
+    parser.add_argument("--r-max", type=float, default=0.5,
+                        help="Maksimum yarıçap (m) (varsayılan: 0.5 — McCraty 0-50 cm yakın-alan)")
     parser.add_argument("--html", action="store_true",
                         help="HTML çıktısı da üret")
     args = parser.parse_args()
@@ -200,29 +200,63 @@ def main() -> None:
         theta_idx_0 = np.argmin(np.abs(THETA - 0.0))
         B_radyal_pT = B_mag_grid[:, theta_idx_0] / 1e-12
 
-        fig_html = go.Figure()
+        # Uzak-alan (0-1000 cm) hesabı — ayrı log-scale panel için
+        from src.models.em_field import alan_büyüklük as _alan_byk_uzak
+        r_uzak_m = np.logspace(np.log10(0.01), np.log10(10.0), 200)  # 1 cm → 1000 cm
+        B_uzak_pT = np.array([_alan_byk_uzak(r, 0.0) / 1e-12 for r in r_uzak_m])
+
+        from plotly.subplots import make_subplots
+        fig_html = make_subplots(
+            rows=1, cols=2,
+            subplot_titles=[
+                f"Yakın-alan profili (0–{args.r_max*100:.0f} cm)",
+                "Uzak-alan log-log profili (1 cm – 1000 cm)",
+            ],
+            horizontal_spacing=0.10,
+        )
+        # Panel 1: yakın-alan (lineer x, log y)
         fig_html.add_trace(go.Scatter(
             x=(R * 100).tolist(), y=B_radyal_pT.tolist(),
-            mode="lines", name="|B| (theta=0)",
+            mode="lines", name="|B| yakin-alan (theta=0)",
             line=dict(color="cyan", width=3)
-        ))
+        ), row=1, col=1)
         fig_html.add_hline(y=50, line_dash="dash", line_color="green",
-                           annotation_text="50 pT alt sinir")
+                           annotation_text="50 pT alt sinir", row=1, col=1)
         fig_html.add_hline(y=100, line_dash="dash", line_color="yellow",
-                           annotation_text="100 pT ust sinir")
+                           annotation_text="100 pT ust sinir", row=1, col=1)
         fig_html.add_vline(x=5.0, line_dash="dot", line_color="orange",
-                           annotation_text="r=5 cm")
+                           annotation_text="r=5 cm", row=1, col=1)
+        # Panel 2: uzak-alan (log x, log y — dipol r⁻³ egimi)
+        fig_html.add_trace(go.Scatter(
+            x=(r_uzak_m * 100).tolist(), y=B_uzak_pT.tolist(),
+            mode="lines", name="|B| uzak-alan (dipol r^-3)",
+            line=dict(color="orange", width=2)
+        ), row=1, col=2)
+        fig_html.add_hline(y=1.0, line_dash="dash", line_color="red",
+                           annotation_text="1 pT (Schumann siniri)", row=1, col=2)
+        fig_html.update_xaxes(type="log", title_text="r (cm)", row=1, col=2)
+        fig_html.update_yaxes(type="log", title_text="|B| (pT)", row=1, col=2)
+        fig_html.update_yaxes(type="log", title_text="|B| (pT)", row=1, col=1)
+        fig_html.update_xaxes(title_text="r (cm)", row=1, col=1)
         fig_html.update_layout(
-            title="BVT Level 1 -- Kalp EM Alan Radyal Profili",
-            xaxis_title="r (cm)", yaxis_title="|B| (pT)",
-            yaxis_type="log", height=450,
-            template="plotly_dark"
+            title="BVT Level 1 -- Kalp EM Alan Radyal Profili (yakin + uzak alan)",
+            height=480, width=1100,
+            template="plotly_dark",
+            annotations=[dict(
+                text=(
+                    "Not: Koherans build-up ~sn olcegi KAPPA-kuplaj katmanidir; "
+                    "fizyolojik 1-5 dk HeartMath build-up ayri vagal katmandir (L17)."
+                ),
+                xref="paper", yref="paper", x=0.0, y=-0.12,
+                showarrow=False, font=dict(size=10, color="gray"),
+            )],
         )
         html_path = os.path.join(output_dir, "H1_em_radyal.html")
         fig_html.write_html(html_path, include_plotlyjs="cdn")
         try:
             try:
-                fig_html.update_layout(paper_bgcolor="white", plot_bgcolor="#f0f4f8", font=dict(color="#111111"))
+                fig_html.update_layout(paper_bgcolor="white", plot_bgcolor="#f0f4f8",
+                                       font=dict(color="#111111"))
             except Exception:
                 pass
             fig_html.write_image(html_path.replace(".html", ".png"))

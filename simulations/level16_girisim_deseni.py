@@ -156,10 +156,15 @@ def sekil_girisim_iki_boyut(
         axes[0].annotate("Kalp 1", (-mesafe_m / 2, 0.05), fontsize=8, ha="center")
         axes[0].annotate("Kalp 2", (+mesafe_m / 2, 0.05), fontsize=8, ha="center")
 
-        # Sağ panel: log ölçek |B|
-        im1 = axes[1].pcolormesh(ax_lin, ax_lin, B_log.T, cmap="hot", shading="auto")
+        # Sağ panel: log ölçek |B|, colorbar aralığı veri percentile'e göre
+        # zmin/zmax sabit (-3..3) yerine p5..p95 ile ayarla → yapıcı/yıkıcı
+        # fark görünür olsun; tamamen-siyah panel hatasından kaçınılır.
+        log_p5  = float(np.percentile(B_log, 5))
+        log_p95 = float(np.percentile(B_log, 95))
+        im1 = axes[1].pcolormesh(ax_lin, ax_lin, B_log.T, cmap="hot", shading="auto",
+                                  vmin=log_p5, vmax=log_p95)
         plt.colorbar(im1, ax=axes[1], label="log₁₀|B| (pT)")
-        axes[1].set_title("log₁₀|B| (pT)", fontsize=11)
+        axes[1].set_title("log₁₀|B| (pT)  [p5–p95 aralığı]", fontsize=11)
         axes[1].set_xlabel("x (m)"); axes[1].set_ylabel("y (m)")
         axes[1].plot([-mesafe_m / 2, mesafe_m / 2], [0, 0], "co", ms=8, zorder=5)
 
@@ -226,11 +231,22 @@ def sekil_girisim_animasyon(
         print("  [UYARI] Plotly yok, animasyon atlandı.")
         return
 
-    grid_n = 50
+    grid_n = 80  # (a) 50 → 80 daha keskin ızgara
     grid_extent = 1.5
     ax_lin = np.linspace(-grid_extent, grid_extent, grid_n)
     X, Y = np.meshgrid(ax_lin, ax_lin, indexing="ij")
     t_arr = np.linspace(0, 10.0, n_frames)
+
+    # (b) Colorbar aralığı: tüm frame'lerde yapıcı+yıkıcı veri p5–p95 ile hesapla.
+    # Sabit zmin=-3/zmax=3 yerine veri-aralığına dayalı → tamamen siyah panel hatasından kaçınılır.
+    _all_vals: list = []
+    for t_val in t_arr:
+        for dphi in (0.0, np.pi):
+            _b = np.log10(np.abs(girisim_hesapla(X, Y, t_val, dphi, mesafe_m=mesafe_m)) + 1e-3)
+            _all_vals.append(_b.ravel())
+    _all_concat = np.concatenate(_all_vals)
+    global_zmin = float(np.percentile(_all_concat, 5))
+    global_zmax = float(np.percentile(_all_concat, 95))
 
     fig = make_subplots(
         rows=1, cols=2,
@@ -239,11 +255,12 @@ def sekil_girisim_animasyon(
     )
 
     def _heatmap(B_mat, showscale=False):
+        """log₁₀|B| ısı haritası — global percentile colorbar aralığı."""
         return go.Heatmap(
             z=B_mat.T.tolist(),
             x=ax_lin.tolist(), y=ax_lin.tolist(),
             colorscale="Hot",
-            zmin=-3, zmax=3,
+            zmin=global_zmin, zmax=global_zmax,
             showscale=showscale,
             colorbar=dict(title="log₁₀|B|(pT)", x=1.02) if showscale else None,
         )
@@ -260,6 +277,7 @@ def sekil_girisim_animasyon(
         B_yik = np.log10(np.abs(girisim_hesapla(X, Y, t_val, np.pi, mesafe_m=mesafe_m)) + 1e-3)
         frames.append(go.Frame(
             data=[_heatmap(B_yap), _heatmap(B_yik, showscale=True)],
+            traces=[0, 1],  # hangi trace'i güncelleyeceğini plotly'a bildir
             name=str(i),
             layout=go.Layout(title_text=f"BVT — Girişim Deseni | t = {t_val:.2f}s"),
         ))

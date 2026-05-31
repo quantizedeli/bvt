@@ -255,7 +255,7 @@ def main() -> None:
         import plotly.graph_objects as go
         from plotly.subplots import make_subplots
 
-        renkler_plotly = {"Duz": "gray", "Yarim Halka": "dodgerblue",
+        renkler_plotly = {"Düz": "gray", "Yarım Halka": "dodgerblue",
                           "Tam Halka": "lime", "Halka+Temas": "gold"}
         fig = make_subplots(
             rows=2, cols=2,
@@ -297,6 +297,14 @@ def main() -> None:
             title=dict(text=f"BVT Level 11 — Topoloji Karsilastirmasi (N={args.N})",
                        font=dict(size=18)),
             width=1400, height=900, template="plotly_dark",
+            plot_bgcolor="#f0f4f8",
+            annotations=[dict(
+                xref="paper", yref="paper", x=0.0, y=1.08,
+                text="<i>Not: r(t) koherans build-up ~sn ölçeği KAPPA-kuplaj katmanıdır;"
+                     " fizyolojik 1-5 dk HeartMath build-up ayrı vagal katmandır (L17).</i>",
+                showarrow=False, font=dict(size=10, color="gray"),
+                align="left",
+            )],
         )
         html_path = os.path.join(args.output, "L11_topology.html")
         fig.write_html(html_path, include_plotlyjs="cdn")

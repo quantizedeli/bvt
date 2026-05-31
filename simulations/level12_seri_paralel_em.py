@@ -242,8 +242,9 @@ def main() -> None:
     for t_snap in t_snaps:
         t_idx = int(np.searchsorted(t_arr, t_snap))
         t_idx = min(t_idx, len(t_arr) - 1)
+        grid_n = 60
         _, _, _, B_mag = toplam_em_alan_3d(t_idx, konumlar, momentler,
-                                            grid_extent=3.0, grid_n=25)
+                                            grid_extent=3.0, grid_n=grid_n)
         faz_label = faz_etiketleri.get(t_snap, labels[t_idx])
         snap_data[t_snap] = {
             "B_mag": B_mag,
@@ -255,7 +256,8 @@ def main() -> None:
     fig, axes = plt.subplots(2, 3, figsize=(18, 11))
 
     # Üst satır: EM alan snapshot'ları (z=0 kesiti, orta dilim)
-    mid_z = 25 // 2
+    grid_n = 60
+    mid_z = grid_n // 2
     for ax, (t_snap, data) in zip(axes[0], snap_data.items()):
         B_slice = np.log10(data["B_mag"][:, :, mid_z] + 1e-2)
         im = ax.imshow(B_slice.T, cmap="hot", origin="lower",
@@ -342,9 +344,10 @@ def main() -> None:
             vertical_spacing=0.12, horizontal_spacing=0.08,
         )
 
-        x_ax = np.linspace(-3, 3, 25).tolist()
+        html_grid_n = 60
+        x_ax = np.linspace(-3, 3, html_grid_n).tolist()
         for col_idx, (t_snap, data) in enumerate(snap_data.items()):
-            B_slice = np.log10(data["B_mag"][:, :, 25 // 2] + 1e-2)
+            B_slice = np.log10(data["B_mag"][:, :, html_grid_n // 2] + 1e-2)
             fig_html.add_trace(go.Heatmap(
                 z=B_slice.T.tolist(), x=x_ax, y=x_ax,
                 colorscale="Hot", zmin=-2, zmax=float(np.max(B_slice)),

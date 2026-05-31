@@ -115,19 +115,20 @@ def mod_doldurma_analizi() -> tuple:
     --------
     C_arr, n_arr : np.ndarray — koherans dizisi, ortalama foton sayısı
     """
-    C_arr = np.linspace(0.0, 1.0, 50)
+    C_arr = np.linspace(0.0, 1.0, 200)
     try:
         n_arr = np.array([mod_doldurma_hesapla(C) for C in C_arr])
     except Exception:
         # Fallback: basit model
+        print("[UYARI] mod_doldurma_hesapla fallback proxy kullanildi — fiziksel model yerine C^2*10")
         n_arr = C_arr**2 * 10.0
     return C_arr, n_arr
 
 
 def sekil_kaydet(sonuc: dict, t: np.ndarray, P_exc: np.ndarray,
                  C_arr: np.ndarray, n_arr: np.ndarray,
-                 output_dir: str, html: bool) -> None:
-    """Sonuç şekillerini PNG ve opsiyonel olarak HTML kaydeder."""
+                 output_dir: str, html: bool = True) -> None:
+    """Sonuç şekillerini PNG ve HTML olarak kaydeder (html bayragi yoksayilir, her zaman uretilir)."""
 
     os.makedirs(output_dir, exist_ok=True)
 
@@ -197,52 +198,43 @@ def sekil_kaydet(sonuc: dict, t: np.ndarray, P_exc: np.ndarray,
     plt.close()
     print(f"  PNG: {png_yol}")
 
-    # ---- HTML ----
-    if html:
-        try:
-            import plotly.graph_objects as go
-            from plotly.subplots import make_subplots
+    # ---- HTML ---- (kosulsuz uretilir)
+    try:
+        import plotly.graph_objects as go
+        from plotly.subplots import make_subplots
 
-            fig_html = make_subplots(
-                rows=2, cols=2,
-                subplot_titles=("Schumann Rezonansları", "Rabi Salınımı",
-                                 "Mod Doldurma", "Parametreler")
-            )
+        fig_html = make_subplots(
+            rows=2, cols=2,
+            subplot_titles=("Schumann Rezonansları", "Rabi Salınımı",
+                             "Mod Doldurma", "Parametreler")
+        )
 
-            fig_html.add_trace(go.Bar(
-                x=[f"S{i}" for i in range(1, 6)],
-                y=amps, text=[f"Q={Q}" for Q in Qs],
-                textposition="outside", marker_color="steelblue"
-            ), row=1, col=1)
+        fig_html.add_trace(go.Bar(
+            x=[f"S{i}" for i in range(1, 6)],
+            y=amps, text=[f"Q={Q}" for Q in Qs],
+            textposition="outside", marker_color="steelblue"
+        ), row=1, col=1)
 
-            fig_html.add_trace(go.Scatter(
-                x=t, y=P_exc, mode="lines",
-                line=dict(color="orangered", width=2), name="P_exc"
-            ), row=1, col=2)
+        fig_html.add_trace(go.Scatter(
+            x=t, y=P_exc, mode="lines",
+            line=dict(color="orangered", width=2), name="P_exc"
+        ), row=1, col=2)
 
-            fig_html.add_trace(go.Scatter(
-                x=C_arr, y=n_arr, mode="lines",
-                line=dict(color="purple", width=2), name="n̄(C)"
-            ), row=2, col=1)
+        fig_html.add_trace(go.Scatter(
+            x=C_arr, y=n_arr, mode="lines",
+            line=dict(color="purple", width=2), name="n̄(C)"
+        ), row=2, col=1)
 
-            fig_html.update_layout(
-                title="BVT Level 2 — Schumann Kavite Analizi",
-                height=700, template="plotly_dark", showlegend=False
-            )
+        fig_html.update_layout(
+            title="BVT Level 2 — Schumann Kavite Analizi",
+            height=700, template="plotly_dark", showlegend=False
+        )
 
-            html_yol = os.path.join(output_dir, "level2_kavite.html")
-            fig_html.write_html(html_yol, include_plotlyjs="cdn")
-            try:
-                try:
-                    fig_html.update_layout(paper_bgcolor="white", plot_bgcolor="#f0f4f8", font=dict(color="#111111"))
-                except Exception:
-                    pass
-                fig_html.write_image(html_yol.replace(".html", ".png"))
-            except Exception:
-                pass
-            print(f"  HTML: {html_yol}")
-        except ImportError:
-            print("  [UYARI] Plotly yok — HTML atlandı.")
+        html_yol = os.path.join(output_dir, "level2_kavite.html")
+        fig_html.write_html(html_yol, include_plotlyjs="cdn")
+        print(f"  HTML: {html_yol}")
+    except ImportError:
+        print("  [UYARI] Plotly yok — HTML atlandı.")
 
 
 def başarı_kriterleri_kontrol(sonuc: dict) -> bool:
@@ -276,7 +268,7 @@ def main():
     parser = argparse.ArgumentParser(
         description="BVT Level 2: Schumann Kavite Etkileşimi"
     )
-    parser.add_argument("--output", default="results/level2",
+    parser.add_argument("--output", default="output/level2",
                         help="Çıktı dizini")
     parser.add_argument("--html", action="store_true",
                         help="HTML çıktısı da üret")

@@ -286,6 +286,102 @@ def sekil_3panel(sonuclar: dict, output_path: str) -> None:
     print(f"  PNG: {output_path}")
 
 
+def sekil_html(sonuclar: dict, output_path: str) -> None:
+    """
+    Plotly interaktif HTML: histogram + box + bar (3 panel).
+
+    output/level18/L18_rem_pencere.html olarak kaydeder.
+    """
+    try:
+        import plotly.graph_objects as go
+        from plotly.subplots import make_subplots
+
+        asamalar = list(UYKU_ASAMALARI.keys())
+        renkler  = [UYKU_ASAMALARI[a]["renk"] for a in asamalar]
+
+        fig = make_subplots(
+            rows=1, cols=3,
+            subplot_titles=(
+                "Pre-stimulus Zaman Dağılımı",
+                "Koherans Dağılımı (Box)",
+                "Effect Size (Cohen's d)",
+            ),
+        )
+
+        # Panel 1: Histogram
+        bins_start = 0.0
+        bins_end   = 10.0
+        bins_size  = (bins_end - bins_start) / 29.0
+        for asama, renk in zip(asamalar, renkler):
+            sonuc = sonuclar[asama]
+            fig.add_trace(
+                go.Histogram(
+                    x=sonuc["tau_arr"],
+                    name=asama,
+                    opacity=0.55,
+                    marker_color=renk,
+                    xbins=dict(start=bins_start, end=bins_end, size=bins_size),
+                    histnorm="probability density",
+                    showlegend=True,
+                ),
+                row=1, col=1,
+            )
+
+        # Panel 2: Box
+        for asama, renk in zip(asamalar, renkler):
+            sonuc = sonuclar[asama]
+            fig.add_trace(
+                go.Box(
+                    y=sonuc["C_arr"],
+                    name=asama,
+                    marker_color=renk,
+                    boxpoints="outliers",
+                    showlegend=False,
+                ),
+                row=1, col=2,
+            )
+
+        # Panel 3: Bar (effect size)
+        es_values = [sonuclar[a]["effect_size"] for a in asamalar]
+        ks_pvals  = [sonuclar[a]["ks_p"]        for a in asamalar]
+        sig_labels = [
+            "*** d={:.2f}".format(es) if p < 0.001 else
+            "** d={:.2f}".format(es)  if p < 0.01  else
+            "* d={:.2f}".format(es)   if p < 0.05  else
+            "ns d={:.2f}".format(es)
+            for es, p in zip(es_values, ks_pvals)
+        ]
+        fig.add_trace(
+            go.Bar(
+                x=asamalar,
+                y=es_values,
+                marker_color=renkler,
+                text=sig_labels,
+                textposition="outside",
+                showlegend=False,
+            ),
+            row=1, col=3,
+        )
+
+        fig.update_layout(
+            title="BVT Level 18 — REM Uyku Penceresi HKV Simülasyonu",
+            height=550,
+            template="plotly_dark",
+            barmode="overlay",
+        )
+        fig.update_xaxes(title_text="Pre-stimulus süresi (s)", row=1, col=1)
+        fig.update_yaxes(title_text="Yoğunluk", row=1, col=1)
+        fig.update_xaxes(title_text="Uyku Aşaması", row=1, col=2)
+        fig.update_yaxes(title_text="Koherans C", row=1, col=2)
+        fig.update_xaxes(title_text="Uyku Aşaması", row=1, col=3)
+        fig.update_yaxes(title_text="Cohen's d (vs Uyanık)", row=1, col=3)
+
+        fig.write_html(output_path, include_plotlyjs="cdn")
+        print(f"  HTML: {output_path}")
+    except ImportError:
+        print("  [UYARI] Plotly yok — HTML atlandı.")
+
+
 def rapor_yaz(sonuclar: dict, output_path: str, jr_sonuc: dict | None = None) -> None:
     """
     BVT öngörü — literatür eşleştirme markdown raporu.
@@ -388,6 +484,8 @@ def main():
     parser.add_argument("--jr-fiziksel", action="store_true",
                         help="D-013 fiziksel JR-NMM α-band gücünü hesapla ve "
                              "rapora ekle (uyku aşaması başına)")
+    parser.add_argument("--html", action="store_true",
+                        help="Plotly interaktif HTML üret (output/level18/L18_rem_pencere.html)")
     args = parser.parse_args()
 
     os.makedirs(args.output, exist_ok=True)
@@ -419,6 +517,10 @@ def main():
 
     print("\n  Şekil üretiliyor...")
     sekil_3panel(sonuclar, os.path.join(args.output, "L18_rem_pencere.png"))
+
+    if args.html:
+        print("  Plotly HTML üretiliyor...")
+        sekil_html(sonuclar, os.path.join(args.output, "L18_rem_pencere.html"))
 
     print("  Rapor yazılıyor...")
     report_dir = os.path.join(

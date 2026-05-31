@@ -388,8 +388,8 @@ def sekil_kuramoto_vs_sl(
 
 
 def sekil_kaydet(sonuclar: dict, N_arr: np.ndarray, I_arr: np.ndarray,
-                 output_dir: str, html: bool) -> None:
-    """Şekilleri PNG ve HTML olarak kaydeder."""
+                 output_dir: str, html: bool = True) -> None:
+    """Şekilleri PNG ve HTML olarak kaydeder (html bayragi yoksayilir, her zaman uretilir)."""
 
     os.makedirs(output_dir, exist_ok=True)
 
@@ -447,61 +447,52 @@ def sekil_kaydet(sonuclar: dict, N_arr: np.ndarray, I_arr: np.ndarray,
     plt.close()
     print(f"  PNG: {png_yol}")
 
-    # HTML
-    if html:
-        try:
-            import plotly.graph_objects as go
-            from plotly.subplots import make_subplots
-            import plotly.express as px
+    # HTML (kosulsuz uretilir)
+    try:
+        import plotly.graph_objects as go
+        from plotly.subplots import make_subplots
+        import plotly.express as px
 
-            fig_html = make_subplots(
-                rows=2, cols=2,
-                subplot_titles=("Kuramoto r(t)", "r_final vs N",
-                                 "Süperradyans", "Faz Korelasyonu")
-            )
+        fig_html = make_subplots(
+            rows=2, cols=2,
+            subplot_titles=("Kuramoto r(t)", "r_final vs N",
+                             "Süperradyans", "Faz Korelasyonu")
+        )
 
-            colors = px.colors.sequential.Viridis
-            for i, (N, (t, r, r_f)) in enumerate(sorted(sonuclar.items())):
-                cidx = int(i / len(sonuclar) * (len(colors) - 1))
-                fig_html.add_trace(go.Scatter(
-                    x=t, y=r, mode="lines", name=f"N={N}",
-                    line=dict(color=colors[cidx], width=1.5)
-                ), row=1, col=1)
-
-            fig_html.add_trace(go.Bar(
-                x=N_list, y=r_final_list, marker_color="steelblue"
-            ), row=1, col=2)
-
+        colors = px.colors.sequential.Viridis
+        for i, (N, (t, r, r_f)) in enumerate(sorted(sonuclar.items())):
+            cidx = int(i / len(sonuclar) * (len(colors) - 1))
             fig_html.add_trace(go.Scatter(
-                x=N_arr.tolist(), y=I_arr.tolist(),
-                mode="lines+markers", line=dict(color="orangered")
-            ), row=2, col=1)
+                x=t, y=r, mode="lines", name=f"N={N}",
+                line=dict(color=colors[cidx], width=1.5)
+            ), row=1, col=1)
 
-            fig_html.add_trace(go.Scatter(
-                x=r_mesafe.tolist(), y=corr.tolist(),
-                mode="lines", line=dict(color="purple")
-            ), row=2, col=2)
+        fig_html.add_trace(go.Bar(
+            x=N_list, y=r_final_list, marker_color="steelblue"
+        ), row=1, col=2)
 
-            fig_html.update_xaxes(type="log", row=2, col=2)
-            fig_html.update_yaxes(type="log", row=2, col=1)
-            fig_html.update_layout(
-                title="BVT Level 4 — N-Kişi Senkronizasyon",
-                height=800, template="plotly_dark", showlegend=False
-            )
+        fig_html.add_trace(go.Scatter(
+            x=N_arr.tolist(), y=I_arr.tolist(),
+            mode="lines+markers", line=dict(color="orangered")
+        ), row=2, col=1)
 
-            html_yol = os.path.join(output_dir, "level4_multiperson.html")
-            fig_html.write_html(html_yol, include_plotlyjs="cdn")
-            try:
-                try:
-                    fig_html.update_layout(paper_bgcolor="white", plot_bgcolor="#f0f4f8", font=dict(color="#111111"))
-                except Exception:
-                    pass
-                fig_html.write_image(html_yol.replace(".html", ".png"))
-            except Exception:
-                pass
-            print(f"  HTML: {html_yol}")
-        except ImportError:
-            print("  [UYARI] Plotly yok — HTML atlandı.")
+        fig_html.add_trace(go.Scatter(
+            x=r_mesafe.tolist(), y=corr.tolist(),
+            mode="lines", line=dict(color="purple")
+        ), row=2, col=2)
+
+        fig_html.update_xaxes(type="log", row=2, col=2)
+        fig_html.update_yaxes(type="log", row=2, col=1)
+        fig_html.update_layout(
+            title="BVT Level 4 — N-Kişi Senkronizasyon",
+            height=800, template="plotly_dark", showlegend=False
+        )
+
+        html_yol = os.path.join(output_dir, "level4_multiperson.html")
+        fig_html.write_html(html_yol, include_plotlyjs="cdn")
+        print(f"  HTML: {html_yol}")
+    except ImportError:
+        print("  [UYARI] Plotly yok — HTML atlandı.")
 
 
 def main():
@@ -510,7 +501,7 @@ def main():
     )
     parser.add_argument("--N", type=int, default=20,
                         help="Maksimum kişi sayısı (varsayılan: 20)")
-    parser.add_argument("--output", default="results/level4",
+    parser.add_argument("--output", default="output/level4",
                         help="Çıktı dizini")
     parser.add_argument("--html", action="store_true",
                         help="HTML çıktısı üret")

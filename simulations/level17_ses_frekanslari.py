@@ -54,6 +54,8 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from scipy.integrate import solve_ivp
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
 from src.core.constants import (
     F_S1, F_ALPHA, KAPPA_EFF, GAMMA_DEC,
@@ -512,39 +514,59 @@ def frekans_grup_koherans_etkisi(
 # ============================================================
 
 def sekil_frekans_haritasi(sonuclar_dict: dict, output_path: str) -> None:
-    """22 frekans × koherans degisimi — kategori renkli cubuk grafik."""
-    isimler    = list(sonuclar_dict.keys())
-    delta_C    = [sonuclar_dict[k]["delta_C"]  for k in isimler]
-    kategoriler = [SES_FREKANSLARI[k]["kategori"] for k in isimler]
-    renkler    = [KATEGORI_RENK.get(kat, "#888") for kat in kategoriler]
-    freqler    = [SES_FREKANSLARI[k]["freq"] for k in isimler]
+    """
+    22 frekans × koherans degisimi — P1/P2/P3 yigili (stacked) cubuk grafik.
+
+    Her cubuk: P1 (direkt EEG, kirmizi) + P2 (akustik, mavi) + P3 (ritmik, yesil)
+    yollarinin delta_C'ye oransal katkisini gosterir.
+    """
+    isimler = list(sonuclar_dict.keys())
+    freqler = [SES_FREKANSLARI[k]["freq"] for k in isimler]
+    delta_C = np.array([sonuclar_dict[k]["delta_C"] for k in isimler])
+
+    # Her enstruman icin P1/P2/P3 ham degerleri hesapla
+    p1_vals = np.array([_pathway1_direct(f) for f in freqler])
+    p2_vals = np.array([_pathway2_acoustic(f) for f in freqler])
+    p3_vals = np.array([_pathway3_rhythm(f) for f in freqler])
+
+    # P1+P2+P3 toplam ile delta_C'yi oransal dagitiriz
+    p_total = p1_vals + p2_vals + p3_vals + 1e-9
+    dc_p1 = delta_C * (p1_vals / p_total)
+    dc_p2 = delta_C * (p2_vals / p_total)
+    dc_p3 = delta_C * (p3_vals / p_total)
 
     idx = np.argsort(delta_C)[::-1]
 
     fig, ax = plt.subplots(figsize=(14, 7), facecolor="white")
     x_pos = np.arange(len(isimler))
-    ax.bar(x_pos, [delta_C[i] for i in idx],
-           color=[renkler[i] for i in idx],
-           edgecolor="black", linewidth=0.5, alpha=0.85)
+
+    ax.bar(x_pos, [dc_p1[i] for i in idx],
+           color="#cc4444", edgecolor="black", linewidth=0.4, alpha=0.85,
+           label="Yol 1 — Direkt EEG (<20 Hz)")
+    ax.bar(x_pos, [dc_p2[i] for i in idx],
+           bottom=[dc_p1[i] for i in idx],
+           color="#4488cc", edgecolor="black", linewidth=0.4, alpha=0.85,
+           label="Yol 2 — Akustik/Psiko (>20 Hz)")
+    ax.bar(x_pos, [dc_p3[i] for i in idx],
+           bottom=[dc_p1[i] + dc_p2[i] for i in idx],
+           color="#44aa66", edgecolor="black", linewidth=0.4, alpha=0.85,
+           label="Yol 3 — Ritmik Vagal (1-5 Hz)")
 
     for bar_i, xi in enumerate(idx):
-        ax.text(bar_i, delta_C[xi] + 0.001, f"{freqler[xi]:.0f}Hz",
+        ax.text(bar_i, delta_C[xi] + 0.0005, f"{freqler[xi]:.0f}Hz",
                 ha="center", va="bottom", fontsize=7.5, rotation=45)
 
     ax.set_xticks(x_pos)
     ax.set_xticklabels(
         [isimler[i].replace("_", "\n") for i in idx], fontsize=7.5, rotation=45, ha="right"
     )
-    ax.set_ylabel("DeltaC (Koherans degisimi)", fontsize=11)
+    ax.set_ylabel("DeltaC — P1+P2+P3 yigili (Koherans degisimi)", fontsize=11)
     ax.set_title(
-        "BVT Level 17 — Ses Frekansi Grup Koheransi Etkisi (v9.3)\n"
+        "BVT Level 17 — Ses Frekansi Grup Koheransi Etkisi (v9.3) — Yol Bazli Yigili\n"
         f"N={N_C_SUPERRADIANCE} kisi, t=180s, 3-yol fizik modeli",
         fontsize=12
     )
-    from matplotlib.patches import Patch
-    legend_elements = [Patch(facecolor=renk, label=kat)
-                       for kat, renk in KATEGORI_RENK.items()]
-    ax.legend(handles=legend_elements, fontsize=9, loc="upper right")
+    ax.legend(fontsize=9, loc="upper right")
     ax.set_facecolor("#fafafa")
     ax.grid(True, alpha=0.3, axis="y")
     plt.tight_layout()
@@ -818,22 +840,41 @@ def sekil_antik_enstrumanlar(sonuclar_dict: dict, output_path: str) -> None:
 
 
 def sekil_top10(sonuclar_dict: dict, output_path: str) -> None:
-    """En etkili 10 frekans — yatay bar + entrainment yolu etiketli."""
-    isimler   = list(sonuclar_dict.keys())
-    delta_C   = np.array([sonuclar_dict[k]["delta_C"] for k in isimler])
-    idx_top   = np.argsort(delta_C)[-10:][::-1]
+    """
+    En etkili 10 frekans — yatay P1/P2/P3 yigili (stacked) bar + entrainment yolu etiketli.
 
-    top_isimler    = [isimler[i] for i in idx_top]
-    top_deltaC     = [delta_C[i] for i in idx_top]
-    top_freqler    = [SES_FREKANSLARI[k]["freq"]      for k in top_isimler]
-    top_kaynaklar  = [SES_FREKANSLARI[k]["kaynak"]    for k in top_isimler]
-    top_kategoriler = [SES_FREKANSLARI[k]["kategori"] for k in top_isimler]
-    top_renkler    = [KATEGORI_RENK.get(kat, "#888")  for kat in top_kategoriler]
-    top_tauE       = [sonuclar_dict[k]["tau_E"]        for k in top_isimler]
+    Her cubuk: P1 (direkt EEG, kirmizi) + P2 (akustik, mavi) + P3 (ritmik, yesil)
+    yollarinin delta_C'ye oransal katkisini gosterir.
+    """
+    isimler  = list(sonuclar_dict.keys())
+    delta_C  = np.array([sonuclar_dict[k]["delta_C"] for k in isimler])
+    idx_top  = np.argsort(delta_C)[-10:][::-1]
+
+    top_isimler   = [isimler[i] for i in idx_top]
+    top_deltaC    = [delta_C[i] for i in idx_top]
+    top_freqler   = [SES_FREKANSLARI[k]["freq"]   for k in top_isimler]
+    top_kaynaklar = [SES_FREKANSLARI[k]["kaynak"] for k in top_isimler]
+    top_tauE      = [sonuclar_dict[k]["tau_E"]     for k in top_isimler]
+
+    # P1/P2/P3 oransal paylasim
+    p1_vals = np.array([_pathway1_direct(f)   for f in top_freqler])
+    p2_vals = np.array([_pathway2_acoustic(f) for f in top_freqler])
+    p3_vals = np.array([_pathway3_rhythm(f)   for f in top_freqler])
+    p_total = p1_vals + p2_vals + p3_vals + 1e-9
+    dc_arr  = np.array(top_deltaC)
+    dc_p1   = dc_arr * (p1_vals / p_total)
+    dc_p2   = dc_arr * (p2_vals / p_total)
+    dc_p3   = dc_arr * (p3_vals / p_total)
 
     fig, ax = plt.subplots(figsize=(12, 7), facecolor="white")
     y_pos = np.arange(len(top_isimler))[::-1]
-    ax.barh(y_pos, top_deltaC, color=top_renkler, edgecolor="black", alpha=0.85)
+
+    ax.barh(y_pos, dc_p1, color="#cc4444", edgecolor="black", linewidth=0.4,
+            alpha=0.85, label="Yol 1 — Direkt EEG")
+    ax.barh(y_pos, dc_p2, left=dc_p1, color="#4488cc", edgecolor="black",
+            linewidth=0.4, alpha=0.85, label="Yol 2 — Akustik")
+    ax.barh(y_pos, dc_p3, left=dc_p1 + dc_p2, color="#44aa66", edgecolor="black",
+            linewidth=0.4, alpha=0.85, label="Yol 3 — Ritmik Vagal")
 
     for bar_i, (dc, kaynak, tau) in enumerate(zip(top_deltaC, top_kaynaklar, top_tauE)):
         ax.text(
@@ -843,26 +884,175 @@ def sekil_top10(sonuclar_dict: dict, output_path: str) -> None:
         )
 
     etiketler = [
-        f"{n.replace('_',' ')} ({f:.0f}Hz)" for n, f in zip(top_isimler, top_freqler)
+        f"{n.replace('_', ' ')} ({f:.0f}Hz)" for n, f in zip(top_isimler, top_freqler)
     ]
     ax.set_yticks(y_pos)
     ax.set_yticklabels(etiketler, fontsize=9)
-    ax.set_xlabel("DeltaC (Koherans degisimi)", fontsize=11)
+    ax.set_xlabel("DeltaC — P1+P2+P3 yigili (Koherans degisimi)", fontsize=11)
     ax.set_title(
-        "BVT Level 17 (v9.3) — En Etkili 10 Ses Frekansi\n"
+        "BVT Level 17 (v9.3) — En Etkili 10 Ses Frekansi — Yol Bazli Yigili\n"
         "(Grup Koheransi DeltaC, N=11 kisi, t=180s, 3-yol model)",
         fontsize=12
     )
-    from matplotlib.patches import Patch
-    legend_elements = [Patch(facecolor=renk, label=kat)
-                       for kat, renk in KATEGORI_RENK.items()]
-    ax.legend(handles=legend_elements, fontsize=9, loc="lower right")
+    ax.legend(fontsize=9, loc="lower right")
     ax.set_facecolor("#fafafa")
     ax.grid(True, alpha=0.3, axis="x")
     plt.tight_layout()
     fig.savefig(output_path, dpi=150, bbox_inches="tight", facecolor="white")
     plt.close(fig)
     print(f"  PNG: {output_path}")
+
+
+# ============================================================
+# PLOTLY HTML FONKSİYONLARI
+# ============================================================
+
+def plotly_html_frekans(sonuclar_dict: dict, output_path: str) -> None:
+    """
+    Frekans yanit egrisi + Top-10 P1/P2/P3 yigili bar — tek HTML dosyasi.
+
+    Alt-grafik 1: 3-yol frekans yanit egrisi (log x, fill_between tarzı)
+    Alt-grafik 2: En etkili 10 enstruman — P1/P2/P3 yigili yatay bar
+
+    Not: Koherans build-up ~sn ölçeği KAPPA-kuplaj katmanıdır;
+         fizyolojik 1-5 dk HeartMath build-up ayrı vagal katmandır (L17).
+
+    Referans: BVT_Makale.docx Bölüm 15; v9.3 3-yol fizik modeli.
+    """
+    # ---------- Alt-grafik 1: frekans yanit egrisi ----------
+    f_vec = np.logspace(np.log10(0.5), np.log10(1000.0), 800)
+    p1_vec    = np.array([_pathway1_direct(f)          for f in f_vec])
+    p2_vec    = np.array([_pathway2_acoustic(f)        for f in f_vec])
+    p3_vec    = np.array([_pathway3_rhythm(f)          for f in f_vec])
+    total_vec = np.array([_frekans_koherans_bonusu_v3(f) for f in f_vec])
+
+    # ---------- Alt-grafik 2: top-10 stacked bar ----------
+    isimler = list(sonuclar_dict.keys())
+    delta_C = np.array([sonuclar_dict[k]["delta_C"] for k in isimler])
+    idx_top = np.argsort(delta_C)[-10:]  # kucukten buyuge
+    top_isimler = [isimler[i] for i in idx_top]
+    top_freqler = [SES_FREKANSLARI[k]["freq"]   for k in top_isimler]
+    top_tauE    = [sonuclar_dict[k]["tau_E"]     for k in top_isimler]
+    dc_top = delta_C[idx_top]
+
+    p1_top = np.array([_pathway1_direct(f)   for f in top_freqler])
+    p2_top = np.array([_pathway2_acoustic(f) for f in top_freqler])
+    p3_top = np.array([_pathway3_rhythm(f)   for f in top_freqler])
+    p_sum  = p1_top + p2_top + p3_top + 1e-9
+    dc_p1  = dc_top * (p1_top / p_sum)
+    dc_p2  = dc_top * (p2_top / p_sum)
+    dc_p3  = dc_top * (p3_top / p_sum)
+
+    etiketler = [
+        f"{n.replace('_', ' ')} ({f:.0f}Hz)" for n, f in zip(top_isimler, top_freqler)
+    ]
+    hover_texts = [
+        f"{etk}<br>DeltaC={dc:.5f}<br>tau={tau:.0f}s"
+        for etk, dc, tau in zip(etiketler, dc_top, top_tauE)
+    ]
+
+    # ---------- Plotly subplots ----------
+    fig = make_subplots(
+        rows=2, cols=1,
+        subplot_titles=(
+            "3-Yol Frekans Yanit Egrisi (log eksen) — Toplam BVT Etkisi",
+            "En Etkili 10 Ses Frekansi — P1/P2/P3 Yigili Yatay Bar (DeltaC)",
+        ),
+        vertical_spacing=0.12,
+        row_heights=[0.5, 0.5],
+    )
+
+    # Yol 1 — dolgu + cizgi
+    fig.add_trace(go.Scatter(
+        x=f_vec, y=p1_vec, mode="lines", name="Yol 1 — Direkt EEG (<20 Hz)",
+        line=dict(color="#cc4444", width=2),
+        fill="tozeroy", fillcolor="rgba(204,68,68,0.18)",
+        hovertemplate="f=%{x:.2f}Hz<br>P1=%{y:.3f}<extra></extra>",
+    ), row=1, col=1)
+    # Yol 2
+    fig.add_trace(go.Scatter(
+        x=f_vec, y=p2_vec, mode="lines", name="Yol 2 — Akustik/Psiko (>20 Hz)",
+        line=dict(color="#4488cc", width=2),
+        fill="tozeroy", fillcolor="rgba(68,136,204,0.15)",
+        hovertemplate="f=%{x:.2f}Hz<br>P2=%{y:.3f}<extra></extra>",
+    ), row=1, col=1)
+    # Yol 3
+    fig.add_trace(go.Scatter(
+        x=f_vec, y=p3_vec, mode="lines", name="Yol 3 — Ritmik Vagal (1-5 Hz)",
+        line=dict(color="#44aa66", width=2),
+        fill="tozeroy", fillcolor="rgba(68,170,102,0.22)",
+        hovertemplate="f=%{x:.2f}Hz<br>P3=%{y:.3f}<extra></extra>",
+    ), row=1, col=1)
+    # Toplam
+    fig.add_trace(go.Scatter(
+        x=f_vec, y=total_vec, mode="lines", name="Toplam BVT Etkisi",
+        line=dict(color="black", width=2.5),
+        hovertemplate="f=%{x:.2f}Hz<br>Toplam=%{y:.3f}<extra></extra>",
+    ), row=1, col=1)
+
+    # Schumann dikey cizgiler
+    for fi, fs in enumerate(SCHUMANN_FREQS):
+        fig.add_vline(
+            x=fs, line_dash="dash", line_color="rgba(255,68,68,0.5)",
+            line_width=1.2, row=1, col=1,
+            annotation_text=f"f{fi+1}" if fi < 3 else "",
+            annotation_font_size=9,
+        )
+
+    # Stacked bar — P1
+    fig.add_trace(go.Bar(
+        y=etiketler, x=dc_p1, orientation="h",
+        name="Yol 1 — Direkt EEG",
+        marker_color="#cc4444",
+        hovertext=hover_texts,
+        hovertemplate="%{hovertext}<br>P1=%{x:.5f}<extra></extra>",
+        legendgroup="bar",
+    ), row=2, col=1)
+    # P2
+    fig.add_trace(go.Bar(
+        y=etiketler, x=dc_p2, orientation="h",
+        name="Yol 2 — Akustik",
+        marker_color="#4488cc",
+        hovertemplate="P2=%{x:.5f}<extra></extra>",
+        legendgroup="bar",
+    ), row=2, col=1)
+    # P3
+    fig.add_trace(go.Bar(
+        y=etiketler, x=dc_p3, orientation="h",
+        name="Yol 3 — Ritmik Vagal",
+        marker_color="#44aa66",
+        hovertemplate="P3=%{x:.5f}<extra></extra>",
+        legendgroup="bar",
+    ), row=2, col=1)
+
+    fig.update_layout(
+        title=dict(
+            text=(
+                "BVT Level 17 (v9.3) — Ses Frekansi 3-Yol Analizi<br>"
+                "<sup>Not: ~sn koherans build-up = KAPPA-kuplaj katmanı; "
+                "fizyolojik 1-5 dk HeartMath build-up = ayrı vagal katman (L17)</sup>"
+            ),
+            font=dict(size=14),
+        ),
+        barmode="stack",
+        plot_bgcolor="white",
+        paper_bgcolor="white",
+        height=950,
+        width=1100,
+        legend=dict(x=0.01, y=0.99, bgcolor="rgba(255,255,255,0.8)"),
+        hovermode="closest",
+    )
+    # Log ekseni ust grafik icin
+    fig.update_xaxes(type="log", title_text="Frekans (Hz)", row=1, col=1,
+                     showgrid=True, gridcolor="#e0e0e0")
+    fig.update_yaxes(title_text="BVT Koherans Etkisi", row=1, col=1,
+                     showgrid=True, gridcolor="#e0e0e0")
+    fig.update_xaxes(title_text="DeltaC — P1+P2+P3 yigili", row=2, col=1,
+                     showgrid=True, gridcolor="#e0e0e0")
+    fig.update_yaxes(title_text="Enstruman", row=2, col=1, autorange="reversed")
+
+    fig.write_html(output_path, include_plotlyjs="cdn")
+    print(f"  HTML: {output_path}")
 
 
 # ============================================================
@@ -913,6 +1103,10 @@ def main():
         sonuclar_dict, os.path.join(args.output, "L17_antik_enstrumanlar_karsilastirma.png"))
     sekil_top10(
         sonuclar_dict, os.path.join(args.output, "L17_en_etkili_frekanslar_top10.png"))
+
+    print("\n  Plotly HTML uretiliyor...")
+    plotly_html_frekans(
+        sonuclar_dict, os.path.join(args.output, "L17_frekans.html"))
 
     print(f"\n  Tum ciktilar: {os.path.abspath(args.output)}")
     print("  Level 17 v9.3 tamamlandi.")

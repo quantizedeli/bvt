@@ -145,6 +145,12 @@ def main():
     axs[0, 0].set_xlabel("Zaman (s)"); axs[0, 0].set_ylabel("r(t) — Kuramoto")
     axs[0, 0].set_title("Senkronizasyon: Merkez Koherant Birey Etkisi", fontweight="bold")
     axs[0, 0].legend(); axs[0, 0].set_ylim(0, 1.05)
+    axs[0, 0].annotate(
+        "Not: ~sn ölçeğindeki r(t) yükselişi KAPPA-kuplaj (EM) katmanıdır.\n"
+        "Fizyolojik 1-5 dk HeartMath koheransı ayrı vagal katmandır (L17).",
+        xy=(0.01, 0.02), xycoords="axes fraction", fontsize=7,
+        color="gray", va="bottom",
+    )
 
     # Panel 2: <C>(t)
     axs[0, 1].plot(sonuc_k["t"], sonuc_k["C_halka_ort"],
@@ -174,10 +180,11 @@ def main():
             momentler = dipol_moment_zaman(
                 np.array([t_snap]), C_snap, phi_snap
             )
+            _GRID_N = 80
             _, _, _, B_mag = toplam_em_alan_3d(
-                0, konum, momentler, grid_extent=3.0, grid_n=30
+                0, konum, momentler, grid_extent=3.0, grid_n=_GRID_N
             )
-            mid_z = 30 // 2
+            mid_z = _GRID_N // 2
             B_slice = np.log10(B_mag[:, :, mid_z] + 1e-2)
             im = ax.imshow(B_slice.T, cmap="hot", origin="lower",
                            extent=[-3, 3, -3, 3])
@@ -203,6 +210,109 @@ def main():
     plt.savefig(out_png, dpi=150, bbox_inches="tight")
     plt.close()
     print(f"\n  PNG: {out_png}")
+
+    # ── Plotly interaktif HTML ──────────────────────────────────────────
+    print("\nPlotly HTML üretiliyor...")
+    try:
+        import plotly.graph_objects as go
+        from plotly.subplots import make_subplots
+
+        _GRID_N_HTML = 80
+        _t_snap_html = min(30.0, args.t_end * 0.5)
+        _t_idx_html = int(np.searchsorted(sonuc_m["t"], _t_snap_html))
+        _t_idx_html = min(_t_idx_html, sonuc_m["phi_t"].shape[1] - 1)
+        _phi_snap = sonuc_m["phi_t"][:, 0]
+        _C_snap = np.mean(sonuc_m["C_t"], axis=1)
+        _momentler = dipol_moment_zaman(
+            np.array([_t_snap_html]), _C_snap, _phi_snap
+        )
+        _, _, _, _B_mag = toplam_em_alan_3d(
+            0, konum_m, _momentler, grid_extent=3.0, grid_n=_GRID_N_HTML
+        )
+        _mid_z = _GRID_N_HTML // 2
+        _B_slice = np.log10(_B_mag[:, :, _mid_z] + 1e-2)
+        _x_ax = np.linspace(-3, 3, _GRID_N_HTML).tolist()
+
+        _fig_html = make_subplots(
+            rows=2, cols=2,
+            subplot_titles=[
+                f"EM Alan t={_t_snap_html:.0f}s (Merkez Aktif, log₁₀|B|)",
+                "r(t) — Senkronizasyon",
+                "⟨C⟩(t) — Ortalama Koherans",
+                "Merkez Kişi C_merkez(t)",
+            ],
+            vertical_spacing=0.14, horizontal_spacing=0.10,
+        )
+
+        # EM heatmap
+        _fig_html.add_trace(go.Heatmap(
+            z=_B_slice.T.tolist(), x=_x_ax, y=_x_ax,
+            colorscale="Hot", zmin=-2, zmax=float(np.max(_B_slice)),
+            colorbar=dict(title="log₁₀|B|(pT)", x=0.46),
+        ), row=1, col=1)
+        _fig_html.add_trace(go.Scatter(
+            x=konum_m[:, 0].tolist(), y=konum_m[:, 1].tolist(),
+            mode="markers", marker=dict(size=10, color="cyan"),
+            name="Kişiler", showlegend=False,
+        ), row=1, col=1)
+
+        # r(t)
+        _fig_html.add_trace(go.Scatter(
+            x=sonuc_k["t"].tolist(), y=sonuc_k["r_t"].tolist(),
+            mode="lines", line=dict(color="steelblue", width=2),
+            name="r — Kontrol",
+        ), row=1, col=2)
+        _fig_html.add_trace(go.Scatter(
+            x=sonuc_m["t"].tolist(), y=sonuc_m["r_t"].tolist(),
+            mode="lines", line=dict(color="orangered", width=2),
+            name="r — Merkez aktif",
+        ), row=1, col=2)
+        _fig_html.add_annotation(
+            text=(
+                "~sn ölçeğindeki r(t) yükselişi KAPPA-kuplaj (EM) katmanıdır.<br>"
+                "Fizyolojik 1-5 dk HeartMath koheransı ayrı vagal katmandır (L17)."
+            ),
+            xref="x2 domain", yref="y2 domain",
+            x=0.01, y=0.02, showarrow=False,
+            font=dict(size=9, color="lightgray"), align="left",
+        )
+
+        # <C>(t)
+        _fig_html.add_trace(go.Scatter(
+            x=sonuc_k["t"].tolist(), y=sonuc_k["C_halka_ort"].tolist(),
+            mode="lines", line=dict(color="steelblue", width=2),
+            name="⟨C⟩ — Kontrol",
+        ), row=2, col=1)
+        _fig_html.add_trace(go.Scatter(
+            x=sonuc_m["t"].tolist(), y=sonuc_m["C_halka_ort"].tolist(),
+            mode="lines", line=dict(color="orangered", width=2),
+            name="⟨C⟩ — Merkez aktif",
+        ), row=2, col=1)
+
+        # C_merkez(t)
+        if sonuc_m["C_merkez_t"] is not None:
+            _fig_html.add_trace(go.Scatter(
+                x=sonuc_m["t"].tolist(), y=sonuc_m["C_merkez_t"].tolist(),
+                mode="lines", line=dict(color="gold", width=2, dash="dash"),
+                name="C_merkez",
+            ), row=2, col=2)
+
+        _fig_html.update_layout(
+            title=dict(
+                text=(
+                    f"BVT Level 14 — Halka + Merkez Koherant Birey "
+                    f"(N_halka={args.N})<br>"
+                    f"Δr={delta_r:+.3f}  Δ⟨C⟩_halka={delta_C:+.3f}"
+                ),
+                font=dict(size=16),
+            ),
+            width=1400, height=900, template="plotly_dark",
+        )
+        _html_path = os.path.join(args.output, "L14_merkez_birey.html")
+        _fig_html.write_html(_html_path, include_plotlyjs="cdn")
+        print(f"  HTML: {_html_path}")
+    except Exception as _e:
+        print(f"  [UYARI] Plotly HTML oluşturulamadı: {_e}")
 
     np.savez(
         os.path.join(args.output, "L14_merkez_birey_data.npz"),
