@@ -65,6 +65,20 @@ Her wave sonunda: ilgili level'ları yeniden koş + görsel doğrula (ben) + com
 
 ---
 
+## C2. Uygulama durumu (2026-05-31)
+
+| Wave | Commit | Durum |
+|---|---|---|
+| 1 Viz altyapı (grid 60-80, L11 renk, 7 HTML, L16 colorbar) | `d900553` | ✅ gözle doğrulandı |
+| 2 L11 topoloji ayırt (C_son monoton + N_c formül) + L14 transient anchor | `2cc6e1f` | ✅ gözle + 23 test |
+| 3 L19 pipeline ayırt (eeg/HRV/piezo/Δσ/entrainment) + L13 C_KB monoton | `619b803` | ✅ 56 test 0-fail |
+| 4 L19 volumetrik KOD (pyvista_volumetric, topology_layout, p_4d, kWave, CLI) | `740577c` | ✅ compile+import; render ERTELENDİ |
+
+**Ertelenen (makine boşalınca):** L19 ozet/MP4 entegrasyon regen (Wave 3 fix kanıtı) + tam 3D volumetrik render (--volumetrik --topoloji egg/ring/flat/contact --maruz-kalma).
+**Tez-seviyesi karar (kullanıcı):** L14 pump mean-field (koherans contagion) — anchor dengeyi de yükseltsin mi?
+**Düşük öncelik:** L3/L5/L6 tam-param yeniden koşum.
+**Sistemik:** kaleido write_image güvenilmez → plotly figürler HTML olarak veriliyor.
+
 ## D. Tamamlanma kriteri
 - [ ] Tüm EM ısı haritaları ≥60 grid, pürüzsüz
 - [ ] L11 4 seri de görünür + topoloji ayırt ediyor
