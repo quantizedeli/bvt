@@ -14,3 +14,17 @@
 **Literatür uyumu:** 2/3
 
 ---
+
+## [2026-05-30 23:24] Level 6 — Pre-Stimulus Monte Carlo
+
+**Parametre seti:** trials=20, C_mean=0.35
+**Çalışma süresi:** 0.0 dakika
+
+**Önemli bulgular:**
+- Ortalama pre-stimulus: 2.23 s (hedef: 4-10 s ✗)
+- Ortalama ES: 0.1691 (Mossbridge 0.21 ✓)
+- C-ES korelasyonu: r=0.942 (hedef: >0.5 ✓)
+
+**Literatür uyumu:** 2/3
+
+---
