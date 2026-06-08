@@ -240,6 +240,8 @@ def N_kisi_tam_dinamik(
     f_geometri: float = 0.0,
     cooperative_robustness: bool = True,
     omega_individual: np.ndarray = None,
+    mean_field_pump: float = 0.0,
+    C_sabit_idx: "int | None" = None,
 ) -> Dict:
     """
     N kişi için zamana bağlı koherans ve faz dinamiği.
@@ -324,6 +326,18 @@ def N_kisi_tam_dinamik(
             V_norm * (C[np.newaxis, :] - C[:, np.newaxis]), axis=1
         )
         dC = pompalama + difuzyon - gamma_etkin * C
+        # Mean-field koherans contagion (Form B, opt-in): kişi i'nin hissettiği
+        # kuplaj-ağırlıklı ⟨C⟩ alanı pompalamayı güçlendirir → koherent komşular
+        # DENGE koheransını yükseltir (difüzyon gibi eşitlikte yok olmaz).
+        # mean_field_pump=0 → mevcut Form A (geriye uyumlu).
+        if mean_field_pump > 0.0:
+            agirlik = V_norm.sum(axis=1) + 1e-12
+            C_field = (V_norm @ C) / agirlik
+            dC = dC + mean_field_pump * C_field * (1.0 - C)
+        # Anchor sabitleme: C_sabit_idx kişisi koheransını korur (eğitimli
+        # birey / koherans jeneratörü) → grubu kalıcı yükseltir.
+        if C_sabit_idx is not None:
+            dC[C_sabit_idx] = 0.0
         # Faz dinamiği — V_norm ağırlıklı Kuramoto + per-kişi frekans
         dphi = omega_vec + kappa_etkin / N_p * np.sum(
             V_norm * np.sin(phi[np.newaxis, :] - phi[:, np.newaxis]), axis=1

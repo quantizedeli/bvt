@@ -79,6 +79,11 @@ def halka_merkez_senaryosu(
         C_baslangic[-1] = C_merkez
     phi_baslangic = rng.uniform(0, 2 * np.pi, N_total)
 
+    # Mean-field koherans contagion (Form B) + anchor sabitleme:
+    # merkez koherent birey (eğitimli birey/koherans jeneratörü) koheransını
+    # korur (C_sabit_idx) ve mean-field ile grubun DENGE koheransını yükseltir
+    # (transient değil — kalıcı). Kontrol senaryosunda anchor yok ama mean-field
+    # var (adil kıyas: anchor'ın marjinal denge etkisi izole edilir).
     sonuc = N_kisi_tam_dinamik(
         konumlar=konumlar,
         C_baslangic=C_baslangic,
@@ -87,6 +92,8 @@ def halka_merkez_senaryosu(
         dt=0.05,
         f_geometri=0.35,
         cooperative_robustness=True,
+        mean_field_pump=0.5,
+        C_sabit_idx=(N_total - 1) if merkez_aktif else None,
     )
 
     if merkez_aktif:
@@ -144,10 +151,11 @@ def main():
 
     delta_r = sonuc_m["r_t"][-1] - sonuc_k["r_t"][-1]
     delta_C = sonuc_m["C_halka_ort"][-1] - sonuc_k["C_halka_ort"][-1]
-    print(f"\nMerkez etkisi (TRANSIENT — anchor senkronizasyonu hızlandırır):")
-    print(f"  Peak Δ⟨C⟩_halka = {peak_dC:+.3f} @ t={peak_t:.1f}s")
-    print(f"  Δτ(⟨C⟩=0.5)     = {delta_tau:+.2f}s (pozitif → merkez daha hızlı kilitlenir)")
-    print(f"  Denge: Δ⟨C⟩_son = {delta_C:+.3f} (≈0 beklenir — pump sabit-noktası), Δr_son = {delta_r:+.3f}")
+    print(f"\nMerkez koherent birey etkisi (mean-field contagion + anchor):")
+    print(f"  Denge: Δ⟨C⟩_halka_son = {delta_C:+.3f} (anchor grubun DENGE koheransını yükseltir)")
+    print(f"  Peak Δ⟨C⟩_halka       = {peak_dC:+.3f} @ t={peak_t:.1f}s (transient)")
+    print(f"  Δτ(⟨C⟩=0.5)           = {delta_tau:+.2f}s (pozitif → merkez daha hızlı kilitlenir)")
+    print(f"  Δr_son = {delta_r:+.3f}")
 
     # Görselleştirme
     colors = get_palette("light")
@@ -221,9 +229,9 @@ def main():
         ax.set_title(f"{label} (t=30s EM)", fontweight="bold")
 
     fig.suptitle(
-        f"BVT Level 14 — Halka + Merkez Koherent Birey (anchor senkronizasyonu HIZLANDIRIR)\n"
-        f"Peak Δ⟨C⟩={peak_dC:+.3f} @ t={peak_t:.0f}s | Δτ={delta_tau:+.1f}s (merkez daha hızlı) | "
-        f"Δ⟨C⟩_denge={delta_C:+.3f}≈0 (pump sabit-noktası)",
+        f"BVT Level 14 — Halka + Merkez Koherent Birey (mean-field contagion)\n"
+        f"Denge Δ⟨C⟩={delta_C:+.3f} (anchor grubu kalıcı yükseltir) | "
+        f"Peak Δ⟨C⟩={peak_dC:+.3f}@{peak_t:.0f}s | Δτ={delta_tau:+.1f}s (hızlanma)",
         fontsize=12, fontweight="bold",
     )
     plt.tight_layout()
