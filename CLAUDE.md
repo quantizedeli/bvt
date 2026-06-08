@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Proje:** Birliğin Varlığı Teoremi (BVT) / Theorem of the Unity of Existence  
 **Yazar:** Ahmet Kemal Acar | **Güncelleme:** Mayıs 2026  
-**Durum:** v9.10-sprint12 — Sprint 11 S1 D-016 (JR kanonik 10 Hz Hopf limit-cycle α, Uyanık/NREM 108×) + S2 D-017 (L7 santral kortikal HEP, Cz/C3/C4 14×) + **S3 Celardo 2014 → 13/13 reprodüksiyon KAPALI** (simetrik |s⟩ süperradyant başlangıç + mutlak NΓ/2 eşiği + J_CELARDO=20γ, ring_bonus %27, γ_φ^cr/Nγ≈1.1). QA: tutarlılık 76/0, output_audit 0 FAIL, inter_module 51/0; level8 flaky timeout 120→300s. Ertelendi: S4 D-009 TRUBA submission (donanım erişimi).
+**Durum:** v9.11-sprint13 — **Çıktı Kalite Overhaul** (multi-agent, ~14 commit). Wave 1 viz (grid 60-80, L11 renk, 7 HTML, L16 colorbar); Wave 2 fizik (L11 C_son+N_c ayırt, L14 transient→mean-field anchor Denge Δ⟨C⟩=+0.020); Wave 3 L19 pipeline (5/5 anim enstrüman ayırt, entrainment+HRV düzeldi, L13 C_KB monoton); Wave 4 L19 tam 3D volumetrik (ses dalga cephesi izosurface + egg/ring/flat/contact topoloji + direkt/dolaylı + k-Wave backend). L3/L5/L6 tam-param (729-dim, 500 trial). Test: 56 akustik + 23 multi_person 0-regresyon. **Ders:** agent birim-testi ≠ entegrasyon kanıtı (A4 byte-identical), master gerçek çıktıyı (md5/görsel) doğrular. kaleido güvenilmez → plotly HTML. Önceki: v9.10-sprint12 Celardo 13/13. Ertelendi: S4 D-009 TRUBA.
 
 **Bu CLAUDE.md ile birlikte oku:**
 1. **`sprint_docs/`** — 9 sprint dökümanı (analiz raporu + Sprint 00-04 + 4 checklist)
