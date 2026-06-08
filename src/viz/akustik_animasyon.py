@@ -232,24 +232,33 @@ def render_a4_acoustoelectric(
     )
     val_txt = ax_txt.text(0.05, 0.40, "", fontsize=20, color="navy")
 
-    dsigma_pct = sonuc.delta_sigma_pct_t
+    dsigma_pct = np.asarray(sonuc.delta_sigma_pct_t, dtype=float)
     nt = len(dsigma_pct)
     n_frame = min(nt, 200)
     idx_seq = np.linspace(0, nt - 1, n_frame, dtype=int)
 
+    # Δσ mutlak değeri fiziksel olarak çok küçük (~1e-12 %, K_AE·p_brain).
+    # Enstrüman-spesifik ZAMANSAL PATTERN'i göstermek için normalize edilir;
+    # mutlak ölçek başlıkta ayrıca belirtilir (yanıltıcı "0.000" yerine).
+    d_abs_max = float(np.abs(dsigma_pct).max())
+    if d_abs_max > 0:
+        dsigma_norm = dsigma_pct / d_abs_max
+    else:
+        dsigma_norm = dsigma_pct
+    X, Y = np.meshgrid(np.arange(32), np.arange(32))
+    gauss = np.exp(-((X - 16) ** 2 + (Y - 16) ** 2) / 60)
+
     heat = np.zeros((32, 32))
-    im = ax_map.imshow(heat, cmap="RdBu_r", vmin=-2, vmax=2)
-    fig.colorbar(im, ax=ax_map, label="Δσ/σ (%)")
-    ax_map.set_title("Beyin Koronal Kesit Δσ/σ")
+    im = ax_map.imshow(heat, cmap="RdBu_r", vmin=-1, vmax=1)
+    fig.colorbar(im, ax=ax_map, label="Δσ/σ (normalize)")
+    ax_map.set_title(f"Beyin Koronal Δσ/σ deseni\n(mutlak max ≈ {d_abs_max:.2e} %)")
 
     def update(frame):
         t_idx = idx_seq[frame]
-        pct = float(dsigma_pct[t_idx])
-        x = np.arange(32); y = np.arange(32)
-        X, Y = np.meshgrid(x, y)
-        center = pct * np.exp(-((X - 16) ** 2 + (Y - 16) ** 2) / 60)
-        im.set_data(center)
-        val_txt.set_text(f"Max |Δσ/σ₀| = {pct:.3f} %")
+        val_n = float(dsigma_norm[t_idx])
+        im.set_data(val_n * gauss)
+        val_txt.set_text(f"Δσ/σ₀(t) = {dsigma_pct[t_idx]:.2e} %\n"
+                         f"(norm: {val_n:+.2f})")
         return im, val_txt
 
     ani = FuncAnimation(fig, update, frames=n_frame, blit=False, interval=40)
