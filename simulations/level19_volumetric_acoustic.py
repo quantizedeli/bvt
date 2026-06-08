@@ -199,7 +199,9 @@ def _volumetrik_render(sonuc: "PipelineSonuc", args: "argparse.Namespace",
               "Render statik voxel ile devam ediyor.")
         p_4d = np.zeros((1, nx, ny, nz), dtype=np.float32)
 
-    out_mp4 = os.path.join(output_dir, f"level19_{sonuc.isim}_volumetrik.mp4")
+    out_mp4 = os.path.join(
+        output_dir,
+        f"level19_{sonuc.isim}_volumetrik_{args.topoloji}_{args.maruz_kalma}.mp4")
     print(f"    [volumetrik] render_volumetrik_sahne -> {out_mp4}")
     try:
         render_volumetrik_sahne(
