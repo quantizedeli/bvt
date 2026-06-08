@@ -140,7 +140,12 @@ def _volumetrik_render(sonuc: "PipelineSonuc", args: "argparse.Namespace",
     if args.topoloji != "tek":
         try:
             from src.models.topology_layout import topoloji_yerlesim
-            topo_positions = topoloji_yerlesim(topo=args.topoloji, N=6)["positions"]
+            _tp_m = topoloji_yerlesim(topo=args.topoloji, N=6)["positions"]
+            # metre -> voxel: grid merkezine taşı + grid boyutuyla ölçekle
+            # (kisiler merkez kafanin etrafina dagilir).
+            gx, gy, gz = grid_secim
+            merkez = np.array([gx / 2.0, gy / 2.0, gz / 2.0])
+            topo_positions = merkez + np.asarray(_tp_m) * float(min(gx, gy, gz))
         except ImportError as exc:
             print(f"    [HATA] topology_layout import edilemedi: {exc}")
 

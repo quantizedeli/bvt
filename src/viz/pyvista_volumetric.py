@@ -209,38 +209,51 @@ def render_volumetrik_sahne(
         pl = pv.Plotter(off_screen=True, window_size=(800, 600))
         pl.set_background("black")
 
-        # Kafa yüzey
-        pl.add_mesh(kafa_mesh, color=kafa_color, opacity=0.25, style="surface")
+        # Kafa yüzey — saydam tel-çerçeve + hafif yüzey: içerideki ses
+        # alanını ÖRTMEZ (önceki opacity=0.25 surface ses alanini gizliyordu).
+        pl.add_mesh(kafa_mesh, color=kafa_color, opacity=0.08, style="surface")
+        pl.add_mesh(kafa_mesh, color="white", opacity=0.15, style="wireframe",
+                    line_width=0.5)
 
-        # Ses basıncı volume
-        opacity_vals = _sigmoid_opacity(np.linspace(0, 1, 256)).tolist()
+        # Ses basıncı volume — düşük-amplitüd dalgalar da GÖRÜNSÜN.
+        # sigmoid center 0.3->0.05 (zayif dalga cephesi seffaf degil),
+        # düşük degerler tamamen 0 opak degil (lineer taban) -> yayilim gorunur.
+        ramp = np.linspace(0, 1, 256)
+        opacity_vals = (0.7 * _sigmoid_opacity(ramp, center=0.05, steepness=14.0)
+                        + 0.1 * ramp).tolist()
         pl.add_volume(
             p_grid,
             scalars="pressure",
-            cmap="hot",
+            cmap="turbo",
             opacity=opacity_vals,
-            show_scalar_bar=False,
+            show_scalar_bar=True,
+            scalar_bar_args={"title": "|p| (norm)", "color": "white"},
         )
+        # Ses dalga CEPHESI izosurface (volume'den cok daha gorunur):
+        # basinc alanini point-data'ya cevir, birkac esikte kontur ciz.
+        try:
+            p_pts = p_grid.cell_data_to_point_data()
+            p_iso = p_pts.contour(
+                isosurfaces=[0.18, 0.4, 0.7], scalars="pressure")
+            if p_iso.n_points > 0:
+                pl.add_mesh(p_iso, scalars="pressure", cmap="turbo",
+                            opacity=0.55, show_scalar_bar=False,
+                            clim=[0.0, 1.0])
+        except Exception:  # noqa: BLE001
+            pass
 
-        # Elektrotlar
-        pl.add_mesh(
-            elec_pts,
-            render_points_as_spheres=True,
-            point_size=8,
-            color="cyan",
-        )
+        # Elektrotlar (cyan), Kalp (kirmizi)
+        pl.add_mesh(elec_pts, render_points_as_spheres=True, point_size=10,
+                    color="cyan")
+        pl.add_mesh(kalp_sphere, color="red", opacity=0.9)
 
-        # Kalp
-        pl.add_mesh(kalp_sphere, color="red", opacity=0.8)
-
-        # Topoloji pozisyonları
+        # Topoloji pozisyonları — her kisi icin kafa-kuresi (grid olcegine
+        # tasinmis; metre->voxel uyumsuzlugu caller'da olceklenir).
         if topo_positions is not None:
-            pl.add_mesh(
-                topo_pts,
-                render_points_as_spheres=True,
-                point_size=12,
-                color="yellow",
-            )
+            for _pp in topo_pos:
+                pl.add_mesh(pv.Sphere(radius=max(nx, ny, nz) * 0.06,
+                                      center=tuple(_pp.tolist())),
+                            color="gold", opacity=0.55)
 
         # Oda kutusu
         if oda:
