@@ -114,11 +114,13 @@ def _volumetrik_render(sonuc: "PipelineSonuc", args: "argparse.Namespace",
     pyvista_volumetric.render_volumetrik_sahne ile MP4 uretilir.
     Agir render; import'lar lazy (modül yoksa anlamli hata).
     """
-    # Lazy import: dalga_pde
+    # Lazy import: dalga_pde + kaynak + voxel (boru.py ile AYNI cagri deseni)
     try:
         from src.models.acoustic.dalga_pde import fdtd_kos
+        from src.models.acoustic.kaynak import kaynak_uret, SES_FREKANSLARI_TEMEL
+        from src.models.acoustic.voxel_doku import voxel_haritasi_uret
     except ImportError as exc:
-        print(f"    [HATA] dalga_pde import edilemedi: {exc}")
+        print(f"    [HATA] akustik modul import edilemedi: {exc}")
         return
 
     # Lazy import: pyvista_volumetric
@@ -129,52 +131,63 @@ def _volumetrik_render(sonuc: "PipelineSonuc", args: "argparse.Namespace",
         print("      'pip install pyvista' gereklidir.")
         return
 
-    # Kaynagi ayarla: dolayli => oda kosesi
+    # Maruz kalma: direkt = gogus onu (0,-10,0) cm; dolayli = oda kosesi (uzak)
     oda_modu = (args.maruz_kalma == "dolayli")
-    if oda_modu:
-        kaynak_pos = np.array([-1.0, -1.0, -1.0])  # oda kosesi
-    else:
-        kaynak_pos = np.zeros(3)  # merkez (direkt)
+    kaynak_pos_cm = (40.0, -40.0, 40.0) if oda_modu else (0.0, -10.0, 0.0)
 
-    # Topoloji konumlari (tek degil ise)
+    # Topoloji konumlari (tek degil ise) — coklu-kisi sahne
     topo_positions = None
     if args.topoloji != "tek":
         try:
             from src.models.topology_layout import topoloji_yerlesim
+            topo_positions = topoloji_yerlesim(topo=args.topoloji, N=6)["positions"]
         except ImportError as exc:
             print(f"    [HATA] topology_layout import edilemedi: {exc}")
-            return
-        topo_dict = topoloji_yerlesim(topo=args.topoloji, N=6)
-        topo_positions = topo_dict["positions"]
 
-    # Kucuk grid ile guvenli FDTD kosusu (save_every ile p_4d)
+    # Gercek kafa haritasi + kaynak (boru.py deseni) — kubus DEGIL
     nx, ny, nz = grid_secim
-    print(f"    [volumetrik] FDTD grid={grid_secim} backend={args.backend} ...")
+    harita = voxel_haritasi_uret(grid=grid_secim)
+    freq_hz = SES_FREKANSLARI_TEMEL.get(sonuc.isim, 10.0)
+    # FDTD suresi: yuksek freq -> cok kisa (CFL/bellek), 1-2 periyot kapsar
+    fdtd_sure_s = 0.003 if freq_hz > 100 else (0.005 if freq_hz > 30 else 0.01)
+    t_src, p_src, fs_src, _ = kaynak_uret(
+        isim=sonuc.isim, spl_db=args.spl_db, sure_s=fdtd_sure_s,
+        ses_kaynagi=args.ses_kaynagi,
+    )
+
+    print(f"    [volumetrik] FDTD grid={grid_secim} freq={freq_hz}Hz "
+          f"backend={args.backend} sure={fdtd_sure_s}s ...")
     try:
         fdtd_sonuc = fdtd_kos(
-            nx=nx, ny=ny, nz=nz,
-            save_every=10,
-            backend=args.backend,
+            harita, p_src, fs_src, sure_s=fdtd_sure_s,
+            kaynak_pozisyon_cm=kaynak_pos_cm,
+            save_every=10, backend=args.backend,
         )
-    except TypeError:
-        # eski imzada save_every/backend yoksa geriye uyumlu cagri
-        fdtd_sonuc = fdtd_kos(nx=nx, ny=ny, nz=nz)
+    except TypeError:  # eski imza (save_every/backend yok)
+        fdtd_sonuc = fdtd_kos(harita, p_src, fs_src, sure_s=fdtd_sure_s)
 
     p_4d = fdtd_sonuc.get("p_4d")
-    t_grid = fdtd_sonuc.get("t_grid", sonuc.t_grid)
+    # Render frame sayisini ~80'e indir (PyVista off-screen ~0.7s/frame;
+    # 360 frame ~4dk render -> 80 frame ~1dk). t_grid p_4d ile ESLESMELI.
+    if p_4d is not None:
+        RENDER_FRAME_HEDEF = 80
+        if p_4d.shape[0] > RENDER_FRAME_HEDEF:
+            step = p_4d.shape[0] // RENDER_FRAME_HEDEF
+            p_4d = p_4d[::step]
+        t_grid = np.linspace(0.0, fdtd_sure_s, p_4d.shape[0])
+    else:
+        t_grid = fdtd_sonuc.get("t_grid", getattr(sonuc, "t_grid", None))
 
-    # voxel_harita: basit kubus (kafa topoloji)
-    voxel_harita = np.zeros(grid_secim, dtype=np.float32)
+    # voxel_harita: GERCEK doku (rho_3d > hava esigi) -> kafa iso-surface
+    rho_3d = harita.get("rho_3d")
+    if rho_3d is not None:
+        voxel_harita = (np.asarray(rho_3d) > 100.0).astype(np.float32)
+    else:
+        voxel_harita = np.zeros(grid_secim, dtype=np.float32)
     cx, cy, cz = nx // 2, ny // 2, nz // 2
     r_kafa = min(nx, ny, nz) // 4
-    for xi in range(nx):
-        for yi in range(ny):
-            for zi in range(nz):
-                if (xi - cx) ** 2 + (yi - cy) ** 2 + (zi - cz) ** 2 < r_kafa ** 2:
-                    voxel_harita[xi, yi, zi] = 1.0
-
-    elektrot_pos = np.array([[cx, cy, cz + r_kafa]], dtype=float)
-    kalp_pos_arr = np.array([[cx, cy, cz - r_kafa * 2]], dtype=float)
+    elektrot_pos = np.array([[cx, cy, nz - 1]], dtype=float)        # vertex (Cz)
+    kalp_pos_arr = np.array([[cx, cy // 2, cz]], dtype=float)        # gogus
 
     if p_4d is None:
         print("    [UYARI] p_4d alinamadi (save_every desteklenmiyor). "
