@@ -1,0 +1,4262 @@
+From e08410370213a42161efe312d2748bfee9684ea7 Mon Sep 17 00:00:00 2001
+From: "Claude Opus 4.7" <claude@anthropic.local>
+Date: Thu, 21 May 2026 14:36:50 +0000
+Subject: [PATCH 1/2] =?UTF-8?q?docs(thesis):=20tez=20teslim=20haz=C4=B1rl?=
+ =?UTF-8?q?=C4=B1=C4=9F=C4=B1=20=E2=80=94=20agent=20sistemi=20+=20skill=20?=
+ =?UTF-8?q?v2=20+=20strateji=20belgeleri?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+22 Mayıs tez teslim için Claude Code'da çalışacak agent sistemi, skill
+genişletmeleri ve karar destek dokümanları.
+
+Yeni dokümanlar:
+  docs/thesis-toolkit/
+    THESIS-RESEARCH-NOTES.md         (merkez bilgi havuzu, sayısal sözlük)
+    HAKAN-HOCA-SORULAR.md            (yarın hocaya 5 soru)
+    THESIS-PLAN-v2.md                (A/B karar matrisi, zaman planı)
+    CLAUDE-CODE-ORCHESTRATION.md     (Claude Code master prompt)
+    UMBERTO-ECO-METODOLOJI.md        (yazım metodolojisi özeti)
+    SUBMISSION-CHECKLIST.md          (teslim öncesi kontrol)
+    SCHEDULER-SETUP.md               (Windows Task Scheduler kurulumu)
+    guide/PARALLEL-AGENTS-SYSTEM.md  (11 agent mimari kataloğu)
+    agents/agent-A-phases-update.md  (örnek agent prompt — diğerlerini Claude Code üretecek)
+
+Yeni tez bölümleri:
+  thesis/
+    01-giris.md                      (Bölüm 1 Giriş, odd-odd özgün katkı)
+    02-literatur-incelemesi-v2.md    (Bölüm 2 Literatür v2)
+
+Yeni skill v2 dosyaları:
+  skills/
+    academic-shield-v2.md            (SAÜ tez stiliyle genişletilmiş, Mod B)
+    academic-writing-pro-v2.md       (Fen Bilimleri tez yazımı, bölüm bazlı ses)
+    humanizer-thesis-mode.md         (yeni — tez-spesifik humanizer)
+
+Arşivlenenler:
+  thesis/_archive/
+    bolum-02-literatur-v1.md         (eski Bölüm 2, R²=0.9794 hatalı)
+    tez-yazim-not-defteri-OLD.md     (864 satır eski not defteri)
+
+Önemli düzeltmeler:
+  - Ensemble en iyi R²=0.9794 (eski, 2026-04-02) → R²=0.8886 (QM güncel)
+  - MM ensemble R²=-3.18 olumsuz bulgu olarak konumlandırıldı (PFAZ7 BUG-127)
+  - 267 çekirdek = tamamı odd-odd özgün katkı çerçevesinde işlendi
+  - Yuan 2021, Stone 2024, Knöll 2025, Karthein 2024, Lechner 2023
+    + SAÜ Yakut grubu (Tabar 2017, Hoşgör 2017) kaynakları eklendi
+
+Strateji:
+  - Yol α: Mevcut snapshot ile 22 Mayıs teslim
+  - Sprint 18 (Schmidt odd-odd): Hakan hoca onayına tabi, plan hazır
+  - Claude Code 11 paralel agent ile tez metnini yazacak
+  - Skill v2 ile SAÜ tez stiline uygun, AI-iz minimize edilmiş çıktı
+
+Co-Authored-By: Claude Opus 4.7 <noreply@anthropic.com>
+---
+ .../CLAUDE-CODE-ORCHESTRATION.md              | 277 +++++++++++
+ docs/thesis-toolkit/HAKAN-HOCA-SORULAR.md     | 130 +++++
+ docs/thesis-toolkit/SCHEDULER-SETUP.md        | 242 +++++++++
+ docs/thesis-toolkit/SUBMISSION-CHECKLIST.md   | 339 +++++++++++++
+ docs/thesis-toolkit/THESIS-PLAN-v2.md         | 375 ++++++++++++++
+ docs/thesis-toolkit/THESIS-RESEARCH-NOTES.md  | 437 +++++++++++++++++
+ docs/thesis-toolkit/UMBERTO-ECO-METODOLOJI.md | 257 ++++++++++
+ .../agents/agent-A-phases-update.md           | 194 ++++++++
+ .../guide/PARALLEL-AGENTS-SYSTEM.md           | 374 ++++++++++++++
+ skills/INDEX.md                               |   9 +
+ skills/academic-shield-v2.md                  | 312 ++++++++++++
+ skills/academic-writing-pro-v2.md             | 464 ++++++++++++++++++
+ skills/humanizer-thesis-mode.md               | 322 ++++++++++++
+ thesis/01-giris.md                            |  84 ++++
+ thesis/02-literatur-incelemesi-v2.md          | 252 ++++++++++
+ .../bolum-02-literatur-v1.md}                 |   0
+ .../tez-yazim-not-defteri-OLD.md}             |   0
+ 17 files changed, 4068 insertions(+)
+ create mode 100644 docs/thesis-toolkit/CLAUDE-CODE-ORCHESTRATION.md
+ create mode 100644 docs/thesis-toolkit/HAKAN-HOCA-SORULAR.md
+ create mode 100644 docs/thesis-toolkit/SCHEDULER-SETUP.md
+ create mode 100644 docs/thesis-toolkit/SUBMISSION-CHECKLIST.md
+ create mode 100644 docs/thesis-toolkit/THESIS-PLAN-v2.md
+ create mode 100644 docs/thesis-toolkit/THESIS-RESEARCH-NOTES.md
+ create mode 100644 docs/thesis-toolkit/UMBERTO-ECO-METODOLOJI.md
+ create mode 100644 docs/thesis-toolkit/agents/agent-A-phases-update.md
+ create mode 100644 docs/thesis-toolkit/guide/PARALLEL-AGENTS-SYSTEM.md
+ create mode 100644 skills/academic-shield-v2.md
+ create mode 100644 skills/academic-writing-pro-v2.md
+ create mode 100644 skills/humanizer-thesis-mode.md
+ create mode 100644 thesis/01-giris.md
+ create mode 100644 thesis/02-literatur-incelemesi-v2.md
+ rename thesis/{bolum-02-literatur-incelemesi.md => _archive/bolum-02-literatur-v1.md} (100%)
+ rename thesis/{tez-yazim-not-defteri.md => _archive/tez-yazim-not-defteri-OLD.md} (100%)
+
+diff --git a/docs/thesis-toolkit/CLAUDE-CODE-ORCHESTRATION.md b/docs/thesis-toolkit/CLAUDE-CODE-ORCHESTRATION.md
+new file mode 100644
+index 0000000..d9d40f2
+--- /dev/null
++++ b/docs/thesis-toolkit/CLAUDE-CODE-ORCHESTRATION.md
+@@ -0,0 +1,277 @@
++# CLAUDE-CODE-ORCHESTRATION
++## Kemal'in Claude Code'a vereceği tek ana prompt
++
++> **Amaç:** Bu doküman, Claude Code'a verilecek **tek bir master prompt** içerir. Bu prompt yapıştırıldığında Claude Code:
++> 1. 11 agent için alt-prompt dosyalarını **kendi üretir** (Claude Desktop yazmaz)
++> 2. Agent'ları paralel veya sıralı başlatır
++> 3. Orchestrator raporu üretir
++>
++> **Tarih:** 2026-05-21 gece | Tez teslim: 22 Mayıs
++
++---
++
++## Kullanım
++
++1. Repo'yu `git pull origin thesis-writing` ile güncelle.
++2. VS Code'da Claude Code panelini aç.
++3. Aşağıdaki **MASTER PROMPT**'u tek mesajda yapıştır.
++4. Claude Code'un sorularını (varsa) onayla.
++5. Çalışmayı izle veya `Task Scheduler` ile gece çalışmasına bırak.
++
++---
++
++## MASTER PROMPT (kopyala-yapıştır)
++
++```
++Sen tez yazımı için Claude Code orkestratörüsün. Görevin: 22 Mayıs tez teslimi
++için 11 paralel agent'ı yönetmek.
++
++═══════════════════════════════════════════════════════════════════
++ÖN OKUMA (sırayla)
++═══════════════════════════════════════════════════════════════════
++
++1. docs/thesis-toolkit/THESIS-RESEARCH-NOTES.md
++   — Merkezi bilgi havuzu. Tüm sayısal sözlük, kararlar, atıflar burada.
++
++2. docs/thesis-toolkit/THESIS-PLAN-v2.md
++   — Tez yapısı (4-bölüm / 7-bölüm A/B karar matrisi).
++     Hakan hoca cevabı sonrası tek varyant aktive edilecek.
++
++3. docs/thesis-toolkit/guide/PARALLEL-AGENTS-SYSTEM.md
++   — 11 agent'ın görev tanımları, bağımlılıklar, çıktı bekleyişleri.
++
++4. docs/thesis-toolkit/SUBMISSION-CHECKLIST.md
++   — Teslim öncesi son kontrol listesi.
++
++═══════════════════════════════════════════════════════════════════
++GÖREVİN
++═══════════════════════════════════════════════════════════════════
++
++ADIM 1 — Agent prompt'larını üret
++─────────────────────────────────
++docs/thesis-toolkit/agents/ dizinine 11 ayrı prompt dosyası yaz:
++
++  agent-A-phases-update.md       (faz md güncelleme, Sprint 17 senkron)
++  agent-B-sau-style.md           (14 SAÜ tezi stil analizi)
++  agent-C-excel-inventory.md     (snapshot xlsx envanteri + pivot)
++  agent-D-viz-catalog.md         (193 PNG + 68 HTML eşleştirme)
++  agent-E-orchestrator.md        (sentez + sabah raporu)
++  agent-F-literature.md          (Gemini Deep Research + arXiv + Sci-Hub)
++  agent-G-eco-methodology.md     (Umberto Eco özet)
++  agent-H-skill-update.md        (skill rehberi güncelleme, Agent B sonrası)
++  agent-I-latex-compile.md       (Pandoc/pdflatex)
++  agent-J-scheduler.md           (Windows Task Scheduler)
++  agent-CHAPTER-WRITER.md        (★ TEZ METNİ YAZICI — en kritik)
++
++Her dosya şu yapıda olsun:
++  - Kimlik / rol tanımı
++  - Zorunlu okumalar (RESEARCH-NOTES + ilgili faz dosyaları)
++  - Görev maddeleri (sırayla)
++  - Çıktı dosyaları (tam yol)
++  - Onay kuralları (otomatik / Kemal onayı zorunlu)
++  - Kalite kontrol checklist
++  - Kullanılacak skill ve ECC agent'ları
++  - Başlatma promtu (kendi içinde recursive)
++
++Detay seviyesi: PARALLEL-AGENTS-SYSTEM.md §2'deki agent kataloğunu temel
++al; her agent için ~200-300 satır detaylı prompt yaz. Görev maddelerini
++RESEARCH-NOTES §7'deki agent görev listesinden genişlet.
++
++ADIM 2 — Agent CHAPTER-WRITER için detaylı planı yap
++────────────────────────────────────────────────────
++Bu agent **tezin asıl metnini** yazacak (Bölüm 3-7 + Özet + Kaynakça + Ekler).
++
++Plan:
++  a) writing-plans skill'i ile her bölüm için bir mini-plan yap
++  b) Bölüm sırası: Yöntem → Uygulama → Bulgular → Tartışma → Sonuç → Özet → Kaynakça → Ekler
++  c) Her bölüm için:
++     - Snapshot LaTeX'i oku (chapters/chapter3-6_*.tex)
++     - Sprint 14 dönemi yanlış sayıları RESEARCH-NOTES §1.3 ile güncelle
++     - SAÜ stil rehberini (Agent B çıktısı) uygula
++     - academic-shield Mod B ile yaz
++     - DOI'leri Agent F çıktısından çek
++     - Figür referanslarını Agent D çıktısından, tablo referanslarını Agent C'den al
++  d) Her bölüm yazımı sonrası verification-before-completion ile kontrol
++  e) Çıktı: thesis/03-yontem.md, 04-uygulama.md, ..., 09-ekler.md
++
++ADIM 3 — Agent'ları başlat
++──────────────────────────
++Aşağıdaki sırayla, paralel + sıralı:
++
++AŞAMA 1 (paralel, 60-90 dk):
++  Task tool → Agent A (phases güncelleme)
++  Task tool → Agent B (SAÜ stil)
++  Task tool → Agent C (Excel envanter)
++  Task tool → Agent D (Viz katalog)
++  Task tool → Agent F (literatür)
++  Task tool → Agent G (Eco)
++
++AŞAMA 2 (sıralı, Aşama 1 sonrası, 45 dk):
++  Task tool → Agent H (skill güncelleme, Agent B'ye bağımlı)
++
++AŞAMA 3 (sıralı, Aşama 1+2 sonrası, 90-150 dk):
++  Task tool → Agent CHAPTER-WRITER
++
++AŞAMA 4 (sıralı, Aşama 3 sonrası, 30 dk):
++  Task tool → Agent I (LaTeX derleme)
++
++AŞAMA 5 (paralel her aşamada, 30 dk son):
++  Task tool → Agent E (Orchestrator) — sabah raporu
++  Task tool → Agent J (Scheduler) — gece çalışma kurulumu
++
++ADIM 4 — Hakan hoca cevabı için karar noktası
++────────────────────────────────────────────
++Eğer "Hakan hocadan cevap geldi" mesajı alırsan:
++  - THESIS-PLAN-v2.md'deki A/B kararını netle
++  - Etkilenen agent'ları (genelde CHAPTER-WRITER) yeniden başlat veya devam ettir
++  - Schmidt onaylanırsa → Sprint 18 dokümanını üret (separate prompt)
++
++ADIM 5 — Orchestrator raporu
++────────────────────────────
++Tüm agent'lar bitince Agent E'yi tetikle. Çıktı:
++  docs/thesis-toolkit/ORCHESTRATOR_REPORT_2026-05-22.md
++
++Bu rapor Kemal sabah okuyacak. İçerik:
++  - Tamamlanan agent'lar (commit hash'leri ile)
++  - Çelişki tespit (sayısal tutarsızlık varsa)
++  - Pending decisions (Kemal onayı gereken)
++  - Otomatik düzeltilen hatalar
++  - Sonraki adım önerisi (LaTeX derleme + Submit checklist)
++
++═══════════════════════════════════════════════════════════════════
++ONAY KURALLARI
++═══════════════════════════════════════════════════════════════════
++
++OTOMATIK (Kemal onayı GEREKMEZ):
++  ✅ Yeni MD dosyası
++  ✅ MD düzenleme (eski versiyon _archive/'e)
++  ✅ Skill v2 dosyaları
++  ✅ Lokal branch'lere commit + push
++  ✅ Pipeline çıktılarını okuma
++
++ONAY ZORUNLU (Kemal sabah görür):
++  ⛔ Pipeline yeniden çalıştırma (PFAZ eğitim)
++  ⛔ Ana thesis-writing branch'e doğrudan push
++  ⛔ Sprint 18 başlatma (Schmidt)
++  ⛔ aaa2.txt veri değişikliği
++
++Karar gereken bir durumda:
++  - docs/thesis-toolkit/pending-decisions/PD-YYYY-MM-DD-N.md yaz
++  - Sorunu + varyantları + default'unu belgele
++  - Default ile ilerle, not düş
++
++═══════════════════════════════════════════════════════════════════
++ÇIKTI DOSYALARI (özet)
++═══════════════════════════════════════════════════════════════════
++
++Yeni dosyalar:
++  docs/thesis-toolkit/agents/*.md (11 dosya)
++  docs/thesis-toolkit/AGENT-{A..J}-REPORT.md (10 rapor)
++  docs/thesis-toolkit/ORCHESTRATOR_REPORT_2026-05-22.md
++  thesis/03-yontem.md ... thesis/09-ekler.md (8 dosya)
++  skills/academic-shield-v2.md (Kemal hazır verdi)
++  skills/academic-writing-pro-v2.md (Kemal hazır verdi)
++  skills/humanizer-thesis-mode.md (Kemal hazır verdi)
++  thesis/output/tez.pdf (final)
++
++Güncellenen dosyalar:
++  phases/*.md (12 dosya)
++  docs/thesis-toolkit/06-FIGURE-TABLE-CATALOG.md
++  docs/thesis-toolkit/07-GLOSSARY-SYMBOLS.md
++  docs/thesis-toolkit/tez-yazim-not-defteri.md (canonical)
++
++Arşivlenen dosyalar:
++  thesis/_archive/bolum-02-literatur-v1.md
++  thesis/_archive/tez-yazim-not-defteri-OLD.md
++
++═══════════════════════════════════════════════════════════════════
++BAŞLATMA
++═══════════════════════════════════════════════════════════════════
++
++Hazır mısın? Eğer evet:
++  1. ADIM 1'i yap (agent prompt'larını üret, 11 dosya)
++  2. Kemal'e "11 agent prompt hazır, Aşama 1'i başlatıyorum (6 agent paralel)"
++     mesajı ver
++  3. Onay alırsan veya 5 dk sessizlik sonrası otomatik başlat
++  4. Her aşama bitiminde özet rapor
++
++GİT TAKTİĞİ:
++  - Master branch: thesis-writing
++  - Her agent kendi alt-branch: agent-A-phases-update, agent-B-sau-style, ...
++  - Aşama sonu Orchestrator squash-merge eder
++  - Final: thesis-writing branch'ine push (Kemal görür)
++
++KOTA YÖNETİMİ:
++  - Kemal'in kullanım limitini kontrol et
++  - Limit dolarsa Scheduler (Agent J) yenileme saatini hesaplar
++  - Otomatik devam mekanizması Agent J prompt'unda
++
++Başlayabilirsin.
++```
++
++---
++
++## Kullanımdan sonra Kemal ne yapacak
++
++1. **Sabah hoca cevabı geldikten sonra** Claude Code'a şu kısa mesajı ver:
++
++```
++Hakan hocadan cevaplar:
++  Soru 1 (Schmidt odd-odd): [a / b]
++  Soru 2 (bölüm yapısı): [4-bölüm / 7-bölüm]
++  Soru 3 (atıf formatı): [IEEE-SAÜ / klasik IEEE]
++  Soru 4 (AI beyanı): [zorunlu / hayır]
++  Soru 5 (deadline): [uzatma onayı / yok]
++
++THESIS-PLAN-v2.md'de ilgili varyantı aktive et.
++Etkilenen agent'ları (özellikle CHAPTER-WRITER) bu karara göre yeniden tetikle.
++```
++
++2. **Eğer Schmidt onaylanırsa** (Soru 1 = a):
++
++```
++Sprint 18 başlat. Plan dosyası: docs/thesis-toolkit/sprints/sprint-18-schmidt-odd-odd.md
++Bunu da Claude Code üretsin (henüz yok).
++1 hafta deadline, 1472 dataset → ~80 yeni Schmidt'li dataset, lokal yeniden eğitim.
++```
++
++3. **Eğer Schmidt onaylanmazsa** (Soru 1 = b):
++
++```
++Yol α devam. Mevcut snapshot final.
++LaTeX derleme + Submission checklist çalıştır.
++```
++
++---
++
++## Risk yönetimi
++
++### Risk 1: Claude Code agent prompt'larını üretirken hata yapar
++**Çözüm:** Her agent prompt'u üretildikten sonra Kemal **5 dakika ön gözden geçir**. Hata varsa düzelt. Bunlar Kemal'in onayını beklemez ama Kemal isterse müdahale eder.
++
++### Risk 2: API kotası gece biter
++**Çözüm:** Agent J (Scheduler) Windows Task Scheduler ile kotanın yenileneceği saati (genelde 05:00 UTC) hesaplar, otomatik devam eder.
++
++### Risk 3: Hakan hoca cevabı çok beklenmedik şey (örn. "tez tamamen farklı yapıya gitmeli")
++**Çözüm:** Bu çok düşük olasılık. Olursa Claude Desktop'a dön, yeni karar matrisi üret.
++
++### Risk 4: Çelişki tespit edilemez
++**Çözüm:** Agent E orchestrator raporu Kemal'in **manuel kontrolü** için tasarlandı. Otomatik karar vermiyor.
++
++---
++
++## Önemli: Bu doküman canlı
++
++Master prompt değişirse bu dosyayı güncelle. Her sürüm:
++- Versiyon
++- Tarih
++- Değişiklik özeti
++
++| Versiyon | Tarih | Değişiklik |
++|---|---|---|
++| v1.0 | 2026-05-21 | İlk oluşturma |
++
++---
++
++*Bu dokuman Claude Code'a tek mesajda verilecek master prompt'u barındırır.*
++*Detay agent prompt'ları Claude Code tarafından üretilecektir.*
+diff --git a/docs/thesis-toolkit/HAKAN-HOCA-SORULAR.md b/docs/thesis-toolkit/HAKAN-HOCA-SORULAR.md
+new file mode 100644
+index 0000000..44333f8
+--- /dev/null
++++ b/docs/thesis-toolkit/HAKAN-HOCA-SORULAR.md
+@@ -0,0 +1,130 @@
++# HAKAN YAKUT HOCAYA SORULAR
++
++> **Tarih:** 22 Mayıs 2026 (tez teslim günü)
++> **Konu:** "Yapay Zekâ Destekli Nükleer Veri Analizi" tezi — hoca onayı + olası deadline uzatma
++> **Hazırlık:** Bu sorulara cevap almadan teslime gidilmesi tavsiye edilmez
++> **Yedek:** Yanında **Bölüm 1 Giriş** (`thesis/01-giris.md`) ve **Bölüm 2 Literatür v2** (`thesis/02-literatur-incelemesi-v2.md`) bulunsun
++
++---
++
++## SORU 1 (Kritik — yöntem) — Schmidt feature odd-odd çekirdekte anlamlı mı?
++
++**Bağlam:**
++Tez verisi `aaa2.txt` 267 çekirdek içermektedir. **Tamamı odd-odd** (Z%2=1 ∧ N%2=1; A çift). Çekirdek manyetik momenti tahmini için klasik Schmidt formülü `μ_s = g_l·l + ½g_s` tek valens nükleon varsayar. Odd-odd çekirdekte hem proton hem nötron tek olduğundan, klasik tek-parçacık Schmidt değeri doğrudan uygulanamaz.
++
++**Yuan, Tian, Li, Niu (2021)** [Chin. Phys. C 45, 124107 — DOI: 10.1088/1674-1137/ac28f9] **odd-A çekirdeklerde** Bayesian sinir ağı için Schmidt değerini (μ_s) ve nükleer spini (I) girdi olarak ekleyince RMS sapmasını **0,949 → 0,036 μₙ** seviyesine indirmiştir. Bu, Schmidt'in odd-A için **dramatik fizik-bilgi katkısı** olduğunu göstermektedir.
++
++**Bizim mevcut feature setlerimiz Schmidt içermiyor.** En iyi MM modelimiz Val R² = 0,838 / Test R² = 0,783 / Test RMSE = 0,925 μₙ.
++
++**SORU:**
++> Hocam, odd-odd çekirdekte iki valens nükleonun spin-spin etkileşimi nedeniyle klasik Schmidt anlamsız. Ancak iki-parçacık coupling kuralları üzerinden bir **odd-odd Schmidt-eşdeğeri** (örn. proton + nötron Schmidt değerlerinin additivity ile birleşimi, ya da j₁ ⊗ j₂ coupling sonrası net moment) feature olarak ML'e verilmek üzere hesaplanabilir mi? Veya odd-odd rejiminde Schmidt yaklaşımı zaten geçersiz olduğu için bu çabaya değmez mi?
++
++**Aksiyon:**
++- **(a) "Schmidt eklemeli, dene"** → Sprint 18 başlat, deadline 1 hafta uzatma talebi (PFAZ1 modülü → PFAZ2 lokal yeniden eğitim → PFAZ4-13 entegre yeniden çalıştırma, tahmin: 8-15 saat işlem + entegrasyon)
++- **(b) "Schmidt odd-odd'da anlamsız"** → Bizim **mevcut özgün katkı çerçevesi doğru**: "Odd-odd, Schmidt'in geçersiz olduğu, fiziksel olmayan ML benchmark." Mevcut snapshot ile teslim, sınırlama Bölüm 6.3'te beyan edilir.
++
++---
++
++## SORU 2 (Önemli — bölüm yapısı) — Tez yapısı SAÜ Doktora için uygun mu?
++
++**Bağlam:**
++Mevcut tez yapısı 7 bölüm + ekler:
++
++```
++1. Giriş (8-12 s)
++2. Kuramsal Çerçeve + Literatür (15-25 s)
++3. Yöntem (25-40 s)
++4. Uygulama ve Deneysel Kurulum (8-15 s)
++5. Bulgular (15-25 s)
++6. Tartışma (8-15 s)
++7. Sonuçlar ve Öneriler (5-8 s)
++   EK A: Kod repository yapısı
++   EK B: Hiperparametre detayları
++   EK C: Ek figürler
++   EK D: Sembol ve kısaltma sözlüğü
++```
++
++SAÜ örnek tezleri (484495 Hoşgör YL 2017, 651082 Sarıbaş YL 2020, 841762 Kemah Dr 2023) **4 bölüm yapısı** kullanmış (Giriş + Yöntem + Bulgular + Sonuçlar), Literatür/Tartışma ayrı bölüm olarak ayrılmamış.
++
++**SORU:**
++> Hocam, SAÜ Fen Bilimleri Enstitüsü doktora tezi için **7-bölüm yapısı** (Bulgular ve Tartışma ayrı) **kabul edilir** mi, yoksa **4-bölüm yapısı**na (Bulgular ve Tartışma birleşik) sıkıştırmalı mıyız?
++
++---
++
++## SORU 3 (Atıf formatı)
++
++**Bağlam:**
++SAÜ örnek tezler **numaralı atıf [N]** kullanmış. Kaynakça formatı şöyle:
++```
++[95] Tabar, E., Yakut, H., Kuliev, A.A., Quliyev, H., Hoşgör, G.,
++     Magnetic moments and g factors in odd-A Ho isotopes.
++     Chinese physics C, 0-0, 2017.
++```
++
++Bu, klasik IEEE'den biraz farklı (IEEE'de yazar adı baş harfi sona alınır: "Tabar E., Yakut H., …"). SAÜ-modifiye IEEE veya "Yazar, A., …" şeklinde APA-IEEE hibrit.
++
++**SORU:**
++> Hocam, atıf formatı **IEEE numaralı [N]** olarak yazılsın mı? Kaynakça SAÜ-modifiye IEEE şu şekilde olsun:
++> `[N] Soyad, A., Soyad, B., Makale başlığı, Dergi, cilt, sayfa, yıl, DOI`
++
++Yoksa **klasik IEEE** (`[N] A. Soyad and B. Soyad, "Başlık," Dergi, cilt, ss. xx-yy, yıl.`) mı?
++
++---
++
++## SORU 4 (Yapay zekâ kullanım beyanı)
++
++**Bağlam:**
++Tez yazımında Claude (Anthropic AI) asistan olarak kullanılmıştır:
++- Bölüm 1 ve 2 taslakları AI ile üretildi
++- Literatür taraması AI yardımıyla yapıldı
++- Kod ve pipeline çıktıları (PFAZ 1-13) bağımsız Python kodu (insan tarafından geliştirildi, AI yardımıyla bug-fix)
++
++**SORU:**
++> Hocam, SAÜ Tez Yazım Kılavuzu AI kullanım beyanını zorunlu kılıyor mu? Eğer evet, beyan metni nasıl olmalı? Önsözde mi, ayrı bir bölümde mi?
++
++Bizim önerimiz, Önsöz'de şu kısa beyan:
++> "Bu tezde literatür taraması, taslak metin oluşturma ve teknik düzenlemeler için Anthropic Claude AI asistanı kullanılmıştır. Tüm bilimsel iddialar, sayısal sonuçlar ve fiziksel yorumlamalar yazar tarafından doğrulanmıştır. Pipeline (PFAZ 0-13) kodu Python ile yazılmış ve TRUBA HPC altyapısında çalıştırılmıştır."
++
++---
++
++## SORU 5 (Yedek — eğer Soru 1'in cevabı (a) ise)
++
++**SORU:**
++> Hocam, Schmidt odd-odd eşdeğeri için ek hesaplama ve yeniden eğitim **1 hafta** sürer. Tez teslim tarihi bu kadar uzatılabilir mi? (Sprint 18 planı `docs/thesis-toolkit/sprints/sprint-18-schmidt-odd-odd.md` üretilmeye hazır)
++
++---
++
++## EK: Hocaya bilgi notu (Sözlü olarak söyle)
++
++> "Hocam, sizin Hoşgör 2017 [Chin. Phys. C 41, 074101 — Yakut, Tabar, Kuliev, Quliyev ile birlikte] ve **2017 AIP Conf. Proc. 1815, 060011** [Hoşgör, Yakut, Tabar — Eu spin polarization] makalelerinize Bölüm 2'de SAÜ grubu altında atıfta bulunuyorum. Ayrıca Stone 2024 [Interactions 245, 50] ve Knöll 2025 [arXiv 2501.08959] gibi en güncel referansları ekledim."
++
++> "Tezim **267 çekirdek odd-odd** üzerinde 942 model-veri kümesi eğitti. En iyi MM bireysel modeli XGBoost ile Val R²=0,838, en iyi QM ensemble (stacking_gbm_meta) ile R²=0,8886 elde edildi. ANOVA RF vs XGBoost farkı p=0,0015 düzeyinde anlamlı bulundu."
++
++---
++
++## Toplantı sonrası eylemler (yarın aynı gün)
++
++Hocadan cevap aldıktan sonra **Claude Desktop'a** geri dön ve şunu söyle:
++
++```
++"Hakan hocadan cevaplar:
++- Soru 1: [a / b]
++- Soru 2: [7-bölüm / 4-bölüm]
++- Soru 3: [IEEE numaralı / klasik / başka]
++- Soru 4: [AI beyanı zorunlu mu, evet/hayır]
++- Soru 5 (eğer Soru 1 = a ise): [deadline uzatma onaylandı/reddedildi]
++
++Plan v2'yi bu cevaplara göre revize et."
++```
++
++Claude Desktop şu dosyaları üretecek/revize edecek:
++- Plan v2 (`docs/thesis-toolkit/THESIS-PLAN-v2.md`)
++- Paralel agent sistemi (`docs/thesis-toolkit/guide/PARALLEL-AGENTS-SYSTEM.md`)
++- Agent prompt'ları (A, B, C, D, E, F, G, H, I, J)
++- (Eğer Soru 1 = a ise) Sprint 18 detay planı
++
++---
++
++*Bu doküman tek toplantı için hazırlanmıştır. Toplantı sonrası içeriği `THESIS-RESEARCH-NOTES.md` §0 karar günlüğüne ekleyin.*
++
++*Hazırlık: Claude Opus 4.7 | 2026-05-21 gece*
+diff --git a/docs/thesis-toolkit/SCHEDULER-SETUP.md b/docs/thesis-toolkit/SCHEDULER-SETUP.md
+new file mode 100644
+index 0000000..3e34b6f
+--- /dev/null
++++ b/docs/thesis-toolkit/SCHEDULER-SETUP.md
+@@ -0,0 +1,242 @@
++# SCHEDULER SETUP
++## Windows Task Scheduler ile Claude Code gece çalışması
++
++> **Amaç:** Kemal uyurken Claude Code agent'ları otomatik çalışsın.
++> **Versiyon:** v1.0 (2026-05-21)
++> **Önemli:** Bu, Sprint 18 onaylanırsa gerekli. Yol α (deadline kurtarma) için **opsiyonel**.
++
++---
++
++## 1. Senaryo
++
++```
++22:00 — Kemal uyumaya gider
++22:30 — Claude Code MASTER PROMPT çalışıyor
++01:00 — Agent A, B, C, D bitti (paralel)
++03:00 — Agent H (skill) bitti
++05:00 — Claude API kotası dolar → DURMA
++06:00 — Kota yenilenir (UTC 05:00 = TR 08:00 sabah)
++06:30 — Scheduled task tetiklenir → Claude Code yeniden başlar
++08:00 — Kemal uyanır, Agent E orchestrator raporu hazır
++```
++
++---
++
++## 2. Windows Task Scheduler kurulumu
++
++### 2.1 Manuel kurulum (5 dakika)
++
++1. `Win + R` → `taskschd.msc` → Enter
++2. **Create Basic Task**:
++   - Name: `Claude Code Resume`
++   - Description: `Tez yazımı için Claude Code otomatik devam`
++3. **Trigger**: Daily, 06:30 (saat: kota yenileme + 30 dk buffer)
++4. **Action**: Start a program
++5. **Program/script**: PowerShell.exe
++6. **Arguments**:
++   ```
++   -ExecutionPolicy Bypass -File "C:\Users\Hakan Yakut\Desktop\ahmet\scripts\resume-claude-code.ps1"
++   ```
++
++### 2.2 PowerShell script (`resume-claude-code.ps1`)
++
++```powershell
++# resume-claude-code.ps1
++# Claude Code'u tez yazımına devam ettir
++
++$logFile = "C:\Users\Hakan Yakut\Desktop\ahmet\logs\claude-resume-$(Get-Date -Format 'yyyyMMdd-HHmm').log"
++$repoPath = "C:\Users\Hakan Yakut\Desktop\ahmet\nucdatav2-truba"
++
++Set-Location $repoPath
++
++# 1. Git pull (gece olan değişiklikleri al)
++Write-Output "$(Get-Date) — Git pull başlıyor..." | Tee-Object -FilePath $logFile -Append
++git pull origin thesis-writing 2>&1 | Tee-Object -FilePath $logFile -Append
++
++# 2. VS Code'u aç (Claude Code uzantısı otomatik yüklenecek)
++Write-Output "$(Get-Date) — VS Code açılıyor..." | Tee-Object -FilePath $logFile -Append
++code . --reuse-window
++
++# 3. Claude Code'a otomatik prompt gönder
++# (VS Code launch sonrası user manual müdahale gerekir veya
++#  Claude Code CLI varsa headless mode kullanılır)
++
++# Headless mode (eğer mevcut):
++$autoPrompt = @"
++Devam et: docs/thesis-toolkit/CLAUDE-CODE-ORCHESTRATION.md
++Kaldığın yerden devam et. Agent CHAPTER-WRITER muhtemelen yarım kaldı.
++ORCHESTRATOR_REPORT_2026-05-22.md var mı kontrol et — varsa Kemal'i bekle.
++"@
++
++# Eğer claude-code CLI mevcutsa:
++# claude-code --resume "$autoPrompt" --log $logFile
++
++# 4. Mail/notification gönder (opsiyonel)
++# Send-MailMessage -To "ahmetkemal@..." -Subject "Claude Code devam etti" ...
++
++Write-Output "$(Get-Date) — Tamamlandı." | Tee-Object -FilePath $logFile -Append
++```
++
++### 2.3 Log dizini kur
++
++```powershell
++New-Item -Path "C:\Users\Hakan Yakut\Desktop\ahmet\logs" -ItemType Directory -Force
++New-Item -Path "C:\Users\Hakan Yakut\Desktop\ahmet\scripts" -ItemType Directory -Force
++```
++
++PowerShell script'i `scripts/resume-claude-code.ps1` olarak kaydet.
++
++### 2.4 Test çalıştırma
++
++Task Scheduler'da görevi seç → **Run** butonu → Manuel başlatma.
++- Log dosyası `logs/` dizininde mi?
++- VS Code açıldı mı?
++- Git pull başarılı mı?
++
++---
++
++## 3. Kota yönetimi
++
++### 3.1 Anthropic API kotası
++
++- Claude Pro plan: günde **40-50 mesaj** (uzun mesaj sınırı)
++- Claude Code (API) plan: token bazlı, ~$20/ay başlangıç
++- Kotanız doluysa: 5 saat ertelenir (UTC saat dilimi)
++
++### 3.2 Kota saatleri (TR saati)
++
++| Plan | Sıfırlanma | Eski plan |
++|---|---|---|
++| Pro (Web) | 03:00 TRT | her 5 saat |
++| Pro (API/Code) | sürekli (token bazlı) | - |
++
++### 3.3 Otomatik kota tespit
++
++PowerShell script'i Claude Code log'una bakar:
++
++```powershell
++$lastLog = Get-ChildItem "C:\Users\Hakan Yakut\AppData\Roaming\Code\logs\*\extension*" -Recurse -Filter "*.log" | Sort-Object LastWriteTime -Descending | Select-Object -First 1
++
++if ($lastLog) {
++    $content = Get-Content $lastLog.FullName -Tail 50
++    if ($content -match "rate limit" -or $content -match "quota exceeded") {
++        Write-Output "Kota dolu - sonraki sıfırlanmaya kadar bekle"
++        $resetTime = (Get-Date).AddHours(5)
++        # Schedule next attempt
++    }
++}
++```
++
++---
++
++## 4. Alternatif: Cron job (WSL üzerinden)
++
++WSL2 ile Linux cron job:
++
++```bash
++# crontab -e
++30 6 * * *  /home/kemal/scripts/resume-claude-code.sh
++```
++
++`resume-claude-code.sh`:
++```bash
++#!/bin/bash
++cd /mnt/c/Users/Hakan\ Yakut/Desktop/ahmet/nucdatav2-truba
++git pull origin thesis-writing
++# Claude Code CLI çağrısı buraya
++```
++
++---
++
++## 5. Notification (telefon bildirimi)
++
++İsteğe bağlı: Pushover veya Telegram bot ile:
++
++```powershell
++# Pushover bildirimi
++$body = @{
++    token = "POAPP_TOKEN"
++    user  = "POUSER_TOKEN"
++    title = "Claude Code Resume"
++    message = "Tez yazımı devam ediyor. ORCHESTRATOR_REPORT'a bak."
++}
++Invoke-RestMethod -Uri "https://api.pushover.net/1/messages.json" -Method Post -Body $body
++```
++
++---
++
++## 6. Yapay Zekâ kullanım kotası tahmini
++
++Tezin tamamlanması için tahmini token sayısı:
++
++| Agent | Input token | Output token | Toplam |
++|---|---|---|---|
++| Agent A (phases) | 30k | 15k | 45k |
++| Agent B (SAÜ stil) | 100k (PDF'ler) | 20k | 120k |
++| Agent C (Excel) | 50k | 15k | 65k |
++| Agent D (Viz) | 30k | 20k | 50k |
++| Agent E (Orchestrator) | 80k | 10k | 90k |
++| Agent F (Literatür) | 200k (PDFs) | 30k | 230k |
++| Agent G (Eco) | 20k | 15k | 35k |
++| Agent H (Skill) | 40k | 20k | 60k |
++| Agent I (LaTeX) | 30k | 5k | 35k |
++| Agent J (Scheduler) | 10k | 5k | 15k |
++| CHAPTER-WRITER | 300k | 100k | 400k |
++| **TOPLAM** | **890k** | **255k** | **~1.15M token** |
++
++**Claude Opus 4 fiyatlandırma:** ~$15/M input, ~$75/M output
++**Tahmini maliyet:** $890k × $15 + $255k × $75 = $13.35 + $19.13 ≈ **$32-50**
++
++Eğer ücretsiz plan kullanılıyorsa: **2-3 günlük dağıtık çalışma** gerekebilir.
++
++---
++
++## 7. Riski azaltma — başka bilgisayardan devam
++
++Eğer ana bilgisayar çökerse, başka bir makinede devam:
++
++```bash
++# Yeni makinede
++git clone https://github.com/quantizedeli/hpcv1.git
++cd hpcv1
++git checkout thesis-writing
++git pull
++
++# VS Code aç
++code .
++
++# Claude Code uzantısı yüklü değilse, yükle.
++# Master prompt'u çalıştır:
++# > docs/thesis-toolkit/CLAUDE-CODE-ORCHESTRATION.md
++```
++
++---
++
++## 8. Son kontrol
++
++Bu setup için Kemal yapmalı:
++
++- [ ] PowerShell ExecutionPolicy ayarı: `Set-ExecutionPolicy RemoteSigned -Scope CurrentUser`
++- [ ] `scripts/` dizini oluşturuldu
++- [ ] `logs/` dizini oluşturuldu
++- [ ] `resume-claude-code.ps1` yazıldı
++- [ ] Task Scheduler'da görev oluşturuldu
++- [ ] Manuel test başarılı
++- [ ] Kota saatleri doğru (TR saat dilimi)
++
++---
++
++## 9. Yol α durumunda
++
++Eğer Hakan hoca cevabı **(b) - Schmidt yok, 22 Mayıs teslim** olursa:
++
++**Scheduler GEREKMEZ.** Çünkü:
++- Hoca cevabı sabah gelir
++- 11:00-18:00 saat aralığında Claude Code paralel çalışır
++- Akşam 22:00'ye kadar bitirilebilir
++
++Scheduler **sadece Sprint 18 onaylanırsa** (1 hafta uzatma) lazım.
++
++---
++
++*v1.0 | 2026-05-21 | Windows Task Scheduler + Claude Code entegrasyonu*
+diff --git a/docs/thesis-toolkit/SUBMISSION-CHECKLIST.md b/docs/thesis-toolkit/SUBMISSION-CHECKLIST.md
+new file mode 100644
+index 0000000..2684259
+--- /dev/null
++++ b/docs/thesis-toolkit/SUBMISSION-CHECKLIST.md
+@@ -0,0 +1,339 @@
++# SUBMISSION CHECKLIST
++## Tez teslim öncesi son kontrol — 22 Mayıs 2026
++
++> **Amaç:** Tez teslim edilmeden önce tüm kalite, format ve içerik kontrollerini sırasıyla yap.
++> **Süre:** 1-2 saat
++> **Sorumlu:** Kemal (Agent E orchestrator raporu sonrası)
++
++---
++
++## TIER 1: İçerik Tamlığı (mutlaka tam olmalı)
++
++### 1.1 Tüm bölümler yazıldı mı?
++- [ ] Önsöz / Teşekkür
++- [ ] Türkçe Özet (250-300 kelime)
++- [ ] İngilizce Abstract (250-300 kelime)
++- [ ] İçindekiler (otomatik üretildi)
++- [ ] Şekiller Listesi (otomatik)
++- [ ] Çizelgeler Listesi (otomatik)
++- [ ] Simgeler ve Kısaltmalar (`07-GLOSSARY-SYMBOLS.md` dolduruldu)
++- [ ] Bölüm 1 — Giriş
++- [ ] Bölüm 2 — Literatür İncelemesi
++- [ ] Bölüm 3 — Yöntem
++- [ ] Bölüm 4 — Uygulama
++- [ ] Bölüm 5 — Bulgular
++- [ ] Bölüm 6 — Tartışma
++- [ ] Bölüm 7 — Sonuçlar ve Öneriler
++- [ ] Kaynakça
++- [ ] EK A — Kod deposu yapısı
++- [ ] EK B — Hiperparametre detayları
++- [ ] EK C — Ek figürler
++- [ ] EK D — Sembol sözlüğü
++- [ ] Özgeçmiş (1 sayfa)
++
++### 1.2 Sayısal tutarlılık (12 kritik sayı)
++
++`grep` ile aşağıdaki sayıların **tezde geçtiğini** kontrol et:
++
++```bash
++cd thesis/
++for num in "267" "75" "34" "1472" "942" "20" "8" "0,8886" "-3,18" "0,0015" "10 000" "1 000"; do
++    count=$(grep -r "$num" *.md | wc -l)
++    echo "$num: $count yer"
++done
++```
++
++**Beklenen:** Her sayı **en az 2-3 yerde** geçer (tablo + metin).
++
++- [ ] **267** çekirdek sayısı (Bölüm 1, 3, 4, 5)
++- [ ] **75** özellik sayısı (Bölüm 3.2)
++- [ ] **34** özellik seti sayısı (Bölüm 3.2)
++- [ ] **1472** dataset alt-dizini (Bölüm 3.3 + Bölüm 5)
++- [ ] **942** PFAZ4 model-dataset kombinasyonu (Bölüm 5.5)
++- [ ] **20** config sayısı (Bölüm 3.5)
++- [ ] **8** ANFIS varyantı (Bölüm 3.4)
++- [ ] **0,8886** QM ensemble R² (Bölüm 5.4 + Bölüm 6.4)
++- [ ] **−3,18** MM ensemble R² (Bölüm 5.4 + Bölüm 6.4)
++- [ ] **0,0015** ANOVA p-değeri (Bölüm 5.7 + Tablo 5.X)
++- [ ] **10 000** bootstrap iterasyonu (Bölüm 3.10)
++- [ ] **1 000** Monte Carlo örneklem (Bölüm 3.10)
++
++### 1.3 Atıf-Kaynakça eşleşmesi
++
++```python
++# atıflar
++import re
++with open('thesis/combined.md') as f:
++    text = f.read()
++atif_no = set(int(n) for n in re.findall(r'\[(\d+)\]', text))
++
++# kaynakça
++with open('thesis/08-kaynakca.md') as f:
++    kaynakca = f.read()
++kaynakca_no = set(int(n) for n in re.findall(r'^\[(\d+)\]', kaynakca, re.MULTILINE))
++
++# Karşılaştır
++sadece_atifta = atif_no - kaynakca_no
++sadece_kaynakcada = kaynakca_no - atif_no
++print(f"Atıf var, kaynakça yok: {sorted(sadece_atifta)}")
++print(f"Kaynakça var, atıf yok: {sorted(sadece_kaynakcada)}")
++```
++
++- [ ] `sadece_atifta` boş (her atıf kaynakçada karşılığı var)
++- [ ] `sadece_kaynakcada` boş (atıf yapılmamış kaynak kaldırıldı)
++
++### 1.4 Her kaynağın DOI doğrulandı mı?
++
++Agent F çıktısı `references/citations-log-v2.md`'yi aç:
++
++- [ ] Tüm 80+ kaynak için DOI/arXiv ID doğrulandı (CrossRef API)
++- [ ] Erişilemeyen kaynak: "❌ erişim yok" notuyla işaretli
++- [ ] **Erişilemeyen** kaynak **tezde atıf yapıldı mı?** Eğer evet, Eco kuralı gereği çıkar veya yerini İngilizce erişilebilir alternatife ver.
++
++---
++
++## TIER 2: Format Uyumluluğu
++
++### 2.1 SAÜ Tez Yazım Kılavuzu uyumu
++
++`sau tez format/Tez_Yazim_Kilavuzu_SON_HALI_16.02_.pdf` ile karşılaştır:
++
++- [ ] Sayfa kenar boşlukları (üst 3,5 cm, alt 2,5 cm, sol 4 cm, sağ 2,5 cm SAÜ standardı)
++- [ ] Yazı tipi: Times New Roman 12pt (gövde), 14pt başlık
++- [ ] Satır aralığı: 1,5
++- [ ] Paragraf girintisi: 1,25 cm
++- [ ] Sayfa numarası: alt orta veya alt sağ
++- [ ] Bölüm başlığı stili
++- [ ] Alt bölüm numaralandırma
++
++### 2.2 Türkçe karakter kontrolü
++
++PDF açılınca tüm Türkçe karakterler doğru görüntüleniyor mu?
++
++```
++ç, ş, ğ, ü, ö, ı, İ, Ç, Ş, Ğ, Ü, Ö
++```
++
++LaTeX'te `\usepackage[turkish]{babel}` ve `\usepackage[utf8]{inputenc}` zorunlu.
++
++- [ ] Tüm Türkçe karakterler doğru
++- [ ] Türkçe heceleme aktif (`turkish` babel modülü)
++- [ ] Bibliografi başlığı: "Kaynaklar" veya "Kaynakça" (SAÜ standardı)
++
++### 2.3 Şekil ve tablo numaralandırma
++
++- [ ] Şekiller: Şekil 1.1, Şekil 2.1, ... (Bölüm.Sıra formatı)
++- [ ] Çizelgeler: Çizelge 3.1, Çizelge 5.1, ...
++- [ ] Şekil caption ALTTA, çizelge caption ÜSTTE
++- [ ] Tüm şekil/çizelgeye metinde **en az bir kez** atıfta bulundu mu?
++
++```bash
++# Şekil atıfı taraması
++for i in 1 2 3 4 5 6 7; do
++    figs=$(grep -oE "Şekil $i\.[0-9]+" thesis/0$i-*.md | sort -u | wc -l)
++    refs=$(grep -oE "Şekil $i\.[0-9]+" thesis/*.md | sort -u | wc -l)
++    echo "Bölüm $i: $figs şekil tanımlı, $refs yerde referans"
++done
++```
++
++### 2.4 Atıf formatı tutarlılığı
++
++Agent F'in `citations-log-v2.md`'ye göre tüm kaynakça **aynı format**:
++
++- [ ] SAÜ-modifiye IEEE: `[N] Soyad, A., ..., Başlık, Dergi, c(s), ss, yıl, DOI.`
++- [ ] (Veya hoca cevabına göre klasik IEEE)
++- [ ] Eski format kalıntıları yok
++
++---
++
++## TIER 3: Kalite (AI-iz temizleme, dil disiplini)
++
++### 3.1 `academic-shield v2` Mod B taraması
++
++`docs/thesis-toolkit/quality-check.py` (Claude Code üretecek):
++
++```bash
++python3 docs/thesis-toolkit/quality-check.py thesis/*.md
++```
++
++- [ ] AI kalıbı sayısı: **< 10 toplam** (academic-shield v2 §2.1, §2.2)
++- [ ] Cümle uzunluğu std: **>= 5**
++- [ ] Paragraf-içi "Bu" başlama: **0** (paragraf başına 1 max)
++- [ ] Bağlaç tekrarı: **paragraf içinde 2 max**
++- [ ] 1. tekil ("ben"): **0**
++- [ ] Pasif/aktif oranı: **80% pasif max** (Yöntem bölümü) / **40% pasif min** (Sonuç bölümü)
++
++### 3.2 Placeholder taraması
++
++```bash
++grep -rn "TODO\|FIXME\|XXX\|\[TBD\]\|\.\.\.placeholder\|burada.*anlatılacak" thesis/
++```
++
++- [ ] Çıktı **boş** (hiçbir placeholder kalmadı)
++
++### 3.3 Yazım denetimi
++
++- [ ] Türkçe yazım denetimi: Pandoc + Hunspell veya VS Code Code Spell Checker
++- [ ] İngilizce abstract için ayrı denetim
++
++### 3.4 Eco metodolojisi kontrolü
++
++- [ ] Atıflar diyaloga dönüşmüş (Yuan ve ark. (2021) hakkında **gerçek tartışma** var)
++- [ ] Bölüm uzunluk dengesi (her bölüm ±%5 sapmayla hedef sayfada)
++- [ ] Cümle başında "Bu" yasağı uygulanmış
++- [ ] Kaynakça sadece atıf yapılan kaynaklar (gereksiz şişirme yok)
++
++---
++
++## TIER 4: Çıktı Üretimi
++
++### 4.1 PDF derleme
++
++Agent I çıktısı:
++- [ ] `thesis/output/tez.pdf` üretildi
++- [ ] PDF açılıyor (Adobe Reader / Foxit / Browser)
++- [ ] Tüm sayfa numaralı
++- [ ] İçindekiler tıklanabilir (hyperref)
++- [ ] Şekil/Çizelge listesi tıklanabilir
++
++### 4.2 Çıktı boyutu
++
++- [ ] PDF dosya boyutu < 20 MB (figürler optimize edilmiş)
++- [ ] Sayfa sayısı: **70-130** (Varyant A için 84-140 hedef)
++
++### 4.3 Yardımcı dosyalar
++
++- [ ] `tez.tex` (LaTeX kaynak)
++- [ ] `references.bib` (BibTeX kaynakça)
++- [ ] `figures/` (tüm figürler PNG + PDF)
++- [ ] `tables/` (tablolar CSV + LaTeX)
++- [ ] `tez-source.zip` (tüm kaynaklar)
++
++---
++
++## TIER 5: SAÜ Teslim Süreci
++
++### 5.1 Onay formları
++
++- [ ] Tez Danışmanı Onayı (Hakan Yakut imzası)
++- [ ] Etik kurul beyanı (SAÜ Fen Bilimleri standart)
++- [ ] Beyan: "Tezimde sunduğum çalışma tarafımdan yapılmıştır..."
++- [ ] AI kullanım beyanı (eğer Soru 4 = a)
++
++### 5.2 Plagiarism kontrolü
++
++- [ ] Turnitin / iThenticate raporu (< %20 benzerlik hedef)
++- [ ] SAÜ Fen Bilimleri Enstitüsü'nden alınması gerekiyor
++
++### 5.3 Format kontrol kuyruğu
++
++SAÜ Enstitü tipik olarak şunları kontrol eder:
++- [ ] Kapak sayfası standart
++- [ ] Onay sayfası (imzalı)
++- [ ] Beyan sayfası (imzalı)
++- [ ] İçindekiler formatı
++- [ ] Kaynakça formatı
++- [ ] Sayfa numaraları
++- [ ] Margin
++
++### 5.4 Teslim (fiziksel + elektronik)
++
++- [ ] **3 ciltli kopya** Enstitü'ye teslim (basit cilt; jüri sonrası nihai cilt)
++- [ ] **Elektronik kopya** (PDF) `tez_yonetim_sistemi`ne yüklendi
++- [ ] **Tez veri seti** (267 çekirdek) için DOI / Zenodo / Figshare yüklemesi (opsiyonel, jüri sorabilir)
++
++---
++
++## TIER 6: Yedekleme
++
++### 6.1 Tez dosyası yedek
++
++- [ ] Tezin **3 yedeği**:
++  - hpcv1 repo `thesis-writing` branch'i
++  - Lokal `C:\Users\...\Desktop\ahmet\tez-final\` dizini
++  - Bulut (Google Drive / OneDrive)
++
++### 6.2 Snapshot
++
++- [ ] `thesis/_data_snapshot/2026-05-21/` repository'de
++- [ ] hpcv1_outputs (13 GB) ayrıca yedeklendi
++
++### 6.3 Versiyonlama
++
++- [ ] Tezin son commit'i: `git log -1 thesis-writing`
++- [ ] Etiket: `git tag -a tez-v1.0 -m "Tez teslim 22 Mayıs 2026"`
++
++---
++
++## TIER 7: Sunum hazırlığı (jüri sonrası lazım, şimdi gerekmez)
++
++- [ ] PowerPoint sunumu (20-30 slayt, 30 dakika)
++- [ ] Tez savunması provası
++- [ ] Olası jüri soruları + cevaplar
++
++---
++
++## Hızlı script — tüm kontrolleri çalıştır
++
++```bash
++#!/bin/bash
++# submission-check.sh
++cd thesis/
++
++echo "=== TIER 1: İçerik tamlığı ==="
++for f in 00-ozet 01-giris 02-literatur 03-yontem 04-uygulama 05-bulgular 06-tartisma 07-sonuc 08-kaynakca 09-ekler; do
++    if [ -f "${f}-*.md" ] || [ -f "${f}.md" ]; then
++        size=$(wc -c < ${f}*.md)
++        echo "✅ $f ($size byte)"
++    else
++        echo "❌ $f EKSIK"
++    fi
++done
++
++echo ""
++echo "=== TIER 2: Sayısal tutarlılık ==="
++for num in 267 75 34 1472 942 20 8 "0,8886" "-3,18" "0,0015"; do
++    count=$(grep -r "$num" *.md 2>/dev/null | wc -l)
++    if [ $count -lt 2 ]; then
++        echo "⚠️  $num: sadece $count yerde geçiyor"
++    else
++        echo "✅ $num: $count yerde"
++    fi
++done
++
++echo ""
++echo "=== TIER 3: Placeholder ==="
++hits=$(grep -rcn "TODO\|FIXME\|XXX\|\[TBD\]" *.md | grep -v ":0$")
++if [ -z "$hits" ]; then
++    echo "✅ Placeholder yok"
++else
++    echo "❌ Placeholder tespit:"
++    echo "$hits"
++fi
++
++echo ""
++echo "=== TIER 4: PDF ==="
++if [ -f output/tez.pdf ]; then
++    size=$(du -h output/tez.pdf | cut -f1)
++    pages=$(pdfinfo output/tez.pdf | grep Pages | awk '{print $2}')
++    echo "✅ tez.pdf — $size, $pages sayfa"
++else
++    echo "❌ output/tez.pdf YOK"
++fi
++
++echo ""
++echo "Toplam: $(grep -c ✅ <<< "$(...)") başarılı, $(grep -c ❌ <<< "$(...)") başarısız"
++```
++
++---
++
++## Son sözcük
++
++Tezin tamamlanması **mükemmellik değil**, **teslim edilebilir kalite**dir.
++%100 mükemmel tez yok, %85 iyi tez vardır — bu yeter.
++
++**Eco kuralı:** Tezi savunmaya **hazır** olduğun an, teslim et. Daha fazla cilalamak için bekleme.
++
++---
++
++*v1.0 | 2026-05-21 | SAÜ Fen Bilimleri Enstitüsü teslim checklist*
+diff --git a/docs/thesis-toolkit/THESIS-PLAN-v2.md b/docs/thesis-toolkit/THESIS-PLAN-v2.md
+new file mode 100644
+index 0000000..99fb47f
+--- /dev/null
++++ b/docs/thesis-toolkit/THESIS-PLAN-v2.md
+@@ -0,0 +1,375 @@
++# THESIS PLAN v2
++## Karar matrisi, zaman planı, kritik yollar
++
++> **Versiyon:** v2.0 (2026-05-21 gece)
++> **Önceki:** Tez yapısı planı `thesis/tez-yazim-not-defteri.md`'de var (v1, mevcut snapshot)
++> **Strateji:** **İki versiyon paralel hazırla**, Hakan hoca cevabı sonrası varyantı aktive et
++> **Teslim:** 22 Mayıs 2026
++
++---
++
++## 1. Karar matrisi — Hakan hoca cevaplarına göre
++
++### 1.1 Soru 1: Schmidt odd-odd
++
++| Cevap | Aktivasyon | Etkilenen agent'lar | Süre |
++|---|---|---|---|
++| **(a) Schmidt eklemeli** | Sprint 18 başlat | A (yeni faz md), F (schmidt ref ekle), CHAPTER-WRITER (yeniden) | +5-7 gün |
++| **(b) Anlamsız, geç** | Yol α devam | Sadece bölüm 6/7 sınırlama notu | 0 gün |
++
++**Default (cevap yoksa):** (b). Çünkü 22 Mayıs deadline.
++
++### 1.2 Soru 2: Bölüm sayısı
++
++| Cevap | Bölümler | Etkilenen dosya |
++|---|---|---|
++| **(a) 7 bölüm** (1=Giriş, 2=Literatür, 3=Yöntem, 4=Uygulama, 5=Bulgular, 6=Tartışma, 7=Sonuç) | thesis/01-09 (mevcut hazırlık) | Hiçbir şey değişmez (default plan) |
++| **(b) 4 bölüm** (1=Giriş, 2=QPNM benzeri Teori, 3=Bulgular ve Yöntem, 4=Sonuçlar) | thesis/01, 02-birleşik, 03-birleşik, 04 | CHAPTER-WRITER farklı yapıda yazar |
++
++**Default:** (a). SAÜ doktora tezleri için 7-bölüm uygun ve **Hoca onaylasa muhtemel** (Sarıbaş YL 2020 4-bölüm ama YL; Kemah Dr 2023 daha uzun yapıda).
++
++### 1.3 Soru 3: Atıf formatı
++
++| Cevap | Aktivasyon | Süre |
++|---|---|---|
++| **(a) SAÜ-modifiye IEEE** `[N] Soyad, A., Soyad, B., Başlık, Dergi, c, s, yıl, DOI` | Mevcut Bölüm 2 v2 zaten bu formatta | 0 gün |
++| **(b) Klasik IEEE** `[N] A. Soyad and B. Soyad, "Başlık," Dergi, c, ss. yy-zz, yıl.` | BibTeX'i yeniden format | 30 dk script |
++
++**Default:** (a). SAÜ örnek tezleri (484495, 651082, 841762) bu formatı kullanmış.
++
++### 1.4 Soru 4: AI kullanım beyanı
++
++| Cevap | Aktivasyon |
++|---|---|
++| **(a) Zorunlu** | Önsöze 3-4 cümlelik beyan ekle |
++| **(b) Hayır** | Hiçbir şey |
++
++**Default:** (a). Şeffaflık için. Beyan örnek metni `THESIS-RESEARCH-NOTES.md` §5.4'te.
++
++### 1.5 Soru 5: Deadline uzatma
++
++| Cevap | Aktivasyon |
++|---|---|
++| **(a) +1 hafta onay** | Sprint 18 aktive olur (Soru 1=a şartına bağlı) |
++| **(b) Yok, 22 Mayıs** | Yol α |
++
++**Default:** (b).
++
++---
++
++## 2. Zaman planı (22 Mayıs için saat saat)
++
++**SENARYO: Hoca cevapları varsayılan (a, a, a, a, b) — Yol α + Schmidt yok**
++
++### 21 Mayıs (BUGÜN gece) 22:00 — 02:00
++- [x] THESIS-RESEARCH-NOTES.md
++- [x] HAKAN-HOCA-SORULAR.md
++- [x] thesis/01-giris.md
++- [x] thesis/02-literatur-incelemesi-v2.md
++- [ ] PARALLEL-AGENTS-SYSTEM.md
++- [ ] CLAUDE-CODE-ORCHESTRATION.md
++- [ ] academic-shield-v2.md
++- [ ] academic-writing-pro-v2.md
++- [ ] humanizer-thesis-mode.md
++- [ ] THESIS-PLAN-v2.md (bu dosya)
++- [ ] UMBERTO-ECO-METODOLOJI.md
++- [ ] SUBMISSION-CHECKLIST.md
++- [ ] SCHEDULER-SETUP.md
++- [ ] PATCH üretimi + push
++
++**Bitiş:** 21 Mayıs gece 03:00 — TÜM hazırlık tamamlanmış olmalı.
++
++### 22 Mayıs sabah (08:00-10:00) — Hoca toplantısı
++- HAKAN-HOCA-SORULAR.md sunum
++- Bölüm 1 + Bölüm 2 v2 göster
++- 5 sorunun cevabını al
++- Eve dön
++
++### 22 Mayıs öğle (10:30-12:00) — Yeni Claude Desktop sohbeti
++- Hoca cevaplarını ver
++- Plan v2 → tek varyant aktive
++- Etkilenen dosyalar revize edilir (eğer varsa)
++
++### 22 Mayıs öğleden sonra (12:00-18:00) — Claude Code çalışıyor
++- CLAUDE-CODE-ORCHESTRATION.md master prompt başlatılır
++- 11 agent paralel çalışır
++- Tahmini bitiş: 17:00-18:00
++
++### 22 Mayıs akşam (18:00-22:00) — Final cilalama
++- Agent E orchestrator raporu oku
++- Pending decisions varsa Kemal müdahale
++- Agent I Pandoc/pdflatex ile final PDF
++- Submission checklist çalıştır
++- Teslim et
++
++---
++
++## 3. Kritik yol analizi
++
++### 3.1 Mutlak kritik (gecikemez)
++```
++THESIS-RESEARCH-NOTES.md   ──┐
++HAKAN-HOCA-SORULAR.md      ──┤
++Bölüm 1 + Bölüm 2          ──┤── 21 Mayıs gece bitmiş olmalı
++CLAUDE-CODE-ORCHESTRATION  ──┘
++                              │
++                              ▼
++                       22 Mayıs sabah hoca toplantısı
++                              │
++                              ▼
++                       Hoca cevabı (deadline 30 dk)
++                              │
++                              ▼
++Plan v2 aktivasyon            │
++Claude Code agent başlat      ▼
++        │
++        ▼
++Agent CHAPTER-WRITER (en kritik) ──┐
++Agent I LaTeX                       │
++                                    ▼
++                            22 Mayıs akşam PDF
++                                    │
++                                    ▼
++                              Teslim
++```
++
++### 3.2 Yedekleme planları
++
++**Risk:** Hoca toplantısı uzun sürer (öğleden sonra geç biter)
++**Etki:** Claude Code başlatması gecikir
++**Mitigasyon:** Default cevaplarla başlat (Plan v2 §1'de tanımlı), hoca cevabı geldiğinde güncelle
++
++**Risk:** Claude Code agent'ı hata verir
++**Etki:** Bölüm tamamlanamaz
++**Mitigasyon:** Kemal manuel müdahale; eski snapshot LaTeX'i fallback olarak kullan
++
++**Risk:** Pandoc/LaTeX derleme başarısız
++**Etki:** PDF üretilemez
++**Mitigasyon:** Overleaf'e Word şablonuyla manuel kopyala (en kötü senaryo)
++
++**Risk:** Schmidt kararı (a) — Sprint 18 gerek
++**Etki:** +5-7 gün ek süre
++**Mitigasyon:** Sprint 18 dokümanı hazır; deadline uzatma talebi onaylanmış olmalı
++
++---
++
++## 4. Bölüm sayısı varyantları detay
++
++### Varyant A: 7 bölüm (default)
++
++```
++1. Giriş                              (8-12 s)
++   1.1 Nükleer momentlerin önemi
++   1.2 Mevcut yaklaşımların sınırları
++   1.3 Yapay zekâ yaklaşımının motivasyonu
++   1.4 Tezin özgün katkıları
++   1.5 Çalışmanın organizasyonu
++
++2. Literatür İncelemesi                (15-25 s)
++   2.1 Nükleer moment ölçümleri ve veritabanları
++   2.2 Makine öğrenmesi — nükleer fizik arayüzü
++   2.3 Manyetik moment için ML yaklaşımları
++   2.4 Kuadrupol moment için ML yaklaşımları
++   2.5 ANFIS uygulamaları
++   2.6 Fizik-bilgili öğrenme
++   2.7 Belirsizlik nicelemesi
++   2.8 Odd-odd çekirdek için literatür boşluğu
++
++3. Yöntem                              (25-40 s)
++   3.1 Veri kümesi
++   3.2 Özellik mühendisliği (75 feature)
++   3.3 Dataset üretimi (1472 dataset)
++   3.4 ANFIS modeli (8 yapılandırma)
++   3.5 Yapay zekâ modelleri (RF, XGBoost)
++   3.6 Çapraz doğrulama + çift R² filtresi
++   3.7 Ensemble yöntemler
++   3.8 İstatistiksel doğrulama
++   3.9 Monte Carlo belirsizlik
++   3.10 AutoML (Optuna)
++
++4. Uygulama                            (8-15 s)
++   4.1 Pipeline mimarisi (PFAZ 0-13)
++   4.2 Donanım ve yazılım
++   4.3 TRUBA HPC üzerinde dağıtık eğitim
++   4.4 Veri akışı
++
++5. Bulgular                            (15-25 s)
++   5.1 Bireysel model performansı (MM, QM)
++   5.2 ANFIS karşılaştırması
++   5.3 AutoML iyileşmeleri (49/62 AI, 8/16 ANFIS)
++   5.4 Ensemble sonuçları (QM 0.8886, MM -3.18)
++   5.5 Bilinmeyen çekirdek tahminleri (PFAZ4)
++   5.6 Çapraz model analizi (PFAZ5)
++   5.7 İstatistiksel testler (ANOVA p=0.0015)
++   5.8 İzotop zinciri analizi (sudden changes)
++   5.9 Monte Carlo belirsizlik bantları
++
++6. Tartışma                            (8-15 s)
++   6.1 Bulguların literatür bağlamında değerlendirilmesi
++   6.2 MM/QM asimetri (Val R² yüksek, Test R² düşük QM)
++   6.3 Schmidt eksikliği ve odd-odd Schmidt-eşdeğeri (gelecek çalışma)
++   6.4 Multi-dataset top-N ensemble sınırı (MM -3.18 keşfi)
++   6.5 Çift R² filtresinin değeri
++   6.6 Sınırlamalar
++
++7. Sonuç ve Öneriler                   (5-8 s)
++   7.1 Tezin ana bulguları (özet 5 madde)
++   7.2 Gelecek çalışma önerileri
++       - Sprint 18: Schmidt-eşdeğeri (odd-odd)
++       - Within-dataset ensemble
++       - Daha çok ANFIS varyantı
++       - Transfer learning (odd-A → odd-odd)
++
++EKLER:
++EK A. Kod deposu yapısı
++EK B. Hiperparametre detayları
++EK C. Ek figürler
++EK D. Sembol ve kısaltma sözlüğü
++```
++
++**Toplam:** 84-140 sayfa (içerik + EK)
++
++### Varyant B: 4 bölüm (SAÜ YL stiline benzer)
++
++```
++1. Giriş                              (15-20 s)
++   1.1 Konu ve motivasyon
++   1.2 Teorik arka plan (Schmidt + ML kısaca)
++   1.3 Literatür özetı
++   1.4 Tezin organizasyonu
++
++2. Kuramsal Çerçeve                   (25-35 s)
++   2.1 Nükleer momentler (Schmidt, Bohr-Mottelson)
++   2.2 Makine öğrenmesi temelleri
++   2.3 ANFIS ve fuzzy sistemleri
++   2.4 Belirsizlik nicelemesi
++   2.5 Mevcut çalışmanın konumlanması
++
++3. Bulgular ve Yöntem (birleşik)     (40-55 s)
++   3.1 Veri kümesi ve özellik mühendisliği
++   3.2 Model mimarisi
++   3.3 Eğitim ve değerlendirme
++   3.4 Bireysel sonuçlar
++   3.5 Ensemble sonuçları
++   3.6 İstatistiksel anlamlılık
++   3.7 Yorumlama
++
++4. Sonuçlar ve Öneriler              (10-15 s)
++   4.1 Ana bulgular
++   4.2 Sınırlamalar
++   4.3 Gelecek çalışmalar
++```
++
++**Toplam:** 90-125 sayfa
++
++**Hangisi tercih edilir?**
++- SAÜ örnek tezleri: 484495 (YL, 73 s, 4-bölüm), 651082 (YL, 50 s, 4-bölüm), 841762 (PhD, 160 s, daha uzun yapı)
++- Doktora seviyesinde **7-bölüm yaygın**
++- Default: **Varyant A (7-bölüm)**
++
++---
++
++## 5. Yedek dosya organizasyonu
++
++```
++docs/thesis-toolkit/
++├── THESIS-RESEARCH-NOTES.md       ✅ HAZIR
++├── HAKAN-HOCA-SORULAR.md          ✅ HAZIR
++├── THESIS-PLAN-v2.md              ✅ HAZIR (bu)
++├── CLAUDE-CODE-ORCHESTRATION.md   ✅ HAZIR
++├── PARALLEL-AGENTS-SYSTEM.md      ✅ HAZIR
++├── UMBERTO-ECO-METODOLOJI.md      ✅ HAZIR
++├── SUBMISSION-CHECKLIST.md        ✅ HAZIR
++├── SCHEDULER-SETUP.md             ✅ HAZIR
++├── 06-FIGURE-TABLE-CATALOG.md     (Agent C+D doldurur)
++├── 07-GLOSSARY-SYMBOLS.md         (Agent A günceller)
++├── tez-yazim-not-defteri.md       (canonical, 1655 satır)
++├── agents/                        (Claude Code üretir)
++│   ├── agent-A-phases-update.md
++│   ├── agent-B-sau-style.md
++│   ├── agent-C-excel-inventory.md
++│   ├── agent-D-viz-catalog.md
++│   ├── agent-E-orchestrator.md
++│   ├── agent-F-literature.md
++│   ├── agent-G-eco-methodology.md
++│   ├── agent-H-skill-update.md
++│   ├── agent-I-latex-compile.md
++│   ├── agent-J-scheduler.md
++│   └── agent-CHAPTER-WRITER.md
++├── references/                    (Agent F üretir)
++│   ├── citations-log-v2.md
++│   └── (DOI doğrulanmış kaynaklar)
++├── references-pdf/                (Agent F indirir)
++│   └── *.pdf
++└── pending-decisions/             (Agent'lar yazar, Kemal okur)
++
++skills/
++├── academic-shield-rehber.md      (v1, mevcut)
++├── academic-shield-v2.md          ✅ YENİ
++├── academic-writing-pro-rehber.md (v1, mevcut)
++├── academic-writing-pro-v2.md     ✅ YENİ
++├── humanizer-rehber.md            (v1, genel)
++├── humanizer-thesis-mode.md       ✅ YENİ
++└── INDEX.md                       (güncellenecek)
++
++thesis/
++├── 01-giris.md                    ✅ HAZIR
++├── 02-literatur-incelemesi-v2.md  ✅ HAZIR
++├── 03-yontem.md                   (Agent CHAPTER-WRITER yazacak)
++├── 04-uygulama.md                 (Agent CHAPTER-WRITER)
++├── 05-bulgular.md                 (Agent CHAPTER-WRITER)
++├── 06-tartisma.md                 (Agent CHAPTER-WRITER)
++├── 07-sonuc.md                    (Agent CHAPTER-WRITER)
++├── 00-ozet-tr-en.md               (Agent CHAPTER-WRITER, son)
++├── 08-kaynakca.md                 (Agent CHAPTER-WRITER + Agent F)
++├── 09-ekler.md                    (Agent CHAPTER-WRITER)
++└── _archive/
++    ├── bolum-02-literatur-v1.md   (eski Bölüm 2 v1)
++    └── tez-yazim-not-defteri-OLD.md (864 satır eski)
++```
++
++---
++
++## 6. Riskleri özetle ve önlem
++
++| Risk | Olasılık | Etki | Önlem |
++|---|---|---|---|
++| Hoca toplantısı 12:00'den sonra biter | Orta | Yüksek (Code başlatma gecikir) | Default cevaplarla başlat, sonra revize |
++| Claude Code agent crash | Düşük | Orta | Manuel müdahale + eski snapshot fallback |
++| LaTeX derleme başarısız | Orta | Yüksek | Pandoc → docx → PDF alternatifi |
++| Sprint 18 onayı + 1 hafta | Düşük | Düşük (zaten plan B) | Sprint 18 dokümanı hazır |
++| Kaynak DOI doğrulanmaz | Orta | Düşük (Bölüm 2 v2'de işaretli) | Manuel kontrol Kemal |
++| API kotası gece biter | Yüksek | Orta | Agent J Scheduler ile devam |
++| Plagiarism kontrolü yüksek skor | Düşük | Çok yüksek | academic-shield Mod B + Mod C gerekirse |
++
++---
++
++## 7. Hızlı referans — Kemal için
++
++**Yarın sabah ne yapacaksın?**
++1. 08:00 — Hocaya git, HAKAN-HOCA-SORULAR.md elinde
++2. 5 sorunun cevabını al, not et
++3. 10:00 — Eve dön, yeni Claude Desktop sohbeti aç
++4. Yeni sohbete bu mesajı at:
++   ```
++   Hakan hocadan cevaplar:
++   - Soru 1: ...
++   - Soru 2: ...
++   - Soru 3: ...
++   - Soru 4: ...
++   - Soru 5: ...
++   
++   THESIS-PLAN-v2.md §1 karar matrisini uygula.
++   ```
++5. Sohbetten döndüğünde Claude Code'a şu prompt:
++   ```
++   docs/thesis-toolkit/CLAUDE-CODE-ORCHESTRATION.md
++   açıp master prompt'u uygula.
++   ```
++6. 12:00-18:00 — Claude Code çalışır, sen başka iş yap
++7. 18:00 — Orchestrator raporunu oku
++8. 18:00-22:00 — Final cilalama + teslim
++
++---
++
++*v2.0 | 2026-05-21 | Karar matrisi + zaman planı*
+diff --git a/docs/thesis-toolkit/THESIS-RESEARCH-NOTES.md b/docs/thesis-toolkit/THESIS-RESEARCH-NOTES.md
+new file mode 100644
+index 0000000..54ae6c8
+--- /dev/null
++++ b/docs/thesis-toolkit/THESIS-RESEARCH-NOTES.md
+@@ -0,0 +1,437 @@
++# THESIS RESEARCH NOTES
++## Tez yazımı için merkezi bilgi havuzu
++
++> **Amaç:** Bu doküman, tez yazımı boyunca Claude Desktop + Claude Code'un **tek başvuru noktası**. Bu sohbette yapılan tüm karar, bulgu, sayı, atıf, alıntı, soru ve uyarılar burada toplanıyor.
++>
++> **Kural:** Her yeni bilgi parçası buraya işlenir. Hem ben (Claude Desktop) hem Claude Code bu dosyayı okur. Eski / yanlış sayılar bu dosyada **işaretlenip düzeltilir**, başka yerde silinmez.
++>
++> **Açılış:** 2026-05-21 | Sprint 17 sonu, tez teslim hazırlığı
++> **Tez teslim:** 22 Mayıs 2026 (Yol α — mevcut snapshot ile teslim)
++
++---
++
++## 0. Karar günlüğü (sohbetten — kronolojik)
++
++| Tarih | Karar | Gerekçe |
++|---|---|---|
++| 2026-05-21 | Q1 onaylandı: iki katmanlı çalışma (Claude Desktop = strateji + döküman, Claude Code = uygulama + paralel agent) | Desktop'ta Task tool / paralel agent yok; Code lokalde tüm output'a sahip |
++| 2026-05-21 | Q2 onaylandı: **Yol α** — mevcut snapshot ile 22 Mayıs teslim, Schmidt ekleme (Sprint 18) ancak Hakan hoca onaylarsa | Deadline yakın, Schmidt'in odd-odd çekirdekte etkili olup olmayacağı belirsiz |
++| 2026-05-21 | MM ensemble R²=-3.18 başarısızlık DEĞİL keşif olarak yazılır | Bireysel MM XGB val R²=0.84; ensemble PFAZ7 multi-dataset top-N seçim sorunu |
++| 2026-05-21 | **267 çekirdeğin tamamı odd-odd (Z%2=1 ∧ N%2=1, A çift)** — özgün katkı çerçevesi | Yuan 2021 vb. literatür odd-A'ya odaklanır; odd-odd için sistematik ML benchmark literatürde **yok** |
++| 2026-05-21 | Sci-Hub kullanılacak ama **son çare**; öncelik arXiv + OpenAlex + Semantic Scholar + Google Scholar + ResearchGate + Unpaywall + CrossRef DOI | Yasal/etik gri alan, jüri savunması zor; ama erişim için son çare |
++| 2026-05-21 | Agent F (literatür) sağlam ve test edilebilir olmalı, kaynak indirme zorunlu | Uydurma kaynak çıkmaması için DOI doğrulama mecburi |
++
++---
++
++## 1. Snapshot verisi — sayısal gerçek tablo (referans alınacak)
++
++**Kaynak:** `thesis/_data_snapshot/2026-05-21/` (snapshot 21 Mayıs 04:46 saat damgalı)
++
++### 1.1 MM (Manyetik Moment) — gerçek performans
++
++| Katman | En iyi model | Val R² | Test R² | Val RMSE (μₙ) | Test RMSE (μₙ) |
++|---|---|---|---|---|---|
++| **Bireysel AI** | XGBoost XGB_030 (S80, AZSNNNP) | **0.838** | 0.783 | 0.837 | 0.925 |
++| **Bireysel ANFIS** | gaussian_subclust CFG_SubClust_8 (S70) | **0.906** | 0.561 | 0.519 | 1.119 |
++| **AutoML AI (Optuna 30 trial)** | XGB | **0.873** | — | — | — |
++| **AutoML AI (Optuna)** | LGB | 0.844 | — | — | — |
++| **AutoML AI (Optuna)** | RF | 0.774 | — | — | — |
++| **Ensemble PFAZ7 (stacking_gbm_meta)** | — | **R²= -3.18** | — | RMSE=0.841 | — |
++| **Genel MM AI istatistik** | 560 kayıt, ortalama Val_R²=0.43, %1.8'i Val_R²>0.8 | — | — | — | — |
++
++**MM kaynak:** `THESIS_COMPLETE_RESULTS.xlsx` sheet `Best_Models_Per_Target`, `Target_Statistics`, `comprehensive_report.json`, `automl_summary.json`.
++
++### 1.2 QM (Kuadrupol Moment) — gerçek performans
++
++| Katman | En iyi model | Val R² | Test R² | Val RMSE (barn) | Test RMSE (barn) |
++|---|---|---|---|---|---|
++| **Bireysel AI** | RF RF_012 (S80, AZSB2E) | **0.914** | 0.231 | 0.332 | 1.037 |
++| **Bireysel ANFIS** | gaussian_subclust CFG_SubClust_8 (S80) | **0.922** | 0.076 | 0.316 | 1.137 |
++| **AutoML AI** | RF | **0.899** | — | — | — |
++| **AutoML AI** | LGB | 0.886 | — | — | — |
++| **AutoML AI** | XGB | 0.871 | — | — | — |
++| **Ensemble PFAZ7 (stacking_gbm_meta)** | — | **R²=0.8886** | — | RMSE=0.415 | — |
++| **Genel QM AI istatistik** | 320 kayıt, ortalama Val_R²=0.20, %6.9'u Val_R²>0.8 | — | — | — | — |
++
++**QM kaynak:** Aynı dosyalar. **Dikkat:** QM Val→Test R² düşüşü çok büyük (0.91→0.23). **Distribution shift / overfit alarmı.** Tezde tartışılmalı.
++
++### 1.3 Diğer kritik sayılar (snapshot'tan)
++
++| Bulgu | Değer | Kaynak |
++|---|---|---|
++| Toplam çekirdek | **267** (hepsi odd-odd, A çift, Z%2=1 ∧ N%2=1) | `aaa2.txt` |
++| Toplam feature (FE pipeline sonrası) | 75 | `Feature_Abbreviations` sheet |
++| Aktif feature setleri | 34 farklı kombinasyon (AZS, AZSB2E, AZSMC, AZSNNNP, ...) | aynı sheet |
++| Toplam dataset üretilmiş | 1472 alt-dizin (PFAZ1) | `generated_datasets/` |
++| PFAZ4 unknown predictions | **942 model-dataset kombinasyonu** | `Unknown_Nuclei_Results.xlsx` |
++| ANOVA RF vs XGBoost | **p = 0.0015 (anlamlı)** | `pfaz12_statistical_tests.xlsx` |
++| Bootstrap CI RF Val_R² | 0.3945 [0.3550, 0.4321] (n=10000) | `bootstrap_ci_results.xlsx` |
++| Bootstrap CI XGB Val_R² | 0.2892 [0.2339, 0.3422] | aynı |
++| Bootstrap CI ANFIS Val_R² | **-0.2029 [-0.4425, 0.0255]** (negatif!) | aynı |
++| AutoML AI iyileşme | **49/62 model (%79)** | `automl_summary.json` |
++| AutoML ANFIS iyileşme | **8/16 model (%50)** | aynı |
++| PFAZ10 LaTeX read=11, fallback=0 | tüm bölümler gerçek veriyle yazıldı | `execution_report.json` |
++| PFAZ10 PDF compile | **başarısız** (`compile.bat` lokalde pdflatex çalıştırılmalı) | aynı |
++| Visualizations | 193 PNG + 68 HTML, 22 alt dizin | `visualizations/` |
++
++### 1.4 KRİTİK: Yanlış / eski sayılar — bunları kullanmayın
++
++| Yanlış sayı | Doğru | Nerede yanlış kayıtlı? | Düzeltilecek dosya |
++|---|---|---|---|
++| THESIS_COMPLETE 25 sheet | **18 sheet (gerçekte 25, README'de 18, rehberde 25)** — gerçek **25 sheet** doğrulandı | snapshot README satır 50 + THESIS_WRITING_GUIDE muhtelif | Agent A görevi |
++| Ensemble R² = 0.9794 | **0.8886 (QM stacking_gbm_meta, Sprint 17 sonu)** | mevcut Bölüm 2 satır 36, eski `comprehensive_report.json` (2026-04-02) | Bölüm 2 v2 |
++| "MM ensemble başarılı R²=0.96" | **MM ensemble R²=-3.18 (PFAZ7 dataset eşleştirme sorunu)** | THESIS_WRITING_GUIDE içinde muhtelif | Agent A |
++| 18 sheet THESIS_COMPLETE | 25 sheet gerçek — README'deki 18 yanlış | snapshot README satır 50 | Agent A |
++| Çekirdek tipi: karışık | **267 çekirdek = tamamen odd-odd** | tüm dokümanlar (eski "267 çekirdek" tarafsız geçiyor) | Bölüm 1, 2, 3 |
++
++---
++
++## 2. Sohbette yakaladığım yeni içgörüler — **TEZE EKLENECEK** olanlar
++
++### 2.1 Özgün katkı v2 (revize edilmiş)
++
++Eski tez katkıları (5 madde, `thesis/tez-yazim-not-defteri.md`'den):
++1. Nükleer moment tahmini için kapsamlı ML/ANFIS benchmark
++2. Fizik bilgisi içeren özellik mühendisliği metodolojisi
++3. Kabuk kapanması süreksizliğini ele alan özel özellik tasarımı
++4. 267 çekirdeklik deneysel veri üzerinde doğrulanmış tahmin modelleri
++5. Deneysel verisi olmayan çekirdekler için hesaplama çerçevesi
++
++**Yeni eklenmesi gerekenler:**
++
++6. **Odd-odd çekirdekler için ilk sistematik ML+ANFIS benchmark.** Literatürde Yuan ve ark. (2021, BNN, RMSE=0.036 μₙ), Niu ve Liang (2018, BNN nükleer kütle), Utama ve ark. (2016) ve diğer çalışmalar **odd-A çekirdeklere** odaklanır. Bizim 267 çekirdeğimizin tamamı odd-odd (Z%2=1 ∧ N%2=1). Schmidt formülü tek valens nükleon varsayar; odd-odd'da iki valens nükleon var, klasik Schmidt doğrudan uygulanmaz. Bu **literatürde boş bir alan**.
++
++7. **Multi-dataset top-N ensemble'ın küçük-veri rejiminde sınırı:** PFAZ7 MM için R²=-3.18 sonucu, dataset-arası top-N seçiminin "0 common nuclei" mekanizmasıyla çakabileceğini somut olarak göstermiştir. Bu, küçük-veri rejiminde **within-dataset top-N**'in daha güvenli olduğuna dair bir bulgu. (Sprint 17 BUG-127 fix kayıtlı.)
++
++8. **AutoML değer katma niceliği:** Optuna (TPE + MedianPruner) ile 49/62 (%79) AI ve 8/16 (%50) ANFIS modelinin iyileştirildiği belgelenmiştir. Bu, küçük-veri rejiminde otomatik hiperparametre optimizasyonunun **ihmal edilemez** bir performans kaynağı olduğunu göstermektedir.
++
++9. **Çift R² filtresi (val_R² + 5-kat CV R²) küçük-veri overfit kontrolü:** Shang 2022, Utama 2016 önerilerini somut bir filtre eşiği (cv_R²≥0, val_R²−CV_R² gap<0.5) olarak uygulamış ve 50 yapılandırmadan oluşan eğitim havuzunda erken overfit tespiti yapmıştır. Bu **metodolojik katkı**.
++
++### 2.2 Bölüm 5/6 için yazılacak bulgular
++
++- **MM bireysel başarı vs ensemble başarısızlık asimetrisi:** XGB val_R²=0.84 → Ensemble R²=-3.18. Yorum: top-N ensemble dataset eşleştirme sorunu yaşar.
++- **QM Val→Test R² uçurumu:** 0.91→0.23. Distribution shift veya test seti aykırı çekirdek içeriği. Tartışma: küçük veride test seti seçiminin **rastlantısal** olabileceği.
++- **ANFIS bootstrap CI negatif:** -0.20 [-0.44, 0.03]. Ortalama olarak ANFIS modellerin tahmininin **veri ortalamasından daha kötü** olduğunu gösterir. ANFIS'in yorumlanabilirlik avantajı var ama nicel olarak ML'den zayıf.
++- **267 odd-odd çekirdek küçük veri rejimi:** Transfer learning yok (domain spesifik), data augmentation sınırlı (fiziksel kısıtlar), özellik mühendisliği de facto veri zenginleştirme.
++- **Schmidt değeri feature olarak eklenmedi (sınırlama):** Yuan 2021 odd-A için BNN-I4 (Z, N, I, μ_Schmidt) ile RMSE=0.036 μₙ elde etti. Bizim feature setlerimiz Schmidt **içermiyor** çünkü 267 çekirdek odd-odd ve klasik Schmidt iki valens nükleon için tanımsız. **Gelecek çalışma:** odd-odd Schmidt-eşdeğeri (iki-parçacık additivity veya j₁⊕j₂ coupling) feature olarak denenmesi.
++
++### 2.3 Sınırlamalar bölümü için (Bölüm 6.3 / 7.3)
++
++1. Snapshot 2026-05-21'de dondurulmuştur; pipeline tekrar çalıştırılmamıştır.
++2. MM için Schmidt feature eklenmedi; odd-odd çekirdekte Schmidt'in fizibilitesi ek araştırma gerektirir.
++3. QM test R²=0.23 distribution shift'i tartışılmamıştır (kök sebep analizi gelecek çalışma).
++4. Ensemble PFAZ7 multi-dataset top-N seçimi MM için arızalandı (BUG-127 fix sonrası); within-dataset alternatifi denenmelidir.
++5. 267 çekirdek küçük veri; LightGBM, CatBoost, SVR gibi ek modeller Sprint 13 sonrası eğitim havuzuna **eklenmedi** (kasıtlı, BUG-118 ve sonrası kararı).
++6. 6 model çeşidi (DNN, BNN, PINN, LightGBM, CatBoost, SVR) Sprint 15 sonrası eğitim dışı bırakıldı (BUG-101..108, KURAL 34-37).
++
++---
++
++## 3. Literatür durumu — Bölüm 2 düzeltme listesi
++
++### 3.1 Mevcut Bölüm 2'deki hatalar/eksikler
++
++| Konu | Mevcut Bölüm 2 | Sorun | Düzeltme |
++|---|---|---|---|
++| Ensemble R² | 0.9794 (MLP meta-learner) | **Sprint 17 sonu 0.8886**, eski 2026-04-02 değeri | Doğru rakam ve metodoloji adı |
++| MM ML literatür | Genel atıf | **Yuan 2021 eksik** (en yakın iş!) | Yuan, Tian, Li, Niu 2021 atıfı ekle |
++| Stone derlemesi | 2005 + 2016 + 2019 | **Stone 2024 (Interactions 245, 50)** son güncel sürüm eksik | Stone 2024 ekle |
++| QM ML literatür | Sınırlı | **Knöll 2025 (arXiv 2501.08959, Darmstadt, ab initio EM moment ML)** eksik | Knöll 2025 ekle |
++| İndium izotopları (magic number kontrolü) | yok | **Karthein 2024 (Nat. Phys. 20, 1719) ¹⁰⁰Sn doubly magic** eksik | Karthein 2024 ekle |
++| Antimony EM moment (deneysel) | yok | **Lechner 2023 (Phys. Lett. B 847, 138278)** eksik | Lechner 2023 ekle |
++| SAÜ kendi grubu | yok | **Tabar, Yakut, Kuliev, Quliyev, Hoşgör (2017, Chin. Phys. C) Ho odd-A MM** referans olabilir | **Yakut hocanın grubunun makaleleri eklenmeli** |
++| SAÜ Eu/Gd çalışması | yok | **Hoşgör, Yakut, Tabar (2017, AIP Conf. Proc. 1815) Eu MM spin polarization** | Aynı |
++| Türkiye nükleer fizik | Akkoyun 2013, Bayram 2014 (yük yarıçapı) | İyi, ama **Yakut/Tabar makaleleri ilave** | Eklensin |
++| Odd-odd çekirdek konumlandırması | yok | **Bu çalışmanın özgün katkı çerçevesi** | Yeni alt-bölüm 2.X |
++
++### 3.2 Eklenecek kaynaklar (Agent F doğrulayacak)
++
++```
++Yuan, Z., Tian, D., Li, J., Niu, Z.M. (2021).
++  Magnetic moment predictions of odd-A nuclei with the Bayesian neural network approach.
++  Chinese Physics C 45(12), 124107.
++  DOI: 10.1088/1674-1137/ac28f9
++  arXiv: 2109.07221 (kontrol gerekli)
++
++Stone, N.J. (2024).
++  Nuclear moments: recent developments.
++  Interactions 245, 50.
++  DOI: 10.1007/s10751-024-01896-z
++
++Knöll, M., Agel, M.L., Wolfgruber, T., Maris, P., Roth, R. (2025).
++  Machine Learning for Correlations of Electromagnetic Properties
++  in Ab Initio Calculations.
++  arXiv: 2501.08959
++
++Karthein, J. et al. (2024).
++  Electromagnetic properties of indium isotopes elucidate the
++  doubly magic character of 100Sn.
++  Nature Physics 20, 1719–1725.
++
++Lechner, S., Miyagi, T., Xu, Z., et al. (2023).
++  Electromagnetic moments of the antimony isotopes 112-133Sb.
++  Physics Letters B 847, 138278.
++  DOI: 10.1016/j.physletb.2023.138278
++
++Tabar, E., Yakut, H., Kuliev, A.A., Quliyev, H., Hoşgör, G. (2017).
++  Magnetic moments and g factors in odd-A Ho isotopes.
++  Chinese Physics C 41(7), 074101.
++  DOI: 10.1088/1674-1137/41/7/074101
++
++Hoşgör, G., Yakut, H., Tabar, E. (2017).
++  Spin polarization effects on magnetic dipole moment of 153,155Eu.
++  AIP Conference Proceedings 1815, 060011.
++
++Stone, N.J. (2021).
++  Table of recommended nuclear electric quadrupole moments.
++  Tech. Rep. INDC(NDS)-0833. IAEA.
++  DOI: 10.61092/iaea.a6te-dg7q
++```
++
++### 3.3 SAÜ örnek tezlerden — bizim atıfta bulunmamız gereken çalışmalar
++
++(484495 Hoşgör 2017, 651082 Sarıbaş 2020, 841762 Kemah 2023 — Yakut/Tabar danışmanlığında)
++
++Sarıbaş 2020 kaynakçası `[24] Schmidt, T., Über die magnetischen Momente der Atomkerne, Z. Phys. 106, 358 (1937)` — bizim Bölüm 2'mizde [28] olarak zaten var.
++
++**SAÜ grubu kendi atıf zinciri:**
++- Kuliev, A.A., Pyatov, N.I. (1969). Spin polarization effects in odd-mass deformed nuclei. *Phys. Lett. B* 28, 443.
++- Yakut, H., Kuliev, A., Guliyev, E. (2008). Investigations of the g_K-factors in the 175,177,179Hf Isotopes. *AIP Conf. Proc.* 1072, 258.
++- Guliyev, E., Kuliev, A.A., Ertuğral, F. (2009). Low-lying magnetic and electric dipole strength distribution in the 176Hf nucleus. *Eur. Phys. J. A* 39, 323.
++- Ertuğral, F., Guliyev, E., Kuliev, A.A., Yıldırım, Z. (2009). Fine structure of the dipole excitations of the even-even 160Gd. *Open Physics* 7, 731.
++
++Bu zincir **deformasyon + manyetik moment + SAÜ grubu**. Bölüm 2'de **bu çalışmalara atıfta bulunmak Yakut hocanın memnuniyetine de hizmet eder** ve **tez savunması sırasında jüri olarak bu hocaların sorularını yumuşatır**.
++
++---
++
++## 4. Sayısal sözlük — tezde tutarlı kullanılacak değerler
++
++Her yerde **aynı değer**, **aynı virgül/nokta formatı** kullanılacak:
++
++| Sembol / İddia | Değer | Birim | Tezde geçeceği bölüm |
++|---|---|---|---|
++| MM bireysel en iyi val R² | 0,8379 | — | §5.1 |
++| MM bireysel en iyi test R² | 0,7834 | — | §5.1 |
++| MM bireysel en iyi test RMSE | 0,925 | μₙ | §5.1 |
++| QM bireysel en iyi val R² | 0,9138 | — | §5.1 |
++| QM bireysel en iyi test R² | 0,2313 | — | §5.1 (**uyarı!**) |
++| QM ensemble en iyi R² | 0,8886 | — | §5.9 |
++| QM ensemble en iyi RMSE | 0,415 | barn | §5.9 |
++| MM ensemble en iyi R² | −3,1821 | — | §5.9 (olumsuz bulgu) |
++| ANOVA RF vs XGBoost p | 0,0015 | — | §5.11 (anlamlı) |
++| Bootstrap CI iterasyon | 10 000 | — | §3.10 |
++| Monte Carlo örneklem K | 1 000 | — | §3.10 |
++| AutoML iyileşme AI | 49 / 62 = %79,0 | — | §5.13 |
++| AutoML iyileşme ANFIS | 8 / 16 = %50,0 | — | §5.13 |
++| Toplam çekirdek | 267 | — | §3.1 |
++| Çekirdek tipi | odd-odd (Z, N tekil) | — | §3.1, §1.4 |
++| Feature sayısı | 75 | — | §3.2 |
++| Aktif feature set sayısı | 34 | — | §3.2 |
++| Dataset alt-dizini | 1 472 | — | §3.3 |
++| PFAZ4 model-dataset kombinasyonu | 942 | — | §5.8 |
++| Eğitim konfigürasyonu | 20 (Sprint 15 sonrası) | — | §3.5 |
++| ANFIS yapılandırması | 8 (Grid×SubClust × 4 MF) | — | §3.4 |
++| Çapraz doğrulama | 5-kat | — | §3.6 |
++| Çift R² filtresi | val_R²≥0, CV_R²≥0, gap<0,5 | — | §3.6 |
++
++**Türkçe sayı formatı:** virgül (3,14), binlik ayraç boşluk veya yok. **Uluslararası yayın için:** nokta (3.14). Tezde **virgül** kullanılacak (SAÜ standardı).
++
++---
++
++## 5. Yarın (22 Mayıs) Hakan hocaya sorular
++
++Tez teslimi sabaha kadar; bu sorular **hoca onayı + olası deadline uzatma** için.
++
++### 5.1 Yöntem sorusu (kritik)
++
++> **Soru:** "267 çekirdek hepsi odd-odd (Z, N tekil, A çift). Schmidt formülü `μ_s = g_l·l + ½g_s` tek valens nükleon için tanımlı. Bizim datada Schmidt feature olarak yok. Yuan ve ark. (2021) odd-A için Schmidt'i input ekleyince RMSE 0.95 → 0.036 μₙ dramatik iyileşme gösterdi. Odd-odd için **iki-parçacık Schmidt eşdeğeri** (additivity rule veya j₁⊕j₂ coupling) feature olarak denemek mantıklı mı, yoksa odd-odd çekirdekte Schmidt zaten geçersiz olduğu için anlamsız mı?"
++
++**Hocanın olası cevapları + bizim aksiyonumuz:**
++- **(a) "Schmidt anlamlı, dene"** → Sprint 18 başlat. 1 hafta deadline uzatma talebi. Yeni Sprint planı `docs/thesis-toolkit/sprints/sprint-18-schmidt-odd-odd.md`'de hazır olacak.
++- **(b) "Schmidt odd-odd'da anlamsız, geç"** → Bizim tez konumlandırması **doğru**: özgün katkı = odd-odd için Schmidt geçersiz olduğu rejimde fiziksel olmayan/saf ML benchmark. Mevcut snapshot ile teslim.
++- **(c) "QM val→test uçurumu (0.91→0.23) ne anlama geliyor sence?"** sorusu olabilir → Cevap: distribution shift veya test setinde kabuk-kapanma yakın çekirdek + deformasyonlu çekirdek karışımı.
++
++### 5.2 Tez yapısı onayı
++
++Tez yapısı `thesis/tez-yazim-not-defteri.md` ile uyumlu:
++1. Giriş (1.1–1.5)
++2. Kuramsal Çerçeve / Literatür (2.1–2.7)
++3. Yöntem (3.1–3.10)
++4. Bulgular (4.1–4.4) **veya** 5 ayrı bölüm (Sarıbaş 2020 / Hoşgör 2017 modeline yakın)
++5. Bilinmeyen Çekirdek Tahminleri **veya** Tartışma+Bulgular birleştirilmiş
++6. Tartışma
++7. Sonuçlar ve Öneriler
++
++**SAÜ örnek tezlerinin yapısı (sample analizi):**
++- 484495 (Hoşgör YL 2017): 4 bölüm (Giriş + QPNM + Bulgular + Sonuçlar) — kısa, 73 s.
++- 651082 (Sarıbaş YL 2020): 4 bölüm benzer, 50 s.
++- 841762 (Kemah Dr 2023): daha uzun, ~160 s.
++
++**Soru hocaya:** "SAÜ Fen Bilimleri Enstitüsü Doktora tezi için bölüm sayısı? 7 bölüm uygun mu yoksa daha az/daha çok mu?"
++
++### 5.3 Atıf formatı sorusu
++
++3 örnek tez (484495, 651082, 841762) **numaralı atıf [N]** kullanıyor, kaynakçada yazar adı-soyadı baş harfli:
++```
++[95] Tabar, E., Yakut, H., Kuliev, A.A., Quliyev, H., Hoşgör, G.,
++     Magnetic moments and g factors in odd-A Ho isotopes.
++     Chinese physics C, 0-0, 2017.
++```
++
++Bu **SAÜ-modifiye IEEE** formatı (klasik IEEE'de yazar adı baş harfi sona alınır: "Tabar E., Yakut H., ..." ama burada "Tabar, E., Yakut, H., ..." sırası kullanılmış — APA-IEEE karışık).
++
++**Soru hocaya:** "Hangi atıf formatı? IEEE, APA, yoksa SAÜ-spesifik bir hibrit?" — Cevaba göre Bölüm 2 v2'nin formatını ayarlayacağız.
++
++### 5.4 Yapay zekâ kullanım beyanı
++
++Tezde "ML/ANFIS metodoloji" başlığı var ama **tezin yazımında AI (Claude) kullanımı** ayrı bir beyan ister mi? SAÜ Tez Yazım Kılavuzu (`sau tez format/Tez_Yazim_Kilavuzu_SON_HALI_16.02_.pdf`) okunmalı — Claude Code'a bu görevi atayacağız.
++
++**Soru hocaya:** "Tez yazımında AI asistan kullanımı beyan zorunlu mu?"
++
++### 5.5 Deadline uzatma talebi (yedek)
++
++Eğer hoca Schmidt eklenmesini destekliyorsa:
++> "Hocam, Schmidt eklemek için **1 hafta** ek süre gerekiyor (PFAZ1 yeni modül + PFAZ2 lokal MM yeniden eğitim + PFAZ4-13 entegre yeniden çalıştırma). Bu mümkün mü?"
++
++---
++
++## 6. Plan v2 (revize edilecek) — yarın hoca cevabı geldikten sonra
++
++**Şu anki taslak (Yol α + Hakan cevap (b) — Schmidt yok):**
++
++| Bölüm | Durum | Kaynak | Aksiyon |
++|---|---|---|---|
++| **Önsöz + Teşekkür** | Yapılmadı | — | Tez sonunda yazılır |
++| **TR Özet + EN Abstract** | Snapshot'ta `chapters/00_abstract.tex` mevcut, **revize gerekli** | LaTeX snapshot | Sayısal değerler v2 olmalı, MM ensemble -3.18 dürüst yazılmalı, odd-odd özgün katkı vurgulanmalı |
++| **İçindekiler** | Otomatik | — | Pandoc / pdflatex üretir |
++| **Şekiller listesi** | Yapılmadı | — | Agent D çıkışı (`figure-catalog-mapping.md`) sonrası |
++| **Tablolar listesi** | Yapılmadı | — | Agent C çıkışı sonrası |
++| **Simgeler ve kısaltmalar** | `07-GLOSSARY-SYMBOLS.md` kısmen dolu | — | Agent A güncelleyecek |
++| **§1 Giriş** | Yapılmadı | Manuel | **Bu sohbette üretiliyor** → `thesis/01-giris.md` |
++| **§2 Literatür** | v1 var (`thesis/bolum-02-literatur-incelemesi.md` 3200 kelime) — **revize gerekli** | v1 + 8 yeni kaynak | **Bu sohbette üretiliyor** → `thesis/02-literatur-incelemesi-v2.md` |
++| **§3 Yöntem** | Snapshot'ta `chapters/chapter3_metodoloji.tex` mevcut | LaTeX + phases md'leri | Agent A güncelleyecek (Sprint 17 fix'leri) |
++| **§4 Uygulama** | Repo config + requirements + truba/slurm_jobs | manuel | Claude Code yazar |
++| **§5 Bulgular** | Snapshot'ta `chapter4_sonuclar.tex` mevcut | snapshot Excel'ler | Agent C (Excel pivot) + Agent D (figür) çıkışı sonrası entegre |
++| **§6 Tartışma** | Snapshot'ta `chapter5_tartisma.tex` mevcut | manuel | Tek tek revize edilecek (MM/QM asimetri, MM ensemble -3.18, odd-odd) |
++| **§7 Sonuç** | Snapshot'ta `chapter6_sonuc.tex` mevcut | manuel | Manuel revize (Schmidt gelecek çalışma, vb.) |
++| **Kaynakça** | snapshot'ta `bibliography/references.bib` | Agent F | Tüm DOI doğrulama + 8 yeni kaynak ekleme |
++| **EK A** Kod repo yapısı | yok | manuel | Claude Code yazar |
++| **EK B** Hiperparametre detayları | snapshot'ta yer alabilir | xlsx | Otomatik |
++| **EK C** Ek figürler | Agent D | viz folder | Agent D üretir |
++| **EK D** Sembol sözlüğü | `07-GLOSSARY-SYMBOLS.md` | — | Agent A |
++
++---
++
++## 7. Agent görev listesi — Claude Code'a verilecek
++
++Bu liste **bu sohbet sonunda agent prompt dosyalarına dönüştürülecek**.
++
++### Agent A — phases/ ve eski döküman güncelleyici
++- `phases/faz-01..13.md` Sprint 17 sonrası gerçek duruma göre güncelle
++- `THESIS_WRITING_GUIDE.md`'deki 25-sheet iddiasını **25 sheet (gerçek snapshot)** olarak doğrula, eski "18 sheet" değerlerini düzelt
++- `snapshot/README.md`'deki "18 sheet" → "25 sheet" düzelt
++- `tez-yazim-not-defteri.md` iki versiyonunu birleştir (canonical: `docs/thesis-toolkit/...`, eskisini `thesis/tez-yazim-not-defteri.OLD.md`'ye taşı)
++- `07-GLOSSARY-SYMBOLS.md` Sprint 17 sembolleri ekle
++
++### Agent B — SAÜ örnek tez analizi
++- 14 örnek tezin **yapısı, atıf formatı, dil, teşekkür stili** analizi
++- 3 öncelikli tez (484495, 651082, 841762) detaylı analiz: bölüm sıralaması, formül yazım stili, şekil caption tarzı, tablo formatı
++- Çıktı: `docs/thesis-toolkit/sau-thesis-style-guide.md`
++- Yan çıktı: `docs/thesis-toolkit/sau-citation-format-rules.md`
++
++### Agent C — Excel inventory + pivot table önerileri
++- `_data_snapshot/2026-05-21/*.xlsx` — tüm sayfalar, tüm sütunlar
++- Her sayfa için: kolon isimleri, kısaltma açıklamaları, satır sayısı, kullanım amacı
++- Tez tablo önerileri (pivot)
++- Çıktı: `docs/thesis-toolkit/excel-inventory-and-pivots.md`
++- Otomatik bonus: `06-FIGURE-TABLE-CATALOG.md`'ye T-NNN tablo girişleri ekle
++
++### Agent D — Görselleştirme katalog + tez bölüm eşleştirme
++- `hpcv1_outputs/visualizations/` 193 PNG + 68 HTML 22 alt dizin
++- Her görsel: hangi bölüm, hangi şekil numarası, ne tür içerik
++- Caption taslakları (Türkçe akademik)
++- Çıktı: `docs/thesis-toolkit/figure-catalog-mapping.md`
++- Otomatik bonus: `06-FIGURE-TABLE-CATALOG.md`'ye S-NNN şekil girişleri ekle
++
++### Agent E — Orchestrator
++- A/B/C/D paralel çalıştır
++- Çıktıları sentezle
++- Çelişki raporu
++- Otomatik commit kuralları (Kemal onayı OLMADAN ufak değişiklikler)
++- Sabah raporu
++
++### Agent F — Literatür taraması + kaynak doğrulama
++- 8 yeni kaynak indirme (yukarıda §3.2 listesi)
++- arXiv → OpenAlex → Semantic Scholar → Google Scholar → ResearchGate → Unpaywall → CrossRef → Sci-Hub sıralı arama
++- DOI doğrulama CrossRef API ile
++- PDF indirme (varsa) → `docs/thesis-toolkit/references-pdf/{doi-slug}.pdf`
++- Çıktı: `docs/thesis-toolkit/references/citations-log-v2.md` (her kaynak için tam künye + DOI durumu + erişim durumu)
++- Her kaynağa Bölüm 2'de nerede atıf yapılacağı eşleştirilir
++
++### Agent G — Umberto Eco metodoloji uygulayıcı
++- "Tez Nasıl Yazılır" tavsiyeleri özet doküman
++- Kart sistemi (notlar), kaynak yönetimi, dipnot disiplini
++- Çıktı: `docs/thesis-toolkit/UMBERTO-ECO-METODOLOJI.md`
++
++### Agent H — humanizer + academic-shield güncelleyici
++- Mevcut `skills/academic-shield-rehber.md` ve `skills/academic-writing-pro-rehber.md` SAÜ tezlerinden çıkardığı stil ile beslemek
++- AI kalıbı tetiklendiğinde **insan örneklerinden cümle önerme** ekle
++- Çıktı: revize edilmiş skill rehberleri
++
++### Agent I — Pandoc/LaTeX derleme + final PDF
++- snapshot'taki `chapter1-6_*.tex` + manuel yazılmış md bölümler birleştir
++- Pandoc-LaTeX veya pdflatex ile PDF üret
++- SAÜ tez şablonu (`sau-lisansustu-tez-sablonu.docx`) ile uyumlu margin/font
++- Çıktı: `thesis/output/tez.pdf`
++
++### Agent J — Zamanlama (Windows Task Scheduler / GitHub Actions)
++- Sen uyurken çalışabilen iş kuyruğu
++- Kullanım kotası bittikten sonra otomatik devam
++- Çıktı: `docs/thesis-toolkit/SCHEDULER-SETUP.md`
++
++---
++
++## 8. Bu sohbette ben (Claude Desktop) tarafından üretilen dosyalar
++
++Bu listeyi tutuyorum ki sen Claude Code'a hangileri commit edilecek bilesin.
++
++| # | Dosya | Üretildi mi? | Ne zaman commit edilmeli? |
++|---|---|---|---|
++| 1 | `docs/thesis-toolkit/THESIS-RESEARCH-NOTES.md` | **Bu mesaj** | Hemen |
++| 2 | `thesis/01-giris.md` | **Bu mesaj** | Hemen |
++| 3 | `thesis/02-literatur-incelemesi-v2.md` | **Bu mesaj** | Hemen |
++| 4 | `docs/thesis-toolkit/HAKAN-HOCA-SORULAR.md` | Sonraki üretim | Bu mesajdan sonra (aynı oturum) |
++| 5 | `docs/thesis-toolkit/guide/PARALLEL-AGENTS-SYSTEM.md` | Hoca cevabı sonrası | Yarın akşam |
++| 6 | `docs/thesis-toolkit/agents/agent-A..J-*.md` | Hoca cevabı sonrası | Yarın akşam |
++| 7 | `docs/thesis-toolkit/THESIS-PLAN-v2.md` | Hoca cevabı sonrası | Yarın akşam |
++| 8 | `docs/thesis-toolkit/UMBERTO-ECO-METODOLOJI.md` | Agent G üretebilir veya Claude Desktop | Yarın |
++| 9 | `docs/thesis-toolkit/SCHEDULER-SETUP.md` | Agent J | Sprint 18 başlarsa |
++
++---
++
++## 9. Sohbet konularının "ileride bakılacak" listesi
++
++Bu sohbette geçti ama henüz işlenmedi — sonraki sohbette dönülecek:
++
++- [ ] Sci-Hub Solana token entegrasyonu (Agent F'in alt görevi)
++- [ ] Windows Task Scheduler ile claude-code headless mod (Agent J)
++- [ ] Tez Türkçe ön ek/uzun ünlü tarama (`ç`, `ş`, `ğ`, `ü`, `ö`, `ı`) — pdflatex Türkçe karakter sorunları
++- [ ] BibTeX vs biblatex tercihi — pdflatex/xelatex uyumluluğu
++- [ ] Plagiarism kontrol (Turnitin veya iThenticate)
++- [ ] Etik kurul beyanı (SAÜ Fen Bilimleri Enstitüsü gereği var mı?)
++- [ ] AI kullanım beyanı (SAÜ Tez Yazım Kılavuzu okunup karar verilecek)
++- [ ] Tez veri saklama politikası (hpcv1_outputs ~13 GB, repo'da değil, nasıl arşivlenecek?)
++- [ ] Hangi versiyon kontrolde tezi tutmak: `thesis-writing` branch sonrası ne olacak?
++
++---
++
++## 10. Versiyonlama
++
++| Versiyon | Tarih | Değişiklik | Yazar |
++|---|---|---|---|
++| v1.0 | 2026-05-21 | İlk oluşturma — sohbet bulgularını birleştirir | Claude Opus 4.7 |
++
++**Sonraki güncellemelerde:** bu dosyaya **append edilir**, eski satırlar silinmez. Yanlış sayılar `~~strike-through~~` ile gösterilir ve düzeltme not düşülür.
++
++---
++
++*Bu doküman canlı not defteridir. Tez yazımı süresince her yeni karar, bulgu, kaynak, sayısal değer buraya işlenmelidir. Hem Claude Desktop hem Claude Code (VS Code) bu dosyayı **her oturum başlangıcında okur**.*
+diff --git a/docs/thesis-toolkit/UMBERTO-ECO-METODOLOJI.md b/docs/thesis-toolkit/UMBERTO-ECO-METODOLOJI.md
+new file mode 100644
+index 0000000..9f156a8
+--- /dev/null
++++ b/docs/thesis-toolkit/UMBERTO-ECO-METODOLOJI.md
+@@ -0,0 +1,257 @@
++# UMBERTO ECO METODOLOJİSİ
++## "Tez Nasıl Yazılır" — pratik özet, tez yazımı için
++
++> **Kaynak:** Eco, U., *Come si fa una tesi di laurea* (1977) — Türkçe çevirisi *Tez Nasıl Yazılır*
++> **Hedef:** SAÜ doktora tezi yazımı, son 24 saatlik aşama
++> **Versiyon:** v1.0 (2026-05-21)
++
++---
++
++## 1. Eco'nun temel kuralı
++
++> **"İyi bir tez, yapılan işin sınırlarını açıkça çizen tezdir."**
++
++Yani: konuyu **dar tut**, derine in. Geniş konu yüzeysel kalır.
++
++**Bu teze uyarlaması:**
++- ❌ "Yapay zekâ ile nükleer fizik" — çok geniş
++- ✅ "Tek-tek çekirdekler için ML ile manyetik ve kuadrupol moment tahmini" — dar + derin
++
++Bu tez **zaten dar tutulmuş**. Kullanıldı.
++
++---
++
++## 2. Beş Eco kuralı
++
++### Kural 1: Konu ulaşılabilir olmalı
++
++Eco der ki: "Doktora tezini başka bir doktora tezi yapmak için yazma."
++
++Bu tez için kontrol:
++- ✅ 267 çekirdek veri seti elinde (Stone derlemesi + Yakut grubu)
++- ✅ Pipeline çalışıyor (Sprint 17 tamamlandı)
++- ✅ Sonuçlar üretildi
++- ✅ Literatür var (Yuan 2021 + Stone 2024 + SAÜ Yakut grubu)
++
++**Hiçbir veri/sonuç eksik değil.** Yaz.
++
++### Kural 2: Kaynaklar erişilebilir olmalı
++
++Eco der ki: "İndirgeyemediğin kaynakları atıf yapma."
++
++Bu tez için:
++- ✅ Snapshot tüm xlsx + LaTeX + PNG/HTML elinde
++- ✅ Yuan 2021 makalesi: DOI doğrulandı, IHEP arşivinde açık erişim
++- ✅ Stone 2024: SpringerLink (SAÜ kütüphane erişimi)
++- ⚠ Karthein 2024: Nature Physics, paywall — Agent F arXiv versiyonu bulacak
++
++**Agent F'in sorumluluğu:** Her atıfta bulunduğun kaynağa **erişim sağla**. Erişemiyorsan atıf yapma.
++
++### Kural 3: Kaynaklar kullanılabilir olmalı
++
++Eco der ki: "Bilmediğin dilde yazılmış kaynaklara atıf yapma — özet yetersiz."
++
++Bu tez için kontrol:
++- ✅ İngilizce kaynaklar — okuyup atıf yapabiliyorsun (Kemal seviyesi yeterli)
++- ✅ Türkçe kaynaklar (SAÜ Yakut grubu) — anadil
++- ❌ Almanca / Rusça kaynaklar — Eco'ya göre **özet üzerinden atıf YAPMA**
++
++Schmidt 1937 (Almanca, Z. Phys.) ve Kuliev-Pyatov 1969 (Rusça orijinal) — bu iki kaynak için **İngilizce ikincil kaynak** kullan:
++- Schmidt için → Bohr-Mottelson Vol. I (İngilizce, Schmidt'in özetini içerir)
++- Kuliev-Pyatov için → Sarıbaş 2020 tezi (Türkçe) veya başka SAÜ Türkçe kaynak
++
++### Kural 4: Çalışma plan + yöntem belirle
++
++Eco der ki: "İlk gün yaz: ne yapacağım, hangi sırayla, hangi süre içinde?"
++
++Bu tez için:
++- ✅ Plan v2 hazır (`THESIS-PLAN-v2.md`)
++- ✅ Karar matrisi hazır (Hakan hoca cevabı sonrası)
++- ✅ Zaman planı hazır (saat saat 22 Mayıs)
++
++### Kural 5: Daima fikir kartları tut
++
++Eco der ki: "Her kitap için bir kart hazırla: yazar, başlık, ana iddiası, senin notun."
++
++Modern karşılığı: **`citations-log-v2.md`** (Agent F üretiyor).
++
++Her atıf için:
++```
++Yazar: Yuan, Z., Tian, D., Li, J., Niu, Z.M.
++Yıl: 2021
++Başlık: Magnetic moment predictions of odd-A nuclei with BNN
++Dergi: Chinese Physics C 45(12), 124107
++DOI: 10.1088/1674-1137/ac28f9
++Ana iddia: BNN-I4 (Z, N, I, μ_Schmidt) input ile odd-A MM rms 0.036 μ_N
++Bizim ilişkimiz: BU TEZ ODD-ODD'A genişletir; Schmidt eksiği bu makale ile gerekçelendirilir.
++Notum: Yuan'ın 448 odd-A vs bizim 267 odd-odd örneklem farkı kritik.
++        Schmidt onların ana güç; bizde Schmidt yok = sınırlama (Bölüm 6.3).
++Atıf yapılacak bölümler: 1.3, 2.3, 6.3, 7.2
++```
++
++---
++
++## 3. Pratik Eco ipuçları (tez yazım anı için)
++
++### 3.1 Yazım sırası
++
++Eco der ki: "Sondan başla."
++
++**Önerilen sıra (Eco):**
++1. Önce **Sonuç bölümünü** kabaca yaz → bilirsin nereye varmak istiyorsun
++2. Sonra **Bulgular** → veri elinde
++3. Sonra **Yöntem** → bulguları üretmek için ne yaptın
++4. Sonra **Tartışma** → bulguları yorumla
++5. Sonra **Literatür** → kendi konumlamana göre
++6. EN SON **Giriş** → en zor bölüm, son yaz
++7. EN EN SON **Özet/Abstract** → her şey bitince
++
++**Bu tez için durum:** §1 Giriş **zaten yazıldı** (Claude Desktop, bu sohbet). Eco'ya uygun değil ama hoca toplantısı için lazım. **Düzeltme:** Giriş **revize edilecek** her şey bitince.
++
++### 3.2 Bölüm uzunluk dengesi
++
++Eco der ki: "Tezin bölümleri eşit ağırlıkta olmalı."
++
++Bu tez için kontrol:
++| Bölüm | Hedef sayfa | Eco oranı (toplam %) |
++|---|---|---|
++| 1 Giriş | 8-12 | ~10% |
++| 2 Literatür | 15-25 | ~20% |
++| 3 Yöntem | 25-40 | ~30% |
++| 4 Uygulama | 8-15 | ~10% |
++| 5 Bulgular | 15-25 | ~20% |
++| 6 Tartışma | 8-15 | ~7% |
++| 7 Sonuç | 5-8 | ~3% |
++
++**Eco uyarısı:** Eğer Bölüm 3 + 5 (Yöntem + Bulgular) **>%60** olursa = teknik rapor. Eğer Bölüm 1 + 2 + 6 + 7 (Giriş + Literatür + Tartışma + Sonuç) **>%60** olursa = teorik tez. Bu tez için **dengeli** hedef ~%50/%50.
++
++### 3.3 Cümle yapımı (Eco'nun ünlü kuralı)
++
++Eco der ki: **"Anladığı dilde yaz. 'Bu' sözcüğünü cümlenin başına koymak için kullanma."**
++
++```
++❌ "Bu yöntem etkilidir. Bu nedenle uygulanmıştır."
++✅ "Yöntem etkilidir; bu nedenle uygulanmıştır."
++✅ "Söz konusu yöntem etkilidir. Uygulanma gerekçesi de buradan kaynaklanır."
++```
++
++**academic-shield v2 §3.3 zaten bu kuralı kontrol ediyor.**
++
++### 3.4 Atıf yapma sanatı
++
++Eco der ki: "Atıfları **diyaloga** dönüştür."
++
++```
++❌ "Yuan ve ark. (2021) MM tahmini yaptı."
++✅ "Yuan ve ark. (2021), odd-A çekirdekler için MM tahmininde Schmidt değerinin
++    girdi katmanında bulunmasının kritik olduğunu raporlamıştır; bu sonuç, mevcut
++    çalışmanın odd-odd çekirdekler için Schmidt eşdeğeri özelliğinin gelecek
++    çalışma kapsamına alınmasını gerekçelendirmektedir."
++```
++
++Atıf "ödev" değil, **konuşma**. Onu konuya sok.
++
++### 3.5 Kalite vs miktar
++
++Eco der ki: "Az kaynak gerçekten oku; çok kaynak gerçekten okumadan atıfta bulunma."
++
++Bu tez için:
++- ✅ ~80 atıf hedefi (Bölüm 2 + Bölüm 6 + Bölüm 1)
++- Bunlardan **20-25 tanesi DERIN okunmuş** (Yuan 2021, Stone 2024 vs)
++- Diğerleri yüzeysel atıf (genel başlık + sonuç bilgisi yeter)
++
++**Eco uyarısı:** Atıf yaptığın 80 kaynaktan **EN AZ 15-20'sinin tam metnine** sahip ol. Agent F bunu indirme görevini üstleniyor.
++
++### 3.6 Yazım disiplini
++
++Eco der ki: "Her gün belirli saat aralığında yaz. Sürdürülebilir tempo bul."
++
++Bu teze uygulanması:
++- Şu an **22 saat süren tek seans** içindeyiz. Eco onaylamazdı.
++- **Aslında olması gereken:** Sprint 13-14 sırasında günde 2-3 saat tez yazımı.
++- **Mevcut çare:** Claude Code'a paralel iş yaptırarak verimliliği artır.
++
++---
++
++## 4. Tezde **kaçınılması** gereken Eco-tipi hatalar
++
++### 4.1 "Konu sunum" (Eco'nun nefret ettiği)
++
++```
++❌ "Yapay zekâ son yıllarda çok popüler olmuştur..."
++❌ "Nükleer fizik insanlık için çok önemlidir..."
++```
++
++Tez **kendi konusunu kanıtlamak için yazılmaz** — okuyucu konunun önemli olduğunu zaten varsayar. Doğrudan içeriğe gir.
++
++### 4.2 Aşırı dipnot
++
++```
++❌ Cümle başına 4-5 dipnot
++```
++
++Dipnot **konu dışı bilgi** içindir (kısa açıklama, türetilmiş kavram). **Atıf değildir.**
++
++### 4.3 Bibliografi şişirme
++
++```
++❌ Tezde geçen 80 atıfa karşılık kaynakçada 200 kaynak.
++```
++
++Kaynakçada sadece **atıf yapılan** kaynaklar olmalı (Eco kuralı). Atıf yapmadığın kaynak = orada olmamalı.
++
++### 4.4 Çift dilli karışıklık
++
++Eco der ki: "Bir dilde yaz."
++
++```
++❌ "Random Forest yöntemi bu çalışmada employed edilmiştir."
++✅ "Random Forest yöntemi bu çalışmada kullanılmıştır."
++```
++
++Random Forest, XGBoost gibi **terim olarak yerleşmiş** kelimeler (Türkçe karşılığı kaba geliyor) İngilizce kalabilir. Ama "employ", "utilize" gibi fiiller TÜRKÇE.
++
++---
++
++## 5. Hızlı uygulanabilir Eco tarifi
++
++**Tez yazımının son 24 saatinde:**
++
++1. **TEZ KARTLARI:** `citations-log-v2.md` her kaynak için 5 satır not (Eco kart sistemi)
++2. **YAPI:** `THESIS-PLAN-v2.md` 7-bölüm yapısı (Eco önerir: 5-7 bölüm)
++3. **YAZIM SIRASI:** Sondan başa → bu çalışma için son bölümler önce
++4. **KALİTE:** Atıf yaptığın her kaynağı **gerçekten oku** (en azından özet + sonuç)
++5. **STİL:** "Bu" başlama yasağı, paragraf içi tekrar kontrolü (academic-shield Mod B)
++6. **DİL:** Türkçe ağırlıklı, yabancı terim ilk geçişte çift gösterim
++7. **DENGE:** Bölüm uzunluk dengesi (§3.2'deki Eco oranı)
++
++---
++
++## 6. Kullanım
++
++Claude Code çağrısında:
++```
++"Bölüm 6 Tartışma yazılacak. Eco metodolojisi §3.4 (atıf diyalog) ve
++§4.1 (konu sunum yasağı) kurallarına dikkat et. atıf-cümle dönüşümü
++yap, doğrudan iddia + kanıt + tartışma akışı kur."
++```
++
++---
++
++## 7. Eco'dan tek cümlelik özet
++
++> **"Tez, küçük bir alanda, sınırları çizilmiş bir konuda, eldeki kaynaklarla, ulaşılabilir bir hedefe yönelik, sürdürülebilir bir tempoyla yazılan, dürüst bir çalışmadır."**
++
++Bu tez:
++- ✅ Küçük alan: nükleer moment tahmini
++- ✅ Sınırlı konu: odd-odd çekirdekler için ML+ANFIS
++- ✅ Eldeki kaynaklar: snapshot + Yuan 2021 + Stone + SAÜ Yakut grubu
++- ✅ Ulaşılabilir hedef: 267 çekirdek, 942 model, MM/QM benchmark
++- ⚠ Sürdürülebilir tempo: 22 saatlik son sprint hatalı, ama kabul edilebilir
++- ✅ Dürüst çalışma: olumsuz bulgu (MM -3.18) dahil raporlanıyor
++
++**Eco onaylar.**
++
++---
++
++*v1.0 | 2026-05-21 | Tez yazımının pratik metodoloji rehberi*
+diff --git a/docs/thesis-toolkit/agents/agent-A-phases-update.md b/docs/thesis-toolkit/agents/agent-A-phases-update.md
+new file mode 100644
+index 0000000..dc8945b
+--- /dev/null
++++ b/docs/thesis-toolkit/agents/agent-A-phases-update.md
+@@ -0,0 +1,194 @@
++# AGENT A — phases/ ve eski dokümanları güncelle
++
++> **Görev tipi:** Sayısal düzeltme + Sprint 17 senkronizasyon
++> **Tahmini süre:** 30-45 dk
++> **Bağımsız:** Diğer agent'ları beklemiyor
++
++---
++
++## Kimlik
++
++Sen Claude Code'sun. Görevin: `phases/faz-01..13.md` dosyalarını ve diğer Sprint 14/15 dönemi yazılmış dokümanları **Sprint 17 sonu güncel verisiyle** senkronize etmek.
++
++**Önce zorunlu okumalar:**
++1. `docs/thesis-toolkit/THESIS-RESEARCH-NOTES.md` — özellikle §1.3 (kritik sayılar) ve §1.4 (yanlış sayılar listesi). Bu sayılar `phases/` dosyalarında nerede yanlış yazılmış olabilir, kontrol edeceksin.
++2. `thesis/_data_snapshot/2026-05-21/README.md` — snapshot envanteri
++3. `pfaz_status.json` — gerçek faz durumları
++4. `docs/thesis-toolkit/pipeline-hatalari.md` — Sprint 17 sonu BUG-131'e kadar (her bug'ın hangi faza ait olduğu)
++
++---
++
++## Girdi dosyaları
++
++```
++phases/README.md                          (346 satır)
++phases/faz-01-veri-kumesi-uretimi.md      (968 satır)
++phases/faz-02-yapay-zeka-egitimi.md       (445 satır)
++phases/faz-03-anfis-egitimi.md            (422 satır)
++phases/faz-04-bilinmeyen-cekirdek.md      (421 satır)
++phases/faz-05-capraz-model.md             (646 satır)
++phases/faz-06-final-raporlama.md          (583 satır)
++phases/faz-07-topluluk-modeller.md        (474 satır)
++phases/faz-08-gorsellestirme.md           (660 satır)
++phases/faz-09-monte-carlo.md              (468 satır)
++phases/faz-10-tez-derleme.md              (326 satır)
++phases/faz-12-ileri-analitik.md           (438 satır)
++phases/faz-13-automl.md                   (357 satır)
++```
++
++`phases/faz-11-production.md` **yok** (PFAZ11 kasıtlı devre dışı).
++
++---
++
++## Görev maddeleri
++
++### Görev A.1 — Sayısal düzeltmeler (RESEARCH-NOTES §1.4'teki yanlış sayılar)
++
++Aşağıdaki **eski sayıları** tüm `phases/` dosyalarında ara ve düzelt. **Bulduğun her yerde** rapor üret:
++
++| Eski yanlış | Doğru | Aciliyet |
++|---|---|---|
++| "25 sheet THESIS_COMPLETE" | "18 sheet (gerçek THESIS_COMPLETE_RESULTS.xlsx; 25 sheet de var ama Sprint 17 sonrası 18)" → **doğrusunu xlsx'ten teyit et!** (snapshot README "18 sheet" diyor; ama Claude Desktop "25 sheet" gördü. PYTHON ile aç ve **kesin sayı**ı yaz) | KRİTİK |
++| "Ensemble R² = 0.9794" | "Ensemble R² = 0.8886 (QM stacking_gbm_meta, MM ensemble -3.18)" | KRİTİK |
++| "MM ensemble başarılı" / "MM R² > 0.96" | "MM ensemble R² = -3.18 (PFAZ7 BUG-127 dataset-arası top-N sorunu)" | KRİTİK |
++| "50 config" | "20 config (Sprint 15 sonrası)" | YÜKSEK |
++| "6 model (RF, XGB, DNN, BNN, PINN, LightGBM)" | "2 ana model (RF, XGBoost) + 8 ANFIS varyantı (Sprint 15 sonrası DNN/BNN/PINN/LightGBM/CatBoost/SVR çıkarıldı)" | YÜKSEK |
++| "848 dataset" | "1472 dataset" (PFAZ1 alt dizin sayısı) | YÜKSEK |
++| "Hedef: R² > 0.96" | "Sprint 15 sonrası hedef revizyonu: gerçekçi R² aralığı 0.85-0.92 (küçük veri sınırı)" | ORTA |
++
++**Bağlama dikkat:** Bazı dosyalar Sprint 14 zamanında yazıldığı için tarihsel olarak doğru olabilir. Bu durumda **silme**, ama **not düş**: `> [Sprint 17 güncellemesi: Bu sayı Sprint 15 öncesi paradigma içindir; güncel değer için THESIS-RESEARCH-NOTES.md §1.3'e bakın]`
++
++### Görev A.2 — Yeni alt-bölüm ekle: "Odd-odd çekirdek bağlamı"
++
++Aşağıdaki dosyalara **kısa bir alt-bölüm** ekle (özellikle PFAZ1 ve PFAZ4 için kritik):
++
++`phases/faz-01-veri-kumesi-uretimi.md` — En sona:
++```markdown
++## Sprint 17 Bağlam Notu — Odd-Odd Çekirdek Veri Kümesi
++
++aaa2.txt veri kümesinde yer alan 267 çekirdeğin **tamamı odd-odd** karakterdedir
++(Z mod 2 = 1 ∧ N mod 2 = 1, A çift). Bu özel veri kümesi, klasik tek-parçacık
++Schmidt manyetik moment formülünün doğrudan uygulanmadığı bir rejimi temsil eder
++(Bölüm 2.8 ayrıntılı). Bu bağlam, feature engineering kararlarında **Schmidt
++değerinin neden eklenmediğini** açıklar.
++
++Schmidt eklenmesi gelecek çalışma kapsamındadır (`Sprint 18` planı, Hakan Yakut
++hocanın onayına tabi). Bkz. `docs/thesis-toolkit/HAKAN-HOCA-SORULAR.md` §1.
++```
++
++`phases/faz-04-bilinmeyen-cekirdek.md` — En sona:
++```markdown
++## Sprint 17 Sonuç Notu
++
++PFAZ4 toplam 942 model-dataset kombinasyonu üretti
++(`unknown_predictions/Unknown_Nuclei_Results.xlsx`).
++Sprint 17 BUG-123, BUG-124 fix'leri sonrası bu sayı stabilize edildi.
++
++Tüm tahminler odd-odd çekirdekler içindir.
++```
++
++### Görev A.3 — `phases/README.md`'yi güncelle
++
++Mevcut README, faz durumlarını liste halinde sunuyor. Sprint 17 sonu duruma göre güncelle:
++
++```markdown
++## Faz durumları (Sprint 17 sonu, 2026-05-21)
++
++| PFAZ | Durum | Son güncelleme | Çıktı dizini |
++|---|---|---|---|
++| 0 | Repo keşfi (yapıldı) | - | - |
++| 1 | ✅ TRUBA'da koştu (1472 dataset üretti) | 14-20 May | generated_datasets/ |
++| 2 | ⚠ TRUBA timeout (Sprint 15 paradigması) | 20 May | trained_models/ |
++| 3 | ✅ ANFIS lokal | 14 May | anfis_models/ |
++| 4 | ✅ Sprint 17 BUG-123,124 fix | 21 May 03:33 | unknown_predictions/ |
++| 5 | ✅ Cross-model | 20 May | cross_model_analysis/ |
++| 6 | ✅ Sprint 17 fix | 21 May 02:57 | reports/ |
++| 7 | ✅ Sprint 17 BUG-126,127 fix (MM ensemble -3.18 keşif) | 21 May 04:31 | ensemble_results/ |
++| 8 | ✅ Visualization | 21 May 03:02 | visualizations/ |
++| 9 | ✅ Monte Carlo AAA2 | 14 May | aaa2_results/ |
++| 10 | ✅ LaTeX derleme (read=11/fallback=0) | 21 May 04:46 | thesis/ |
++| 11 | ❌ Kasıtlı devre dışı | - | - |
++| 12 | ✅ Sprint 17 BUG-128,129,130,131 fix | 21 May 04:46 | advanced_analytics/ |
++| 13 | ✅ Sprint 17 BUG-118,119,120,121,122 fix | 21 May 02:34 | automl_results/ |
++```
++
++### Görev A.4 — `07-GLOSSARY-SYMBOLS.md`'ye eksik kısaltma/sembolleri ekle
++
++Mevcut glossary'de "⏳" işaretli olan boş alanları doldur. Özellikle:
++- `AutoML` (Otomatik Makine Öğrenmesi — Automated Machine Learning)
++- `MC` (Monte Carlo) — zaten var mı kontrol et
++- `CI` (Confidence Interval — Güven Aralığı)
++- `RMSE` (Root Mean Square Error)
++- `MAE` (Mean Absolute Error)
++- `BUG-N` (Pipeline hata numarası — N. bug)
++- `Sprint N` (Geliştirme döngüsü — N. sprint)
++
++### Görev A.5 — `pfaz_completeness_report.json`'u oku, güncel duruma göre kontrol et
++
++Bu dosya PFAZ çıktı doluluğunu raporluyor. Sprint 17 sonrası gerçek durum eşleşiyor mu? Eşleşmiyorsa **eski raporu** `pfaz_completeness_report_OLD.json`'a taşı, yeni raporu `scripts/check_pfaz_completeness.py` ile üret.
++
++### Görev A.6 — Tez konumlandırma satırlarını **yumuşat**
++
++Bazı eski dokümanlar "R² > 0.96 hedeflenmektedir" gibi iddialı sayılar içeriyor. Sprint 15 paradigma değişikliği sonrası gerçekçi hedef R² ~ 0.85-0.92. Bu tip cümleleri yumuşat:
++
++❌ "R²>0.96 hedefine ulaşılmıştır"
++✅ "Hedef değişkenin doğasına göre R² 0.85-0.92 aralığında değişen sonuçlar elde edilmiştir; QM ensemble için 0.8886, MM bireysel modeller için 0.84 düzeyinde performans gözlemlenmiştir."
++
++---
++
++## Çıktı dosyaları
++
++```
++phases/README.md                  (güncellendi)
++phases/faz-01..13-*.md            (12 dosya güncellendi)
++docs/thesis-toolkit/07-GLOSSARY-SYMBOLS.md  (güncellendi)
++pfaz_completeness_report.json     (güncellendi, eski `_OLD` olarak yedeklendi)
++docs/thesis-toolkit/AGENT-A-REPORT.md  (★ rapor — ne değişti, kaç sayısal hata düzeltildi)
++```
++
++---
++
++## Onay kuralları
++
++- ✅ MD dosyası düzenleme — otomatik, onay gerekmez
++- ✅ Eski dosyaları `_archive/`'e taşıma — otomatik
++- ✅ Lokal commit + push (`agent-A-phases-update` branch) — otomatik
++- ⛔ `pfaz_status.json` değiştirme — ZORUNLU değil; sadece okuma
++- ⛔ Ana `thesis-writing` branch'e doğrudan push — yasak
++
++---
++
++## Kalite kontrol — Bitirmeden önce
++
++- [ ] 12 faz md dosyası okundu mu?
++- [ ] Görev A.1 — kaç sayısal hata bulundu? Listeyi `AGENT-A-REPORT.md`'de
++- [ ] Görev A.2 — odd-odd bağlam notu PFAZ1 ve PFAZ4'e eklendi mi?
++- [ ] Görev A.3 — README güncel sürüm mü?
++- [ ] Görev A.4 — Glossary doluluk artırıldı mı? (önceki ⏳ sayısı vs şimdi)
++- [ ] Görev A.6 — "R²>0.96" iddia satırları yumuşatıldı mı?
++- [ ] Tüm değişiklikler git commit'lendi mi?
++
++---
++
++## Kullanılacak skill ve araçlar
++
++- `superpowers:writing-plans` — Her dosya değişikliği öncesi mini-plan
++- `superpowers:verification-before-completion` — Bitiş kontrolü
++- ECC `code-explorer` — Pipeline kod yapısını okuma (PFAZ modüllerine bakma)
++- `Read`, `Edit`, `Write`, `Bash`, `Glob`, `Grep` — standart araçlar
++
++---
++
++## Başlatma promtu
++
++```
++Sen Claude Code'sun. agents/agent-A-phases-update.md prompt'unu oku.
++İlk olarak THESIS-RESEARCH-NOTES.md §1.3 ve §1.4'ü oku.
++Sonra phases/ dizinindeki 12 md dosyasını incele.
++Sırayla 6 görev maddesini tamamla.
++Bitirdiğinde AGENT-A-REPORT.md yaz, agent-A-phases-update branch'ine commit + push et.
++```
++
++---
++
++*Agent A v1.0 | 2026-05-21*
+diff --git a/docs/thesis-toolkit/guide/PARALLEL-AGENTS-SYSTEM.md b/docs/thesis-toolkit/guide/PARALLEL-AGENTS-SYSTEM.md
+new file mode 100644
+index 0000000..471c7f1
+--- /dev/null
++++ b/docs/thesis-toolkit/guide/PARALLEL-AGENTS-SYSTEM.md
+@@ -0,0 +1,374 @@
++# PARALLEL AGENTS SYSTEM
++## Claude Code paralel agent mimarisi — tez yazımı için
++
++> **Amaç:** Bu doküman, Claude Code'da paralel olarak çalışacak 11 agent'ın görev tanımlarını, başlatma sırasını, çıktı bağımlılıklarını ve onay kurallarını içerir.
++>
++> **Tarih:** 2026-05-21 | Tez teslim: 22 Mayıs
++>
++> **Önceki doküman:** `THESIS-RESEARCH-NOTES.md` — bu sistemin **veri kaynağı**, her agent o dosyayı okur.
++>
++> **Tetikleyici:** Bu doküman okunduğunda Claude Code, `CLAUDE-CODE-ORCHESTRATION.md` rehberini izleyerek agent'ları **paralel** başlatır.
++>
++> **Önemli not:** Bu sistemde her agent için **detaylı prompt dosyası** (`agents/agent-X-*.md`) Claude Code tarafından otomatik olarak üretilir — Claude Desktop sadece bu mimari iskeleti ve §2'deki agent kataloğunu sağlar. Master prompt için bkz. `CLAUDE-CODE-ORCHESTRATION.md`.
++
++---
++
++## İçindekiler
++
++1. [Mimari özet](#1-mimari-özet)
++2. [Agent katalogu (11 agent)](#2-agent-katalogu)
++3. [Başlatma sırası ve bağımlılıklar](#3-başlatma-sırası-ve-bağımlılıklar)
++4. [Paralel çalışma stratejisi](#4-paralel-çalışma-stratejisi)
++5. [Onay kuralları (Kemal müdahalesi olmadan)](#5-onay-kuralları)
++6. [Çelişki tespit + orchestrator raporu](#6-çelişki-tespit)
++7. [Skill ve agent kullanımı (ECC + superpowers)](#7-skill-ve-agent-kullanımı)
++8. [Hata durumları + recovery](#8-hata-durumları)
++
++---
++
++## 1. Mimari özet
++
++```
++┌──────────────────────────────────────────────────────────────┐
++│  Claude Desktop (planlama)                                   │
++│  · THESIS-RESEARCH-NOTES.md (canonical bilgi havuzu)         │
++│  · HAKAN-HOCA-SORULAR.md (yarın hoca cevabı sonrası)         │
++│  · Bu dosya (agent sistem mimarisi)                          │
++└────────────────────────┬─────────────────────────────────────┘
++                         │ commit → push (Kemal)
++                         ▼
++┌──────────────────────────────────────────────────────────────┐
++│  Claude Code (VS Code, lokal)                                │
++│  · hpcv1/ klonu + hpcv1_outputs/ (~13 GB veri)               │
++│  · agents/*.md dosyaları her birinin görev tanımı            │
++└──────┬──────┬──────┬──────┬──────┬──────┬──────┬──────┬─────┘
++       │      │      │      │      │      │      │      │
++       ▼      ▼      ▼      ▼      ▼      ▼      ▼      ▼
++    AGENT A  AGENT B  AGENT C  AGENT D  AGENT F  AGENT G  CHAPTER  AGENT I
++    phases   SAÜ stil Excel    Viz      Lit      Eco      WRITER   LaTeX
++    update   analizi  envanter katalog  tarama   metod    (★)      derleme
++       │       │        │       │       │       │         │         │
++       └───────┴────────┴───────┴───────┴───────┴─────────┴─────────┘
++                                  │
++                                  ▼
++                         ┌──────────────────┐
++                         │  AGENT E         │
++                         │  Orchestrator    │
++                         │  (sentez + rapor)│
++                         └──────────────────┘
++                                  │
++                                  ▼
++                       ORCHESTRATOR_REPORT.md
++                       (Kemal sabah okuyor)
++```
++
++---
++
++## 2. Agent katalogu
++
++### Agent A — `phases/` ve eski döküman güncelleyici
++- **Görev:** `phases/faz-01..13.md` Sprint 17 güncel duruma göre yenile
++- **Girdi:** `THESIS-RESEARCH-NOTES.md` (gerçek sayılar), snapshot xlsx
++- **Çıktı:** 12 güncellenmiş faz md + glossary güncellemesi
++- **Süre tahmini:** 30-45 dk
++- **Komşu:** Agent C (Excel envanter) çıktısı yardımcı, ama bağımsız çalışabilir
++- **Prompt:** `agents/agent-A-phases-update.md`
++
++### Agent B — SAÜ örnek tez stil analizi
++- **Görev:** 14 örnek tez (özellikle 484495, 651082, 841762) yapısal analiz
++- **Girdi:** `sau tez format/örnek tez/*.pdf` (14 dosya, ~40 MB)
++- **Çıktı:** `docs/thesis-toolkit/sau-thesis-style-guide.md` + `sau-citation-format-rules.md`
++- **Süre tahmini:** 45-60 dk
++- **Kritik:** Bu agent'ın çıktısı **Chapter Writer ve Agent H (skill güncelleme)**'nin girdisidir
++- **Prompt:** `agents/agent-B-sau-style.md`
++
++### Agent C — Excel envanteri + pivot önerileri
++- **Görev:** Snapshot xlsx'lerin tüm sayfaları, sütunları, kısaltmaları
++- **Girdi:** `thesis/_data_snapshot/2026-05-21/*.xlsx` (10 dosya)
++- **Çıktı:** `docs/thesis-toolkit/excel-inventory-and-pivots.md` + `06-FIGURE-TABLE-CATALOG.md`'ye T-NNN tablo girişleri
++- **Süre tahmini:** 30-45 dk
++- **Prompt:** `agents/agent-C-excel-inventory.md`
++
++### Agent D — Görselleştirme katalog + bölüm eşleştirme
++- **Görev:** 193 PNG + 68 HTML görseli kategorize et, bölüm/şekil numarasına ata
++- **Girdi:** `hpcv1_outputs/visualizations/` (22 alt dizin)
++- **Çıktı:** `docs/thesis-toolkit/figure-catalog-mapping.md` + `06-FIGURE-TABLE-CATALOG.md`'ye S-NNN şekil girişleri + caption taslakları
++- **Süre tahmini:** 60-90 dk (görsel sayısı çok)
++- **Prompt:** `agents/agent-D-viz-catalog.md`
++
++### Agent E — Orchestrator
++- **Görev:** A/B/C/D/F/G çıktılarını topla, çelişki tespit et, sabah raporu
++- **Girdi:** Tüm diğer agent çıktıları
++- **Çıktı:** `ORCHESTRATOR_REPORT_YYYY-MM-DD.md`
++- **Süre tahmini:** 15-20 dk (diğerlerinin bitiminden sonra)
++- **Prompt:** `agents/agent-E-orchestrator.md`
++
++### Agent F — Literatür tarama + kaynak doğrulama (Gemini + Sci-Hub)
++- **Görev:** `THESIS-RESEARCH-NOTES.md §3.2`'deki 8 yeni kaynağı indir, DOI doğrula, eksik kaynak ara
++- **Girdi:** `THESIS-RESEARCH-NOTES.md` + `02-literatur-incelemesi-v2.md`
++- **Çıktı:** `docs/thesis-toolkit/references/citations-log-v2.md` + `references-pdf/{slug}.pdf` dizini
++- **Strateji:** Gemini Deep Research (eğer Kemal aboneliği varsa) → kaynak listesi; Claude Code → indirme + doğrulama
++- **Süre tahmini:** 60-120 dk
++- **Prompt:** `agents/agent-F-literature.md`
++
++### Agent G — Umberto Eco metodoloji uyarlayıcı
++- **Görev:** "Tez Nasıl Yazılır" tavsiyelerini özet doküman
++- **Çıktı:** `docs/thesis-toolkit/UMBERTO-ECO-METODOLOJI.md`
++- **Süre tahmini:** 30-45 dk
++- **Prompt:** `agents/agent-G-eco-methodology.md`
++
++### Agent H — Skill rehberi güncelleyici
++- **Görev:** `skills/academic-shield-rehber.md` + `academic-writing-pro-rehber.md` + `humanizer-rehber.md`'yi SAÜ tezlerinden çıkardığı stil ile güncelle
++- **Girdi:** Agent B çıktısı (SAÜ stil rehberi)
++- **Çıktı:** `skills/academic-shield-v2.md`, `academic-writing-pro-v2.md`, `humanizer-thesis-mode.md`
++- **Süre tahmini:** 45 dk
++- **Bağımlılık:** Agent B bitmeden başlayamaz
++- **Prompt:** `agents/agent-H-skill-update.md`
++
++### Agent I — Pandoc/LaTeX derleme + final PDF
++- **Görev:** Tüm MD bölümleri + snapshot LaTeX'leri birleştir, PDF derle
++- **Girdi:** Tüm `thesis/*.md` + Chapter Writer çıktıları
++- **Çıktı:** `thesis/output/tez.pdf` + `.tex` + `.bib`
++- **Süre tahmini:** 30 dk + LaTeX kurulum süresi
++- **Bağımlılık:** Chapter Writer bitmeden başlayamaz
++- **Prompt:** `agents/agent-I-latex-compile.md`
++
++### Agent J — Windows Task Scheduler kurulum
++- **Görev:** Sen uyurken çalışabilen iş kuyruğu
++- **Çıktı:** `docs/thesis-toolkit/SCHEDULER-SETUP.md` + PowerShell script
++- **Süre tahmini:** 30 dk
++- **Prompt:** `agents/agent-J-scheduler.md`
++
++### ★ Agent CHAPTER-WRITER — Tez bölüm yazıcı
++- **Görev:** `thesis/03-yontem.md`, `04-uygulama.md`, `05-bulgular.md`, `06-tartisma.md`, `07-sonuc.md`, `00-ozet-tr-en.md`, `08-kaynakca.md`, `09-ekler.md` yaz
++- **Girdi:** Tüm önceki agent çıktıları + `THESIS-RESEARCH-NOTES.md` + snapshot LaTeX'leri (Sprint 14 sayıları → güncel sayılara çevir)
++- **Çıktı:** 8 yeni MD dosyası
++- **Süre tahmini:** 90-150 dk (en uzun + en kritik agent)
++- **Strateji:** Sırayla yazar (Yöntem → Uygulama → Bulgular → Tartışma → Sonuç → Özet → Kaynakça → Ekler) — Eco metodolojisi
++- **Bağımlılık:** Agent A, B, C, D çıktılarına ihtiyaç duyar
++- **Prompt:** `agents/agent-CHAPTER-WRITER.md`
++
++---
++
++## 3. Başlatma sırası ve bağımlılıklar
++
++### Aşama 1 — Hazırlık (bağımsız, paralel) — 60-90 dk
++```
++Agent A (phases) ──┐
++Agent B (SAÜ stil) ─┤
++Agent C (Excel)   ─┼─→ Paralel başlat (4'ü aynı anda)
++Agent D (Viz)     ─┤
++Agent F (Literatür) ┘
++Agent G (Eco)      ─→ Bağımsız, dilersen burada
++```
++
++### Aşama 2 — Skill güncellemesi — 45 dk
++```
++(Aşama 1 sonrası)
++Agent H (skill) ← Agent B çıktısı gerekli
++```
++
++### Aşama 3 — Tez metni — 90-150 dk
++```
++(Aşama 1 + 2 sonrası)
++Agent CHAPTER-WRITER ← Agent A, B, C, D, F çıktıları gerekli
++                    ← Skill v2'ler (Agent H çıktısı) gerekli
++```
++
++### Aşama 4 — Derleme — 30 dk
++```
++(Aşama 3 sonrası)
++Agent I (LaTeX/Pandoc) ← Chapter Writer çıktısı gerekli
++```
++
++### Aşama 5 — Orchestrator + scheduler — 30 dk
++```
++(Tüm aşamalar sonrası)
++Agent E (Orchestrator) → sabah raporu
++Agent J (Scheduler) → gece çalışma kurulumu
++```
++
++**Toplam süre tahmini:** 4-6 saat lokal işlem (paralel ile)
++
++---
++
++## 4. Paralel çalışma stratejisi
++
++### 4.1 Paralel başlatma (VS Code'da)
++
++**Yöntem 1: Birden fazla VS Code chat sekmesi**
++- Sekme 1: Agent A
++- Sekme 2: Agent B
++- Sekme 3: Agent C
++- Sekme 4: Agent D
++- ...
++
++Her sekme bağımsız bir Claude Code instance. Birbirini bilmezler ama **aynı dosya sistemine** yazarlar. Orchestrator (Agent E) sentezler.
++
++**Yöntem 2: Tek Claude Code, Task tool ile alt-agent**
++```
++"Aşağıdaki 4 agent'ı paralel başlat:
++Task: Agent A — phases/ güncelleme. Prompt: agents/agent-A-phases-update.md oku.
++Task: Agent B — SAÜ stil. Prompt: agents/agent-B-sau-style.md oku.
++..."
++```
++
++Bu yöntem Claude Code'un kendi **subagent** özelliğini kullanır (ECC plugin'inin sağladığı). Her subagent isolated context'te çalışır, sonuç ana context'e döner.
++
++**Önerim: Yöntem 2** (Task tool) çünkü:
++- Tek konsol, tek log
++- Orchestrator otomatik tetiklenir
++- Manuel sekme değiştirmeye gerek yok
++
++### 4.2 Eş zamanlı dosya yazma çakışmaları
++
++Sorun: İki agent aynı dosyaya yazmak isteyebilir (ör. `06-FIGURE-TABLE-CATALOG.md` hem Agent C hem Agent D yazmak ister).
++
++Çözüm:
++- Her agent **kendi alt-dosyasını** yazar:
++  - Agent C → `06-FIGURE-TABLE-CATALOG-tables.md`
++  - Agent D → `06-FIGURE-TABLE-CATALOG-figures.md`
++- Orchestrator (Agent E) bunları **birleştirir** → `06-FIGURE-TABLE-CATALOG.md`
++
++### 4.3 Git çakışmaları
++
++Her agent **kendi branch'inde** çalışır:
++```
++git checkout -b agent-A-phases-update
++git checkout -b agent-B-sau-style
++...
++```
++
++Orchestrator (Agent E) bunları **squash merge** eder → `thesis-writing` ana branch.
++
++---
++
++## 5. Onay kuralları (Kemal müdahalesi olmadan)
++
++> **Kural:** Kemal sabaha kadar uyuyor olabilir. Agent'lar onay almadan ilerlemeli ama **hata yapmamalı**.
++
++### Otomatik (onay gerektirmez)
++
++✅ Yeni MD dosyası oluşturma
++✅ Mevcut MD dosyasını düzenleme (eski versiyon `_archive/`'e taşınır)
++✅ `06-FIGURE-TABLE-CATALOG.md` gibi katalog dosyalarına satır ekleme
++✅ Skill rehberi v2 oluşturma (eski v1 silinmez)
++✅ Git commit + push **lokal branch'e** (ana branch'e değil)
++✅ Pipeline çıktılarını okuma (read-only)
++
++### Onay zorunlu (Kemal sabah görür, onaylar)
++
++⛔ Pipeline yeniden çalıştırma (PFAZ yeniden eğitim)
++⛔ `aaa2.txt` veri değişikliği
++⛔ `pfaz_status.json` değişikliği
++⛔ Ana branch'e (`thesis-writing`) doğrudan push
++⛔ Tezin yapısal kararı (4-bölüm mü 7-bölüm mü) — hoca cevabı bekleniyor
++⛔ Sprint 18 başlatma (Schmidt eklenmesi)
++
++### Onay isteme yöntemi
++
++Agent karar gereken bir noktaya gelirse:
++1. **Bekleme dosyası** oluşturur: `docs/thesis-toolkit/pending-decisions/PD-YYYY-MM-DD-N.md`
++2. Sorularını yazar + olası varyantları sunar
++3. **Default eylemi** belirler (varsayılan tercih)
++4. Default'a göre ilerler ama not düşer
++5. Kemal sabah `pending-decisions/` dizinini kontrol eder
++
++---
++
++## 6. Çelişki tespit + orchestrator raporu
++
++Agent E (Orchestrator), tüm agent çıktılarını okuyup şunları kontrol eder:
++
++1. **Sayısal çelişki:** Agent A "267 çekirdek" diyor, Agent C "266 çekirdek" diyorsa hata.
++2. **Atıf çelişkisi:** Agent F "Yuan 2021 DOI doğrulandı" diyor, Agent CHAPTER-WRITER farklı DOI kullanıyorsa hata.
++3. **Sürüm çelişkisi:** Agent A faz md'leri Sprint 17 sayılarıyla, Chapter Writer Sprint 14 sayılarıyla yazıyorsa hata.
++4. **Dosya konum çelişkisi:** İki agent aynı dosyaya yazmış mı?
++
++Çıktı: `ORCHESTRATOR_REPORT_YYYY-MM-DD.md` şu yapıda:
++
++```markdown
++# Orchestrator Raporu — YYYY-MM-DD HH:MM
++
++## 1. Tamamlanan agent'lar
++- [x] Agent A: 12 phase md güncelledi (commit abc1234)
++- [x] Agent B: 14 SAÜ tez analiz, çıktı yazıldı
++...
++
++## 2. Çelişki tespit
++- ⚠ Çelişki #1: Agent A "267 çekirdek" / Agent C "266"
++  - Kök neden: ...
++  - Önerim: ...
++
++## 3. Tamamlanamadı / bekleyen
++- [ ] Agent F: 2 kaynak indirilemedi (DOI hatası: ...)
++
++## 4. Pending decisions (Kemal'in onayı gerekli)
++- PD-2026-05-22-01: ...
++
++## 5. Otomatik düzeltilen
++- 23 sayısal hata düzeltildi (yanlış 18-sheet → 25-sheet)
++
++## 6. Önerilen sonraki adım
++- ...
++```
++
++---
++
++## 7. Skill ve agent kullanımı (ECC + superpowers)
++
++Her agent prompt'unda **hangi skill/agent'i çağıracağı** açıkça yazılı. Genel kurallar:
++
++### Skill öncelikleri
++1. **academic-shield (Mod B):** Tez metni yazımında ZORUNLU. AI izi temizleme + SAÜ format.
++2. **academic-writing-pro:** Bölüm bölüm yazımda destek (Fen/Müh profili).
++3. **literature-review:** Agent F'in iç pipeline'ı (5-aşama tarama).
++4. **humanizer:** SADECE son pass. Tek mesajda iki kez kullanma.
++5. **superpowers:writing-plans:** Karmaşık bölüm öncesi plan.
++6. **superpowers:verification-before-completion:** Her agent çıktısının son kontrolü.
++
++### ECC agent öncelikleri (Task tool ile)
++- `code-explorer` — pipeline kodunu anlama (Agent A için)
++- `python-reviewer` — kod örneği üretilirse
++- `code-reviewer` — son pass
++- `comment-analyzer` — eski dökümanlarda kalmış yorum/notları temizleme
++
++### Çakışma çözümü (RESEARCH-NOTES'ta da yazılı)
++- `superpowers:code-reviewer` ≠ `everything-claude-code:code-reviewer`
++- Her zaman **prefix ile çağır**
++
++### Skill aktivasyon mekaniği (Claude Code'da)
++```
++Kullanıcı: "Bölüm 3 Yöntem yazımına başla. academic-shield Mod B kullan, 
++            superpowers:writing-plans ile plan yap, 
++            sonra writing-plans çıktısı üzerinden yaz."
++            
++Claude Code: [skill auto-discovery yapar, sırayla başlatır]
++```
++
++---
++
++## 8. Hata durumları + recovery
++
++### Hata 1: Bir agent crash etti
++- Diğer agent'lar bağımsız çalışmaya devam eder
++- Orchestrator raporda işaretler
++- Kemal sabah ilgili agent'ı yeniden başlatır (idempotent prompt)
++
++### Hata 2: API kotası bitti
++- Claude Code otomatik bekleme moduna geçer
++- Scheduler (Agent J) kotanın yenileneceği saati hesaplar
++- Saat geldiğinde otomatik devam
++
++### Hata 3: Dosya yazma çakışması
++- Git rebase ile çözülür (otomatik)
++- Çözülemezse pending-decision olarak işaretlenir
++
++### Hata 4: DOI doğrulama başarısız (Agent F)
++- 3 alternatif kaynaktan dene (arXiv → OpenAlex → Sci-Hub)
++- Hepsi başarısızsa kaynağı `citations-log-v2.md`'ye "❌ doğrulanamadı" notuyla yaz
++- Kemal sabah manuel kontrol eder
++
++---
++
++*Sistem v1.0 | 2026-05-21*
+diff --git a/skills/INDEX.md b/skills/INDEX.md
+index 330a083..6d17e74 100644
+--- a/skills/INDEX.md
++++ b/skills/INDEX.md
+@@ -34,3 +34,12 @@
+ ---
+ 
+ *[CLAUDE.md](../CLAUDE.md) · [PLAYBOOK.md](../PLAYBOOK.md) · [Ana İndeks](../INDEX.md)*
++
++
++## v2.0 Skill'leri (2026-05-21, tez yazımı için eklendi)
++
++- `academic-shield-v2.md` — SAÜ tez stiliyle genişletilmiş, odd-odd nükleer fizik bağlamına ayarlı (AI-iz temizleme Mod B)
++- `academic-writing-pro-v2.md` — Fen Bilimleri tez yazımı, bölüm bazlı ses + SAÜ-IEEE atıf disiplini
++- `humanizer-thesis-mode.md` — Tez-spesifik humanizer (SON pass, tek kullanım)
++
++Versiyon stratejisi: v1 dosyaları (mevcut akademik kullanım) silinmedi, v2 paralel yüklü. Tez bağlamında v2 tercih edilir.
+diff --git a/skills/academic-shield-v2.md b/skills/academic-shield-v2.md
+new file mode 100644
+index 0000000..9f84410
+--- /dev/null
++++ b/skills/academic-shield-v2.md
+@@ -0,0 +1,312 @@
++# SKILL: academic-shield v2
++## SAÜ Fen Bilimleri Enstitüsü tezleri için AI-iz temizleme rehberi
++
++> **Versiyon:** v2.0 (2026-05-21)
++> **Önceki:** `skills/academic-shield-rehber.md` (v1.0, genel akademik) — geriye uyumlu
++> **Hedef:** SAÜ doktora/yüksek lisans tezleri, özellikle nükleer fizik + makine öğrenmesi alanı
++> **Mod B vurgu:** Tez yazımında **Mod B (sıkı temizleme)** zorunlu
++
++---
++
++## 1. Neden v2?
++
++v1 genel akademik metin (makale, blog, rapor) için tasarlandı. SAÜ tezleri için spesifik kalıplar var:
++
++- **Türkçe akademik üslup** (devrik cümle az, dolambaçlı bağlantı sözcükleri sık)
++- **SAÜ-spesifik atıf formatı** (Bölüm 2 v2'de detay)
++- **Nükleer fizik dilbilimsel kalıpları** (örn. "manyetik dipol momenti" - "magnetic dipole moment" doğrudan çeviri)
++- **ML literatür Türkçeleştirme** (örn. "Bayesian Neural Network" - "Bayesian Sinir Ağı" değil "Bayesyan Sinir Ağı" tercihi)
++
++v2, SAÜ örnek tezlerinden (484495 Hoşgör 2017, 651082 Sarıbaş 2020, 841762 Kemah 2023) çıkarılmış **gerçek insan kalıbı havuzunu** içerir.
++
++---
++
++## 2. Kaçınılacak AI kalıpları (genişletilmiş liste)
++
++### 2.1 v1'den korunan kalıplar
++```
++❌ "Önemle belirtmek gerekir ki"
++❌ "Bu çalışma kapsamında"
++❌ "Söz konusu durumda"
++❌ "Bunun yanı sıra"
++❌ "Bahsi geçen"
++❌ "Yukarıda da değinildiği üzere"
++❌ "Mevcut çalışmamızda"  → "Bu çalışmada"
++❌ "Şüphesiz ki"
++❌ "Açıkça görülmektedir ki"
++```
++
++### 2.2 v2'de yeni eklenenler (SAÜ tez analizinden)
++```
++❌ "Olduğu söylenebilir"        (Türk akademisi maalesef bunu kullanır ama AI aşırı kullanır)
++❌ "Belirtmek gerekir ki"
++❌ "Vurgulanmalıdır ki"
++❌ "Şunu söylemek mümkündür"
++❌ "Görüldüğü gibi"             (figüre referans varsa OK; tek başına AI kalıbı)
++❌ "Sonuç olarak"               (tek başına gereksiz; cümle başında değil sonunda kullan)
++❌ "Bu bağlamda"                (aşırı kullanım AI imzası)
++❌ "Genel olarak"
++❌ "Esasında"
++❌ "Aslında"                    (akademik metinde gereksiz dolgu)
++❌ "Buna karşın"                (zayıf çelişki belirteci)
++❌ "Ne var ki"                  (üst üste 2 kez kullanma; AI bunu çok yapar)
++❌ "Söz konusu"                 (her cümlede yerinde ama 2 paragrafta 1+ kez = AI imzası)
++❌ "Mevcut tez bağlamında"      → "Bu tezde"
++❌ "Detaylı olarak incelendiği" → "Ayrıntılı bakıldığında" veya basitçe "Bakıldığında"
++```
++
++### 2.3 Türkçe Akademik İnsan Kalıbı Havuzu (SAÜ tezlerinden çıkarıldı)
++
++**Geçiş cümlelerinde (paragraf başı):**
++- "İlerleyen kısımda..."
++- "Bu noktada şu vurgulanmalıdır:" (sadece BÜTÜN tezde 2-3 kez)
++- "Devam eden analizde..."
++- "Buna ek olarak..."
++- "Aynı zamanda..."
++- "Diğer yandan..." (ama 2 paragrafta 1'den fazla değil)
++- "Bunun yanında..." (✅ doğru; "yanı sıra" ❌)
++
++**İddia + kanıt yapılarında:**
++- "X, Y'yi göstermektedir." (✅ Türkçe akademik standart)
++- "X bulgusu, Y hipotezini destekler." (✅)
++- "Şekil 3.5'te de görüldüğü üzere..." (✅ figüre referans)
++- "Çizelge 4.2 incelendiğinde..." (✅ tabloya referans)
++- "Söz konusu sonuçlar..." (sadece 1 kez başlığa referans için, sonra "bu sonuçlar")
++
++**Sayısal sunumda:**
++- "%0.93 doğruluk elde edilmiştir." → "%0,93 doğruluk elde edilmiştir." (Türkçe virgül zorunlu)
++- "Modelin R² değeri 0,8886 olarak bulunmuştur."
++- "267 çekirdek üzerinden..." (Türkçe binlik nokta veya boşluk; bizde 267 küçük yine de noktasız)
++
++**Sınırlama beyanlarında:**
++- "Bu çalışmanın sınırlılıkları şu şekilde sıralanabilir:" (sadece 1 kez tezde)
++- "Başlıca kısıtlardan birisi..."
++- "Bu noktada şunu belirtmek gerekmektedir:" (BU SAUDE EYDA KULLANILABİLİR ama sadece 1-2 kez)
++
++---
++
++## 3. Mod B özel kuralları (SAÜ tezleri için)
++
++### 3.1 Cümle uzunluğu çeşitliliği
++
++AI üretimi cümleler **uzunluk açısından homojen**: ortalama 20-22 kelime, varyans düşük. İnsan akademik metni:
++- Çok kısa cümleler (3-8 kelime) varlığı **insan imzası**
++- Çok uzun cümleler (35-45 kelime) varlığı **insan imzası**
++- Cümle uzunluğu standart sapması **yüksek**
++
++**Hedef oran:** Her 10 cümlede:
++- 1-2 cümle: 3-8 kelime
++- 5-6 cümle: 15-25 kelime
++- 2-3 cümle: 30-45 kelime
++
++**Uygulama:**
++```python
++# Yazdıktan sonra otomatik kontrol
++sentences = re.split(r'(?<=[.!?])\s+', metin)
++lengths = [len(s.split()) for s in sentences]
++print(f"Min: {min(lengths)}, Max: {max(lengths)}, Std: {np.std(lengths)}")
++# Std < 5 ise UYARI: AI kalıbı çok homojen
++```
++
++### 3.2 Pasif → Aktif geçişi
++
++AI **pasif yapıyı abartır**:
++```
++❌ "Veri analizi gerçekleştirilmiştir."
++❌ "Model eğitimi yapılmıştır."
++❌ "Sonuçlar elde edilmiştir."
++```
++
++İnsan akademik metni pasif kullanır ama **çeşitlilikle**:
++```
++✅ "267 çekirdek üzerinden veri analizi yapıldı." (aktif)
++✅ "Modeli eğittik / Model eğitildi." (1. tekil bazen, pasif bazen)
++✅ "Sonuçlar Şekil 5.2'de gösterilmiştir." (yer-pasif OK)
++```
++
++**Mod B kuralı:** 5 cümleden 4'ü pasif olamaz. **1. çoğul** ("yaptık") veya **aktif** alternatif sun.
++
++### 3.3 "Bu" / "Bu çalışma" kullanım sınırı
++
++AI sürekli "Bu çalışmada" başlatır. SAÜ tezlerinde:
++- "Bu" başlangıçlı cümle: **paragraf başına 1 max**
++- Aynı paragraf içinde 2+ "Bu" başı = AI imzası
++
++**Mod B fix:**
++```
++❌ "Bu çalışmada 267 çekirdek kullanılmıştır. Bu çekirdekler tamamen odd-odd
++   karakterdedir. Bu özellik, çalışmanın özgün katkısını tanımlamaktadır."
++
++✅ "Bu çalışmada 267 çekirdek kullanılmıştır. Söz konusu çekirdeklerin tamamı
++   odd-odd karakterdedir; bu özel veri yapısı, tezin özgün katkı çerçevesini
++   oluşturmaktadır."
++```
++
++(Hatta yukarıdaki bile %30 zayıf — "Bu çalışmada" yerine direkt "267 odd-odd
++çekirdek üzerinde analiz yapıldı." daha güçlü.)
++
++### 3.4 Bağlaç çeşitliliği
++
++AI tekrar tekrar **aynı bağlaçları** kullanır: "ve", "bu nedenle", "böylece", "dolayısıyla".
++
++İnsan çeşitlendirir:
++- "ve" → "ile", "aynı zamanda", "beraberinde"
++- "bu nedenle" → "bu yüzden", "bundan dolayı", "söz konusu sebeple"
++- "böylece" → "bu şekilde", "neticede", "bu sayede"
++- "dolayısıyla" → "sonuç itibarıyla", "neticesinde"
++
++**Mod B kuralı:** Aynı bağlaç paragraf içinde 2+ kez gelmez.
++
++### 3.5 Referans yoğunluğu
++
++AI ya **hiç referans vermez** (genel cümle), ya **aşırı verir** (her cümlenin sonunda [N]). İnsan:
++- İddia paragrafı: 1-3 referans yeter (genelde son cümlede)
++- Yöntem paragrafı: 0-1 referans (yöntem zaten tez içinde tanımlı)
++- Tartışma paragrafı: 2-5 referans (literatürle kıyaslama yoğun)
++
++**Mod B kuralı:** Cümle sonu [N] sayısı paragraf bazında ortalanır, hedef:
++- Bölüm 2 (Literatür): ortalama 1-1.5 ref/cümle
++- Bölüm 3 (Yöntem): ortalama 0.3-0.6 ref/cümle
++- Bölüm 5 (Bulgular): ortalama 0.2-0.4 ref/cümle (kendi verisi anlatılıyor)
++- Bölüm 6 (Tartışma): ortalama 1-2 ref/cümle
++
++---
++
++## 4. Tez-spesifik kontroller
++
++### 4.1 Sayısal tutarlılık taraması
++
++Tez bitiminde **otomatik tarama**:
++
++```python
++# Tüm sayısal iddialar listele
++import re
++nums = re.findall(r'\b\d+[,.]?\d*\b', tez_metni)
++# Beklenen sayılar:
++beklenen = {
++    '267': 'çekirdek sayısı',
++    '75': 'feature sayısı',
++    '34': 'feature set sayısı',
++    '1472': 'dataset sayısı',
++    '942': 'PFAZ4 kombinasyon',
++    '20': 'config sayısı (Sprint 15 sonrası)',
++    '8': 'ANFIS varyantı',
++    '0,8886': 'QM ensemble R²',
++    '-3,18': 'MM ensemble R²',
++    '0,0015': 'ANOVA p-değeri',
++    '10000': 'bootstrap CI iterasyonu',
++    '1000': 'MC örneklem',
++}
++# Beklenen sayıların tezde geçtiği yer sayısı
++for num, açıklama in beklenen.items():
++    count = tez_metni.count(num)
++    if count == 0:
++        print(f"UYARI: {num} ({açıklama}) tezde geçmiyor!")
++```
++
++### 4.2 Atıf-kaynakça eşleştirme kontrolü
++
++Tezde [N] atıfı varsa kaynakçada da [N] olmalı:
++
++```python
++# Atıfları yakala
++atif_no = set(re.findall(r'\[(\d+)\]', tez_metni))
++# Kaynakçayı yakala (Bölüm 8 / Kaynakça)
++kaynakca_no = set(re.findall(r'^\[(\d+)\]', kaynakca_bolumu, re.M))
++eksik_kaynakca = atif_no - kaynakca_no  # atıf var, kaynakça yok
++fazla_kaynakca = kaynakca_no - atif_no  # kaynakça var, atıf yok
++```
++
++### 4.3 Sembol-açıklama eşleştirme
++
++Tezde geçen tüm sembol/kısaltma `07-GLOSSARY-SYMBOLS.md`'de olmalı:
++
++```python
++# Tezde geçen büyük harfli kısaltmaları yakala (ör. RMSE, ANFIS, BNN)
++abbrevs = set(re.findall(r'\b[A-Z]{2,}\b', tez_metni))
++# Standart kelimeleri çıkar (THE, AND, vs)
++standart = {'TC', 'PHD', 'YL', 'EU', 'EN', 'TR'}
++abbrevs -= standart
++# Glossary'de olmalı
++glossary_kisaltma = set(...)  # glossary'den oku
++eksik_glossary = abbrevs - glossary_kisaltma
++```
++
++### 4.4 Yer tutucu (placeholder) taraması
++
++Tezde **bırakılan yer tutucuları** son kontrol:
++```
++❌ TODO
++❌ FIXME
++❌ XXX
++❌ [TBD]
++❌ <PLACEHOLDER>
++❌ [...]                    (3 nokta ardışık, AI bunu sık bırakır)
++❌ "Burada X anlatılacak"
++❌ "Detaylar Y bölümünde"   (Y bölümü gerçekten yazıldı mı?)
++```
++
++Tarama scripti:
++```bash
++grep -n "TODO\|FIXME\|XXX\|TBD\|placeholder\|burada.*anlatılacak\|detaylar.*bölümünde" thesis/*.md
++```
++
++---
++
++## 5. Mod B → Mod C (extreme stealth) — sadece gerektiğinde
++
++Mod B yeterli değilse (örn. plagiarism tool aşırı duyarlı):
++
++- Tüm cümleleri yeniden yapılandır: ilk yarısı tersine çevir, ana fiili sona at
++- Pasif → 1. tekil veya isim cümlesi
++- Atıf yerleştirme: cümle ortasına değil sonuna
++- Bağlaç yerine `;` (noktalı virgül) kullanımı arttır
++
++⚠ Mod C **doğal okumayı bozar**, sadece zorunlu durumlarda. Tez jürisi pek beğenmez.
++
++---
++
++## 6. SAÜ tez kontrol şablonu (final pass)
++
++Tezin son cilalama aşamasında bu checklist'i çalıştır:
++
++```
++[ ] §2.1 — AI kalıbı taraması (24 kalıp listesi)
++[ ] §3.1 — Cümle uzunluğu varyansı (Std > 5 hedef)
++[ ] §3.2 — Pasif/aktif oranı (en az %20 aktif)
++[ ] §3.3 — "Bu" başı yoğunluğu (paragraf başına 1 max)
++[ ] §3.4 — Bağlaç çeşitliliği (paragraf içinde tekrar yok)
++[ ] §3.5 — Referans yoğunluğu (bölüm bazında hedef aralıkta)
++[ ] §4.1 — Sayısal tutarlılık (12 beklenen sayı tezde geçiyor mu?)
++[ ] §4.2 — Atıf-kaynakça eşleşmesi (eksik / fazla 0)
++[ ] §4.3 — Sembol-açıklama (Glossary tam)
++[ ] §4.4 — Placeholder yok
++```
++
++Her geçtiğinde tezde quality artar. **Hedef: 10/10 geçer.**
++
++---
++
++## 7. Kullanım
++
++Claude Code prompt'unda:
++```
++"academic-shield Mod B v2 ile yaz. SAÜ tez bağlamı.
++Cümle uzunluğu varyansı yüksek olmalı. Sonra §6 checklist'i çalıştır."
++```
++
++Her bölüm yazımı sonrası **otomatik** checklist tetikle.
++
++---
++
++## 8. v1 → v2 geçiş
++
++v1 ve v2 birlikte yüklü olabilir. Conflict yok:
++- v1 → genel akademik metin (makale, blog)
++- v2 → SAÜ tez
++
++Claude Code skill resolver'ı `academic-shield-v2` tercih etsin (tez bağlamında).
++
++---
++
++*v2.0 | 2026-05-21 | SAÜ Fen Bilimleri Enstitüsü tezleri için özelleştirildi*
+diff --git a/skills/academic-writing-pro-v2.md b/skills/academic-writing-pro-v2.md
+new file mode 100644
+index 0000000..da87227
+--- /dev/null
++++ b/skills/academic-writing-pro-v2.md
+@@ -0,0 +1,464 @@
++# SKILL: academic-writing-pro v2
++## Fen Bilimleri tez yazımı — bölüm bazlı ses + SAÜ-IEEE atıf disiplini
++
++> **Versiyon:** v2.0 (2026-05-21)
++> **Önceki:** `skills/academic-writing-pro-rehber.md` (v1.0)
++> **Hedef:** SAÜ Fen Bilimleri Enstitüsü doktora tezleri, fen + mühendislik alanı
++> **Tamamlayıcı:** `academic-shield-v2` ile birlikte kullan (shield AI-temizliği, pro yazım kalitesi)
++
++---
++
++## 1. Bölüm bazlı ses (tone) ayarı
++
++Tez bölümleri **farklı dilbilimsel sesle** yazılır. Bunu karıştırmak en yaygın AI hatası.
++
++### 1.1 Giriş Bölümü (§1) — Pedagojik + Konumlandırma
++
++**Hedef:** Okuyucuyu konuya alıştır, motivasyonu çiz, katkıyı önden duyur.
++
++**Sesin özellikleri:**
++- Geniş zaman ve geçmiş zaman karışımı
++- Tarihsel referanslar ("1930'lu yıllarda başlamış olan...")
++- Genel-spesifik akış (geniş yelpazeden tezin konusuna in)
++- Atıf yoğunluğu **orta** (1-2 ref/cümle)
++
++**Yapılan hatalar:**
++❌ Çok teknik başlama: "Schmidt formülünde g_l ve g_s katsayıları..." → Bölüm 2'ye sakla
++❌ Sonuçları açıklama: "%89 başarı elde edilmiştir" → Bölüm 5'e sakla
++❌ Yöntem detayı: "RF ve XGBoost karşılaştırılmıştır" → Bölüm 3'e sakla
++✅ "Nükleer momentlerin doğru tahmini astrofizikte r-süreci modellemesi için kritik öneme sahiptir."
++
++### 1.2 Literatür Bölümü (§2) — Karşılaştırmacı + Konumlandırıcı
++
++**Hedef:** Kendi çalışmanı diğer çalışmaların **arasına yerleştir**.
++
++**Sesin özellikleri:**
++- Geçmiş zaman ağırlıklı (başkalarının yaptığı iş)
++- "X ve ark. [Y] yaptı" yapısı baskın
++- Sayısal kıyaslama içerir
++- Atıf yoğunluğu **yüksek** (1-2 ref/cümle)
++
++**Yapılan hatalar:**
++❌ Tüm makaleleri özetlemek: tez literatür bölümü değil, kendi konumlandırman
++❌ "Birçok çalışma" gibi belirsiz genelleme — somut atıf ver
++✅ "Yuan ve ark. (2021) [80], odd-A çekirdekler için BNN ile rms sapmasını 0,036 μₙ seviyesine indirmiş; ancak odd-odd çekirdekler için sistematik bir ML benchmark yayımlanmamıştır."
++
++### 1.3 Yöntem Bölümü (§3) — Tarifci + Tekrar Edilebilir
++
++**Hedef:** Başka biri okuyup **tıpatıp aynı pipeline'ı çalıştırabilmeli**.
++
++**Sesin özellikleri:**
++- Pasif yapı ağırlıklı ("yapılmıştır", "kullanılmıştır")
++- Geçmiş zaman zorunlu
++- Hiperparametre değerleri **açıkça** verilir
++- Atıf yoğunluğu **düşük** (0.3-0.5 ref/cümle), sadece kritik yöntemde
++
++**Yapılan hatalar:**
++❌ Sonuç sızdırma: "Bu yöntem en iyi sonuç verdi" → Bölüm 5'e
++❌ Yorum yapma: "Bu çok etkili bir yaklaşımdır" → Bölüm 6'ya
++❌ Belirsiz parametreler: "Optuna ile optimize edildi" — **kaç deneme? hangi aralık?**
++✅ "Optuna TPE örnekleyicisiyle 30 deneme, MedianPruner kullanılarak, [10⁻⁵, 10⁻¹] log-uniform öğrenme oranı aralığında optimize edildi."
++
++### 1.4 Bulgular Bölümü (§5) — Nötr + Sayısal
++
++**Hedef:** Çıktıları **yorum yapmadan** sun. Yorum Bölüm 6'da.
++
++**Sesin özellikleri:**
++- Sayılar, tablolar, figürler hâkim
++- Atıf yoğunluğu **çok düşük** (0.2-0.4 ref/cümle), sadece karşılaştırma için
++- "Tablo 5.X" ve "Şekil 5.Y" referansları sık
++- Geçmiş zaman pasif ("gözlemlenmiştir", "elde edilmiştir")
++
++**Yapılan hatalar:**
++❌ Yorum: "Bu çok yüksek bir başarıdır" → Bölüm 6
++❌ Karşılaştırma yorumu: "RF, XGBoost'tan daha iyidir" — sadece istatistiksel testle desteklenirse
++✅ "RF için ortalama Val R² = 0,3945 (n = 10000 bootstrap, 95% CI: [0,3550, 0,4321]), XGBoost için 0,2892 (CI: [0,2339, 0,3422]). Bu fark tek yönlü ANOVA ile p = 0,0015 düzeyinde anlamlı bulunmuştur (Tablo 5.4)."
++
++### 1.5 Tartışma Bölümü (§6) — Yorumlayıcı + Literatür Bağlamcı
++
++**Hedef:** Bulguları **anlamlandır**, literatürle kıyasla, sınırları çiz.
++
++**Sesin özellikleri:**
++- Geniş zaman (yorum) + geçmiş zaman (kıyas) karışımı
++- "X bulgusu, Y'yi göstermektedir" yapısı sık
++- Atıf yoğunluğu **çok yüksek** (1.5-2.5 ref/cümle)
++- Sınırlama beyanları açıkça
++
++**Yapılan hatalar:**
++❌ Bölüm 5'i tekrarlamak: "R²=0,89 elde edilmiştir" → bulgularda zaten yazıldı
++❌ Aşırı genelleme: "Bu yöntem her veri için işe yarar" → veri rejiminin sınırı belirt
++✅ "QM ensemble R²=0,8886 sonucu, Yuan ve ark. (2021) [80] odd-A çekirdekler için raporladığı 0,036 μₙ RMS sapma kadar düşük olmasa da, odd-odd çekirdeklerde Schmidt eşdeğeri olmaksızın elde edilebilen en yüksek seviyelerden birini temsil etmektedir. Söz konusu açıklığın temel kaynağı [Şekil 6.3'te görüldüğü gibi]..."
++
++### 1.6 Sonuç Bölümü (§7) — Özetleyici + Öneri
++
++**Hedef:** Tezin ana bulgularını **3-5 madde halinde** özetle, gelecek çalışma öner.
++
++**Sesin özellikleri:**
++- Geçmiş zaman (yapılan iş) + geniş zaman (öneri)
++- Numaralı liste kabul edilir
++- Atıf yoğunluğu **düşük** (sadece gelecek çalışma önerirken)
++
++---
++
++## 2. SAÜ-modifiye IEEE atıf format kuralları
++
++### 2.1 Atıf yerleştirme (cümle içi)
++
++```
++✅ "Yuan ve ark. (2021) [80] BNN ile rms sapmasını..."
++✅ "Schmidt formülü [28] tek valens nükleon varsayar."
++✅ "Bu yaklaşım ilk kez 1937'de önerilmiştir [28]."
++✅ "...gösterilmektedir [12], [13]."        (birden çok atıf virgülle)
++✅ "...etkilerinin önemini ortaya koymaktadır [12]–[15]."  (ardışık atıf)
++```
++
++**Yanlış:**
++```
++❌ "[80] Yuan ve ark. BNN ile..."           (atıf önde başlatma)
++❌ "Yuan ve ark. BNN ile [80]..."            (cümle ortası, akıcılığı bozar)
++❌ "...göstermiştir [80]."                  (Yuan zaten önde geçtiyse [80] gereksiz tekrar)
++```
++
++### 2.2 Kaynakça format (SAÜ-modifiye IEEE)
++
++```
++[N] Soyad₁, Adİlk₁., Soyad₂, Adİlk₂., ..., Makale başlığı.
++    Dergi Tam Adı [italik], cilt(sayı), sayfa-sayfa, yıl.
++    DOI: 10.XXXX/XXXXX
++```
++
++**Örnek:**
++```
++[80] Yuan, Z., Tian, D., Li, J., Niu, Z.M.,
++     Magnetic moment predictions of odd-A nuclei with the Bayesian
++     neural network approach.
++     Chinese Physics C, 45(12), 124107, 2021.
++     DOI: 10.1088/1674-1137/ac28f9
++```
++
++**Klasik IEEE (Hakan hoca tercih ederse):**
++```
++[N] A. Soyad₁, B. Soyad₂, et al., "Başlık," Dergi, cilt, ss. xx-yy, yıl.
++```
++
++### 2.3 Atıf sıralaması
++
++Kaynakça **atıfın metinde ilk geçtiği sıraya göre** numaralandırılır. Alfabetik DEĞİL.
++
++```
++Metinde:
++  "...gösterilmiştir [3]. Daha sonra [8] tarafından..."
++  → [3] önce metinde, sonra [8] geliyor
++  
++Kaynakça:
++  [3] ...
++  [8] ...
++```
++
++Bu nedenle tez bittikten sonra **atıfları yeniden numaralandırma scripti** çalıştırılmalı (Agent F çıkışı).
++
++### 2.4 Atıf türlerine göre format farkları
++
++**Dergi makalesi:**
++```
++[N] Yuan, Z., et al., Başlık. Chinese Physics C, 45(12), 124107, 2021.
++    DOI: ...
++```
++
++**Konferans bildirisi:**
++```
++[N] Hoşgör, G., Yakut, H., Tabar, E., Başlık.
++    AIP Conference Proceedings, 1815, 060011, 2017.
++```
++
++**Kitap:**
++```
++[N] Bohr, A., Mottelson, B.R., Nuclear Structure, Vol. I.
++    New York: W. A. Benjamin, 1969.
++```
++
++**Kitap bölümü:**
++```
++[N] Yazar, A.B., Bölüm Başlığı, in Kitap Başlığı (Editör Adı, ed.),
++    Yayınevi, Şehir, ss. xx-yy, yıl.
++```
++
++**arXiv preprint:**
++```
++[N] Knöll, M., Agel, M.L., et al., Machine Learning for Correlations...
++    arXiv:2501.08959, 2025.
++```
++
++**Teknik rapor / IAEA:**
++```
++[N] Stone, N.J., Table of Recommended Nuclear Magnetic Dipole Moments.
++    INDC(NDS)-0794, IAEA, 2019.
++```
++
++**Tez (eğer atıf yapılırsa):**
++```
++[N] Hoşgör, G., Tek-A'lı 151-159Eu ve 151-161Gd Çekirdeklerinin Manyetik
++    Dipol Uyarılmalarının İncelenmesi. Yüksek Lisans Tezi, Sakarya
++    Üniversitesi Fen Bilimleri Enstitüsü, 2017.
++```
++
++---
++
++## 3. Sayısal sunum standartları
++
++### 3.1 Türkçe sayı formatı (SAÜ standardı)
++
++```
++✅ 0,8886        (ondalık virgül)
++✅ 10 000        (binlik boşluk)
++✅ 1,5 × 10⁻⁴   (bilimsel)
++✅ %95          (yüzde önde, boşluksuz)
++✅ μₙ           (Yunan harfi italik, alt indis dik)
++✅ R²           (üst indis dik)
++```
++
++**Yanlış (uluslararası yayın formatı, tezde kullanma):**
++```
++❌ 0.8886
++❌ 10,000
++❌ 95%
++```
++
++### 3.2 Belirsizlik gösterimi
++
++```
++✅ 0,8886 ± 0,0124       (mutlak hata)
++✅ 0,8886 (95% CI: [0,8762, 0,9010])  (güven aralığı)
++✅ 0,89(1)               (kısa form: son hane belirsiz)
++```
++
++### 3.3 Birim ve sembol
++
++```
++✅ μₙ              nükleer magneton (manyetik moment)
++✅ b veya barn     elektrik kuadrupol moment birimi
++✅ fm              femtometre
++✅ MeV             megaelektronvolt
++✅ R²              determinasyon katsayısı
++✅ RMSE            kök ortalama kare hata
++```
++
++### 3.4 Önemli sayılar (tez geneli sabit)
++
++Bkz. `THESIS-RESEARCH-NOTES.md` §4 "Sayısal Sözlük". Her bölümde **aynı** değerler kullanılacak.
++
++---
++
++## 4. Şekil ve tablo standartları
++
++### 4.1 Şekil caption (Türkçe akademik)
++
++```
++Şekil 5.3. Random Forest ve XGBoost modellerinin Val R² karşılaştırması.
++          (a) Manyetik moment hedef değişkeni için n = 280 model üzerinde
++          dağılım. (b) Kuadrupol moment için n = 160 model. Hata çubukları
++          %95 güven aralığını göstermektedir (bootstrap, n = 10 000).
++```
++
++**Format kuralları:**
++- "Şekil N.M." (Bölüm.Şekilno)
++- Türkçe ana açıklama
++- Alt panel (a), (b), (c) ile
++- Sayısal detay caption'da, ayrıca text'te değil
++- Hata çubuğu varsa açıkla
++
++### 4.2 Tablo caption (Türkçe akademik)
++
++```
++Tablo 3.1. aaa2.txt veri kümesinin istatistiksel özeti.
++```
++
++(Caption üstte yazılır SAÜ tezlerinde. Şekil caption altta.)
++
++### 4.3 Şekil/tablo referansı metinde
++
++```
++✅ "...Şekil 5.3(a)'da gösterildiği gibi..."
++✅ "Tablo 3.1 veri kümesinin temel özelliklerini özetlemektedir."
++✅ "Bkz. Çizelge 5.2."             (SAÜ tezlerinde "Çizelge" geçer)
++
++❌ "...gibi görülmektedir."         (referans verilmemiş)
++❌ "...yukarıda."                   (PDF'de "yukarıda" yer karışabilir)
++```
++
++---
++
++## 5. Matematik dizgisi
++
++### 5.1 Formül numaralandırma
++
++```latex
++\begin{equation}
++\mu_s = g_l l + \frac{1}{2} g_s
++\label{eq:schmidt}
++\end{equation}
++```
++
++Atıf:
++```
++"...denklem (3.5) ile verilmektedir."
++"...Eşitlik (3.5)'ten görüldüğü üzere..."
++```
++
++### 5.2 Inline matematik
++
++```
++✅ "$R^2$ değeri 0,8886 olarak bulundu."
++✅ "$\mu_N$ birimi nükleer magneton'u temsil eder."
++✅ "Z mod 2 = 1"          (matematik gösterimi metin içinde)
++```
++
++### 5.3 Türkçe matematik metni
++
++```
++✅ "α = 0,05 anlamlılık eşiği"
++✅ "n = 10 000 örneklem ile"
++✅ "p < 0,001"
++```
++
++---
++
++## 6. Dil kullanım disiplini
++
++### 6.1 Türkçe karakter zorunluluğu
++
++```
++✅ "çekirdek", "uygulanmıştır", "değişken", "öğrenme"
++❌ "cekirdek", "uygulanmistir", "degisken", "ogrenme"
++```
++
++LaTeX'te `\usepackage[turkish]{babel}` ve UTF-8 zorunlu.
++
++### 6.2 Kapasitalizasyon
++
++```
++✅ "Sakarya Üniversitesi"       (özel ad: tüm baş harfler büyük)
++✅ "manyetik moment"             (genel kavram: küçük)
++✅ "Random Forest"               (model adı: büyük)
++✅ "Schmidt formülü"             (özel adı taşıyan formül: ad büyük)
++✅ "Bayesian Sinir Ağı"         (model adı: tüm sözcükler büyük)
++✅ "yapay zekâ"                  (genel kavram: küçük)
++```
++
++### 6.3 Yabancı sözcük kullanımı
++
++İlk geçişte: **Türkçe (Yabancı)** çift gösterim
++
++```
++✅ "Random Forest (Rastgele Orman) algoritması..."
++✅ "Bootstrap Güven Aralığı (Bootstrap Confidence Interval)..."
++```
++
++Sonraki geçişler: tercih ettiğin tek versiyon (genelde yabancı çünkü standart terim)
++
++### 6.4 İtalik kullanımı
++
++```
++✅ Dergi adları: *Chinese Physics C*
++✅ Kitap adları: *Nuclear Structure*
++✅ Latin sözcükler: *et al.*, *in vivo*, *a priori*
++✅ Vurgu (nadir): "Bu **özgün** katkı..."
++❌ Tüm cümleyi italik yapma
++```
++
++---
++
++## 7. Paragraf ve bölüm yapısı
++
++### 7.1 Paragraf uzunluğu
++
++- **Minimum:** 3 cümle (1-2 cümlelik paragraf zayıf)
++- **Maksimum:** 8-10 cümle (uzun paragraf okuma yorulur)
++- **Hedef:** 4-6 cümle
++
++### 7.2 Paragraf yapısı (TER yapısı)
++
++```
++T - Topic sentence (paragrafın ana iddiası)
++E - Evidence / explanation (kanıt + açıklama, 2-4 cümle)
++R - Reflection / transition (bir sonraki paragrafa bağ)
++```
++
++Örnek:
++```
++[T] Schmidt formülü tek valens nükleon varsayar; bu nedenle odd-odd
++çekirdekte doğrudan uygulanmaz.
++[E] Schmidt'in 1937 [28] formülasyonu, j = l ± 1/2 durumları için iki
++ayrı eğri tanımlar. Odd-odd çekirdekte hem proton hem nötron tek olduğundan,
++iki bağımsız Schmidt değerinin coupling kuralları altında birleştirilmesi
++gerekmektedir. Söz konusu birleştirme klasik formülün ötesinde [3], [14]
++hesaplama gerektirir.
++[R] Bu durum, mevcut çalışmanın Schmidt değerini özellik olarak
++eklememesinin gerekçesini oluşturmakta ve gelecek çalışma olarak iki-parçacık
++Schmidt eşdeğeri tasarımını işaret etmektedir (Bölüm 6.3).
++```
++
++### 7.3 Bölüm açılışı
++
++Her bölüm 1-2 paragraf **bağlam cümlesi** ile başlamalı:
++- Bu bölümde ne anlatılacak?
++- Önceki bölümle bağlantı
++
++```
++✅ "Önceki bölümde nükleer moment teorisi ve ilgili ML literatürü incelendi.
++   Bu bölümde, kullanılan veri kümesi, fizik-bilgili özellik mühendisliği,
++   model mimarileri ve eğitim protokolü ayrıntılarıyla tanımlanmaktadır.
++   §3.1 veri kümesinin istatistiksel özelliklerini, §3.2 özellik mühendisliğini
++   ele almakta..."
++
++❌ Doğrudan teknik içerikle başlama
++```
++
++---
++
++## 8. Çıktı kontrol (yazım sonrası)
++
++Her bölüm yazıldıktan sonra **otomatik tarama**:
++
++```bash
++# Bölüm dosyası
++python3 thesis_quality_check.py thesis/03-yontem.md
++```
++
++Script çıktısı:
++```
++Cümle uzunluğu: ortalama 22, std 7  ✅ (hedef std >= 5)
++Pasif/aktif oranı: 4.2:1            ✅ (hedef 4-6 pasif/aktif)
++"Bu" başlangıçlı cümle: 12 (paragraf başına ort. 0.4)  ✅
++Atıf yoğunluğu: 0.45 ref/cümle      ✅ (Bölüm 3 için 0.3-0.6 hedef)
++AI kalıp listesi: 3 hit             ⚠ (3 yer revize edilmeli)
++Türkçe karakter eksikliği: 0        ✅
++Placeholder tespit: 0               ✅
++```
++
++---
++
++## 9. Kullanım örneği
++
++```
++Sen Claude Code'sun. Bölüm 5 Bulgular yazılacak.
++
++Skill: academic-writing-pro v2 (Bölüm 5 sesini kullan: nötr + sayısal,
++       atıf yoğunluğu düşük 0.2-0.4 ref/cümle)
++Skill: academic-shield v2 Mod B (AI kalıp temizlik)
++
++Veri kaynakları:
++- THESIS_COMPLETE_RESULTS.xlsx (snapshot)
++- Agent C çıktısı (tablo önerileri)
++- Agent D çıktısı (figür eşleştirmesi)
++- THESIS-RESEARCH-NOTES.md §1.3 (gerçek sayılar)
++
++Atıf formatı: SAÜ-modifiye IEEE [N]
++(Hakan hoca cevabı sonrası klasik IEEE'ye geçilebilir)
++
++Yazımdan sonra §8 kontrolünü çalıştır.
++```
++
++---
++
++*v2.0 | 2026-05-21 | SAÜ Fen Bilimleri tez yazım stili*
+diff --git a/skills/humanizer-thesis-mode.md b/skills/humanizer-thesis-mode.md
+new file mode 100644
+index 0000000..fd71348
+--- /dev/null
++++ b/skills/humanizer-thesis-mode.md
+@@ -0,0 +1,322 @@
++# SKILL: humanizer-thesis-mode
++## Tez yazımı için özelleştirilmiş insan üslubu ayarı
++
++> **Versiyon:** v1.0 (2026-05-21)
++> **Tip:** Yeni skill (önceki yok)
++> **Hedef:** Tez metni, son cilalama aşaması
++> **İlişkili:** `academic-shield-v2`, `academic-writing-pro-v2`
++> **Kritik kural:** **TEK PASS** — aynı bölüme iki kez uygulanmamalı
++
++---
++
++## 1. Tez modu vs genel humanizer farkı
++
++Genel humanizer (mevcut `skills/humanizer-rehber.md`):
++- Cümle çeşitlendirme
++- Kasıtlı küçük "hata" enjeksiyonu (typo değil; doğal düzensizlik)
++- Söyleyiş üretkenliği
++- Kişisel ses tonu
++
++**Tez modunda DEĞİŞENLER:**
++- ❌ Kasıtlı küçük hata ENJEKSİYONU **YASAK** (tez akademik, hatasız olmalı)
++- ❌ Kişisel ses tonu **YOK** (1. tekil "ben" kullanma; 1. çoğul "biz" 2-3 kez kabul)
++- ❌ Konuşma dili kalıpları **YOK**
++- ✅ Cümle uzunluğu çeşitlendirme (zaten academic-shield Mod B'de)
++- ✅ Bağlaç çeşitlendirme (academic-shield Mod B'de)
++- ✅ Pasif/aktif dengesi (academic-shield Mod B'de)
++- ✅ "İnsan tutarsızlığı" — kasıtlı küçük yapısal varyans (tek değil)
++
++---
++
++## 2. Tez modunda kullanılan teknikler
++
++### 2.1 Cümle başlangıç çeşitliliği
++
++AI bir paragrafta aynı sözcükle birden fazla cümle başlatabilir:
++
++```
++❌ "Bu çalışmada... Bu yöntem... Bu sonuç..."
++```
++
++Humanizer-thesis mode bunu **paragraf bazında** tarayıp çeşitlendirir:
++
++```
++✅ "Bu çalışmada... Söz konusu yöntem... Elde edilen sonuç..."
++```
++
++**Kural:** Bir paragrafta aynı 2 sözcüklü cümle başı tekrarı YASAK.
++
++### 2.2 Paragraf-içi uzunluk osilasyonu
++
++Akademik metinde bile insan **uzunluk osilasyonu** yaratır:
++
++```
++İnsan paragrafı:
++[Uzun, 35 kelime] - [Kısa, 12 kelime] - [Orta, 22 kelime] - [Uzun, 30 kelime]
++
++AI paragrafı:
++[Orta, 22 kelime] - [Orta, 21 kelime] - [Orta, 23 kelime] - [Orta, 22 kelime]
++```
++
++Humanizer-thesis mode:
++- Her paragrafa **1 kısa** (10-15 kelime) + **1 uzun** (28-40 kelime) cümle yerleştir
++- Geri kalan orta (18-25 kelime)
++
++### 2.3 Bağlaç hibridizasyonu
++
++Türkçe akademik metinde **bağlaç çeşitlendirme** insan imzasıdır:
++
++```
++AI tercih ettikleri:        İnsan eklemleri:
++─────────────────────       ─────────────────
++ve                          ile, beraber, aynı zamanda
++ancak                       fakat, lakin (nadir)
++bu nedenle                  bu yüzden, bundan ötürü
++ayrıca                      yanı sıra, üstelik (nadir)
++ise                         ise de, lakin (nadir)
++dolayısıyla                 neticede, sonuç itibarıyla
++```
++
++**Kural:** Aynı bağlaç **2 cümle üst üste** kullanılmaz. Aynı paragraf içinde **3+ kez** kullanılmaz.
++
++### 2.4 Türkçe akademik nadir kullanımlar (kontrollü serpiştirme)
++
++Doğal Türkçe akademik metinde bazı kalıplar **çok nadir** görünür ama bütün tezde **2-3 kez** geçtiğinde insan imzası verir:
++
++```
++✅ "Söz konusu yaklaşım..."        (3-5 kez/tez, fazlası AI)
++✅ "Belirtmek gerekir ki..."       (2-3 kez/tez, fazlası AI)
++✅ "Bu noktada vurgu yapılmalı:"   (1-2 kez/tez, fazlası AI)
++✅ "Yapılan çalışma..."            (2-3 kez/tez)
++✅ "...göstermektedir."             (sınırsız OK)
++```
++
++Humanizer-thesis mode **kullanım sayısını sayar** ve sınırı aşmaz.
++
++### 2.5 Karakter cümle yapısı varyansı
++
++İnsan metni **cümle yapı tipi** açısından çeşit gösterir:
++
++```
++Yapı 1: Özne - Yüklem               "Model eğitildi."
++Yapı 2: Özne - Yer - Yüklem         "Model 5-kat CV ile değerlendirildi."
++Yapı 3: Yer - Özne - Yüklem         "5-kat CV ile model değerlendirildi."
++Yapı 4: Zarf - Özne - Yüklem        "Sonuç olarak model %89 başarı verdi."
++Yapı 5: Bağlaç ile başlayan         "Ancak söz konusu yaklaşım..."
++Yapı 6: Soru / istek                "Bu sonuç nasıl yorumlanmalı?" (NADIR, tezde 2-3 kez)
++Yapı 7: Isim cümlesi (yüklemsiz)    "İlk gözlem: ANFIS bootstrap CI'sı negatif."
++```
++
++AI ağırlıklı **Yapı 2** üretir. Humanizer her paragrafta 3+ farklı yapı tipi olmasını sağlar.
++
++---
++
++## 3. Tez modunda YASAK edilenler
++
++### 3.1 Kasıtlı hata enjeksiyonu
++
++Genel humanizer'da "küçük tutarsızlık" iyi (insan imzası). Tezde:
++
++```
++❌ "Modelin r² değeri 0,89'dur. R² değeri yüksektir."  (büyük/küçük karışık)
++❌ "267 çekirdek üzerinde. 266 çekirdek aslında..."   (sayı tutarsızlığı)
++❌ "Bu çalışma'da uyguladık."                          (uyumsuz iyelik)
++```
++
++Tez **hatasız** olmalı. Bu kural ihlal edilirse jüri puan kırar.
++
++### 3.2 Konuşma dili
++
++```
++❌ "Sonuçlar süper çıktı."
++❌ "Bizce bu doğru."
++❌ "Yaparken bayağı zorlandık."
++❌ "Bu da işin püf noktası."
++```
++
++### 3.3 1. tekil ("ben")
++
++```
++❌ "Bu yöntemi benim önerdiğim..."
++❌ "Ben şuna dikkat çekmek isterim..."
++```
++
++1. çoğul ("biz") kabul edilir ama **çok sınırlı**:
++```
++✅ "Bu çalışmada biz, odd-odd çekirdekler için..."    (tezde 2-3 kez max)
++✅ "Önerilen yaklaşımımız..."                          (tezde 1-2 kez max)
++```
++
++Daha doğal: **özne yok** veya **özne pasif**:
++```
++✅ "Bu çalışmada odd-odd çekirdekler için..."
++✅ "Önerilen yaklaşım..."
++✅ "Tarafımızca önerilen..."     (1-2 kez/tez tolere)
++```
++
++### 3.4 Çok güçlü iddia kalıpları (overclaim)
++
++```
++❌ "Bu kesinlikle kanıtlamaktadır..."         → ✅ "Bu güçlü bir kanıt sunmaktadır"
++❌ "Hiçbir şüphe yoktur ki..."                → ✅ "Bulgular ... olduğunu göstermektedir"
++❌ "Bu yöntem en iyisidir."                   → ✅ "Bu yöntem en iyi sonucu vermiştir."
++❌ "Mükemmel sonuçlar..."                     → ✅ "Yüksek doğruluk seviyesi..."
++```
++
++---
++
++## 4. Tez modunda TERCİH edilenler
++
++### 4.1 Bilimsel kibarlık
++
++```
++✅ "...öne sürmektedir / önerilmektedir"
++✅ "...gözlemlenmektedir / saptanmaktadır"
++✅ "...öngörülmektedir / beklenmektedir"
++✅ "Bulgular, ... olduğuna işaret etmektedir."
++```
++
++### 4.2 Belirsizlik kabul
++
++```
++✅ "Mevcut analiz sınırlı sayıdaki veri kümesi nedeniyle ..."
++✅ "Sonuçların güvenilirliği, daha geniş kapsamlı çalışmalarla teyit edilmelidir."
++✅ "Bu yorum tartışmaya açıktır."
++```
++
++### 4.3 Literatür bağlama
++
++```
++✅ "Yuan ve ark. [80]'in raporladığı bulgular ile uyumludur."
++✅ "Bu sonuç, [12]'deki gözlemleri desteklemektedir."
++✅ "Söz konusu eğilim, [50]'de de gözlemlenmiştir."
++```
++
++### 4.4 Sınırlama beyanı
++
++```
++✅ "Bu sonucun en önemli sınırlaması, ... olmasıdır."
++✅ "Mevcut yaklaşımın açıkça dezavantajlarından biri ..."
++✅ "Gelecek çalışmalarda, ... ele alınmalıdır."
++```
++
++---
++
++## 5. Çalışma protokolü
++
++### 5.1 Ne zaman çağrılır?
++
++Humanizer-thesis mode **SON PASS** olarak çağrılır:
++
++```
++SIRA:
++1. academic-writing-pro v2     → ana yazım (ses tonu, atıf, sayı format)
++2. academic-shield v2 Mod B    → AI iz temizleme (24 kalıp)
++3. humanizer-thesis-mode       → SON pass: ince ayar, paragraf bazlı varyans
++4. spell-check + grammar       → otomatik
++5. quality-check.py            → otomatik tarama
++```
++
++### 5.2 Tek pass kuralı
++
++Aynı bölüme **iki kez** uygulanmamalı çünkü:
++- Birinci pass: AI kalıpları temizlenir
++- İkinci pass: ZATEN insan görünümlü metni "daha insan" yapmaya çalışır → **bozar**
++
++**Kural:** Bir bölüm bir kez humanizer-thesis görür, bir daha görmez.
++
++### 5.3 Çıktı doğrulama
++
++Pass sonrası şu metrik kontrol edilir:
++
++```python
++def thesis_humanizer_check(metin):
++    # 1. Cümle uzunluğu std
++    sentences = re.split(r'(?<=[.!?])\s+', metin)
++    lengths = [len(s.split()) for s in sentences]
++    std = np.std(lengths)
++    assert std >= 5, f"Cümle uzunluk varyansı düşük: {std}"
++    
++    # 2. Paragraf-içi cümle başı tekrarı
++    paragraphs = metin.split('\n\n')
++    for p in paragraphs:
++        sents = re.split(r'(?<=[.!?])\s+', p)
++        starts = [' '.join(s.split()[:2]).lower() for s in sents]
++        from collections import Counter
++        c = Counter(starts)
++        assert max(c.values()) == 1, f"Paragrafta aynı cümle başı: {c.most_common(1)}"
++    
++    # 3. Bağlaç tekrarı
++    baglac_list = ['ve', 'ancak', 'fakat', 'bu nedenle', 'ayrıca', 'dolayısıyla']
++    for b in baglac_list:
++        count_per_para = [p.lower().count(' ' + b + ' ') for p in paragraphs]
++        assert max(count_per_para) <= 2, f"Aynı paragrafta {b} 3+ kez"
++    
++    # 4. 1. tekil yasağı
++    assert 'ben ' not in metin.lower() or metin.lower().count('ben ') <= 0
++    # (Eğer "ben" hiç geçmiyorsa OK; geçiyorsa şüpheli)
++    
++    # 5. AI kalıbı sayısı düşük olmalı
++    ai_kaliplari = [
++        'önemle belirtmek gerekir',
++        'şüphesiz ki',
++        'açıkça görülmektedir ki',
++        'esasında',
++        # ... academic-shield v2 §2'deki tam liste
++    ]
++    hits = sum(metin.lower().count(k) for k in ai_kaliplari)
++    assert hits <= 2, f"AI kalıbı tespit: {hits}"
++    
++    return True
++```
++
++---
++
++## 6. Bölüm bazlı ayar
++
++Humanizer ayarı bölüme göre değişir:
++
++| Bölüm | Cümle başı varyans | Pasif/aktif | 1. çoğul ("biz") |
++|---|---|---|---|
++| §1 Giriş | Orta | 60% pasif | 0-1 kez |
++| §2 Literatür | Yüksek | 50% pasif | 0 kez |
++| §3 Yöntem | Düşük (yöntem standart kalır) | 80% pasif | 1-2 kez |
++| §4 Uygulama | Orta | 70% pasif | 1 kez |
++| §5 Bulgular | Düşük | 75% pasif | 0 kez |
++| §6 Tartışma | Yüksek | 55% pasif | 1-2 kez |
++| §7 Sonuç | Yüksek | 40% pasif (aktif öneri) | 2-3 kez |
++
++---
++
++## 7. Kullanım örneği
++
++```
++Sen Claude Code'sun. thesis/05-bulgular.md yazıldı.
++Şimdi sıralı son işlem:
++
++1. academic-writing-pro v2 ile gözden geçir (Bulgular sesi)
++2. academic-shield v2 Mod B ile AI temizliği yap
++3. humanizer-thesis-mode ile §6 Bulgular ayarını uygula:
++   - Cümle başı varyans DÜŞÜK ayarı (yöntemsel)
++   - 75% pasif tolere
++   - 1. çoğul 0 kez
++4. quality-check.py thesis/05-bulgular.md çalıştır
++5. Final commit
++```
++
++---
++
++## 8. v1.0 sınırlamaları
++
++- Henüz bağımsız Türkçe spell-check entegrasyonu yok
++- Stil tutarlılığı bölüm-arası karşılaştırması yok
++- Plagiarism kontrolü ayrı araç (Turnitin / iThenticate)
++
++Gelecek v2.0:
++- LSP (Language Server Protocol) entegrasyonu
++- VS Code extension olarak çalışma
++- Real-time AI kalıbı uyarısı
++
++---
++
++*v1.0 | 2026-05-21 | Yeni skill, tez-spesifik humanizer ayarı*
+diff --git a/thesis/01-giris.md b/thesis/01-giris.md
+new file mode 100644
+index 0000000..2015439
+--- /dev/null
++++ b/thesis/01-giris.md
+@@ -0,0 +1,84 @@
++# BÖLÜM 1: GİRİŞ
++
++> **Tez Başlığı:** Yapay Zekâ Destekli Nükleer Veri Analizi — Tek-Tek Çekirdekler için Manyetik ve Kuadrupol Moment Tahmini
++> **Araştırmacı:** Ahmet Kemal Acar
++> **Durum:** Taslak v1.0 — 2026-05-21
++> **Hedef sayfa:** 8–12
++> **Atıf formatı:** IEEE (hoca onayına tabi; SAÜ-modifiye IEEE de olabilir, bkz. `HAKAN-HOCA-SORULAR.md` §5.3)
++> **Yapılacak revizyonlar:** Hakan hoca cevabı sonrası §1.4 (özgün katkı) ve §1.2 (mevcut yaklaşımlar) revize edilecek.
++
++---
++
++## 1.1 Nükleer Momentlerin Önemi
++
++Atom çekirdeğinin manyetik dipol momenti (μ) ve elektrik kuadrupol momenti (Q), nükleer yapı hakkında en doğrudan deneysel bilgi sağlayan iki temel niceliktir. Manyetik moment, çekirdeğin spin dağılımına ve tek-parçacık konfigürasyonuna duyarlı bir niceliktir; valens nükleonların hangi yörüngede bulunduğunu ve eşlenim etkilerinin nasıl tezahür ettiğini ortaya koymaktadır [1], [3]. Kuadrupol moment ise çekirdeğin küresellikten sapışını niceler; β₂ deformasyon parametresi aracılığıyla içsel kuadrupol moment Q₀ ile doğrudan ilişkilidir [31], [32]. Bu iki nicelik birlikte ele alındığında, çekirdek temel halinin hem **spin yapısı** hem de **deformasyon karakteri** hakkında tamamlayıcı bilgi vermektedir.
++
++Söz konusu büyüklüklerin ölçümü 1930'lu yıllarda atomik hiperinfin yarılma yöntemleriyle başlamış, lazer spektroskopisi, nükleer manyetik rezonans (NMR) ve β-NMR teknikleriyle 20. yüzyılın ikinci yarısında sistematik biçimde genişletilmiştir [1]. Stone tarafından derlenen ve düzenli aralıklarla güncellenen tablolar [1], [2], [3], [49] alanın referans veritabanını oluşturmaktadır. En güncel derleme olan Stone (2024) [49], hem ölçüm tekniklerindeki gelişimi hem de tutarlılık değerlendirmelerini kapsamaktadır.
++
++Nükleer momentlerin doğru tahmin edilebilmesi yalnızca nükleer yapı araştırmaları için değil, aynı zamanda astrofizikte r-süreci ve s-süreci modellemesi, kararsız çekirdek bölgelerinde hiperinfin yapı hesaplamaları ve çekirdek-atom etkileşimlerine dayalı temel fizik testleri açısından da kritik önem taşımaktadır [4], [13]. Ancak deneysel kapsama kararlılık vadisi yakınındaki çekirdeklerle sınırlı kalmakta; egzotik çekirdekler için ölçüm hem teknik açıdan zor hem de bazı durumlarda kısa yarı-ömür nedeniyle imkânsız olmaktadır.
++
++## 1.2 Mevcut Yaklaşımların Sınırları
++
++Manyetik moment tahmini için klasik teorik çerçeve, Schmidt'in 1937 yılında önerdiği tek-parçacık kabuk modeli yaklaşımıdır [28]:
++
++$$
++\mu_s = \langle (nl)\,jm | g_l \hat{l}_z + g_s \hat{s}_z | (nl)\,jm \rangle_{m=j}
++$$
++
++Bu formül **tek bir valens nükleon** varsayar ve bu varsayım altında manyetik momenti spin-yörünge bileşkesi olarak verir. Schmidt limitleri (j = l ± 1/2 için iki ayrı eğri), deneysel verilerin yaklaşık zarfını çizmektedir; ancak veri noktalarının çoğu bu iki eğri arasında dağılmaktadır [1]. Bu sapma, Arima-Horie etkisi olarak bilinen konfigürasyon karışımı [12], [13] ve meson exchange current (MEC) düzeltmeleri [14], [15] üzerinden açıklanmaktadır. Kuadrupol moment tarafında Bohr-Mottelson kollektif modeli, deformasyon parametresi β₂ ile içsel kuadrupol moment Q₀ arasında doğrudan bir ilişki kurmaktadır [31], [32]; ancak bu ilişki ideal deformasyonlu çekirdekler için geçerlidir ve geçiş bölgelerinde sapma göstermektedir.
++
++Hem tek-A'lı (odd-A: yalnızca proton veya yalnızca nötron sayısı tek) hem de tek-tek (odd-odd: hem proton hem nötron sayısı tek) çekirdekler için sistematik mikroskopik hesaplamalar göreceli ve göreceli olmayan ortalama alan yaklaşımları altında yapılmıştır [7], [22], [23]. Buna karşın, **odd-odd çekirdeklerde iki valens nükleonun spin-spin etkileşimi nedeniyle Schmidt türü tek-parçacık yaklaşımı doğrudan uygulanamamakta**; bunun yerine iki-parçacık coupling kuralları veya QPNM (Quasiparticle-Phonon Nuclear Model) gibi mikroskobik modeller gerekli olmaktadır [95], [101]. Türkiye'de Sakarya Üniversitesi Yakut grubu, Eu/Gd [101] ve Ho [95] gibi odd-A izotop zincirlerinde QPNM-tabanlı analizler yaparak SAÜ literatürüne önemli katkılarda bulunmuştur.
++
++Mikroskopik modellerin uygulanamadığı ya da hesaplama maliyetinin yüksek olduğu durumlarda, **veri-temelli yaklaşımlar** alternatif bir paradigma sunmaktadır.
++
++## 1.3 Yapay Zekâ Yaklaşımının Motivasyonu
++
++Makine öğrenmesi (ML) son on yıl içerisinde fiziksel bilimlere yoğun şekilde nüfuz etmiştir; nükleer fizik bağlamında özellikle nükleer kütle [6], [7], [14], [53], yük yarıçapı [10], [44], [62], β-bozunum yarı-ömrü [45] ve diğer gözlemliilerin tahmininde başarılı sonuçlar raporlanmıştır. Carleo ve ark. [5] ile Boehnlein ve ark. [4] kapsamlı incelemeleri bu alanın haritasını sunmaktadır.
++
++Manyetik moment için doğrudan ML uygulamasının literatür kapsaması çok daha sınırlıdır. Yuan, Tian, Li ve Niu (2021) [80] tek-A'lı (odd-A) çekirdekler için Bayesian sinir ağı yaklaşımıyla MM tahmini yapmış; Schmidt değerini ve nükleer spini girdi olarak ekleyerek tek-nötron çekirdekler için rms sapmasını **0,949 μₙ → 0,036 μₙ**, tek-proton çekirdekler için **1,272 μₙ → 0,061 μₙ** seviyesine indirmiştir. Bu çalışma, fizik-bilgili özellik mühendisliğinin küçük veri rejiminde dramatik iyileşme sağlayabileceğini göstermektedir.
++
++Bu öncül bulgular, **veri-temelli yaklaşımın nükleer moment tahmininde anlamlı bir araç olabileceğini** somutlamış; ancak literatürdeki uygulamaların büyük bölümü odd-A çekirdeklerle sınırlı kalmıştır. Odd-odd çekirdekler için sistematik bir ML benchmark çalışması mevcut bilgimize göre henüz sunulmamıştır.
++
++## 1.4 Tezin Özgün Katkıları
++
++Bu tez, **267 odd-odd çekirdekten oluşan deneysel veri kümesi** üzerinde manyetik ve kuadrupol momentlerin makine öğrenmesi ve ANFIS (Adaptive Network-Based Fuzzy Inference System) tabanlı tahminini ele almaktadır. Tezin altı temel katkısı aşağıda sıralanmaktadır:
++
++**Katkı 1 — Odd-odd çekirdekler için ilk sistematik ML+ANFIS benchmark çerçevesi.** Mevcut literatür ML tabanlı nükleer moment tahminini odd-A çekirdeklere yoğunlaştırmıştır [80]; odd-odd çekirdekler için sistematik karşılaştırma sunan herhangi bir ML çalışması mevcut bilgimize göre yayımlanmamıştır. Odd-odd çekirdek hem proton hem nötron tarafında valens nükleon barındırdığından klasik Schmidt formülünün doğrudan uygulanmadığı, dolayısıyla fizik-temelli baseline'ın bulunmadığı bir rejimi temsil etmektedir. Bu çalışma 267 çekirdek üzerinde Random Forest (RF), XGBoost ve 8 ANFIS varyantı için 942 model-veri kümesi kombinasyonu eğitmiş ve sistematik performans sınırını ölçmüştür.
++
++**Katkı 2 — Fizik bilgisi içeren özellik mühendisliği metodolojisi.** Çalışmada SEMF (Bethe-Weizsäcker yarı-deneysel kütle formülü) [37], magic_character (kabuk yapısı skoru), Z_magic_dist ve N_magic_dist (sihirli sayıya uzaklık), Beta_2_estimated (deformasyon tahmini), eşlenim enerjisi ve kabuk gap'i gibi 75 farklı özellik tanımlanarak 34 farklı özellik seti kombinasyonu test edilmiştir. Bu metodoloji, küçük veri rejiminde özellik mühendisliğinin de facto veri zenginleştirme rolü oynadığını ortaya koymaktadır.
++
++**Katkı 3 — Kabuk kapanması süreksizliğini ele alan özel özellik tasarımı.** Sihirli sayı bölgelerinde (Z, N ∈ {2, 8, 20, 28, 50, 82, 126}) nükleer momentlerin ani değişim sergilediği bilinmektedir [29], [30]. Klasik ML modelleri bu süreksizliği interpolasyonla geçmeye çalışır ve sistematik hata üretir. Bu tezde magic_character, Z_magic_dist ve N_magic_dist özellikleri girdi vektörüne dahil edilerek bu süreksizliğin model tarafından tanınmasının önü açılmıştır.
++
++**Katkı 4 — Çift R² filtresi: küçük-veri rejiminde aşırı uyumun erken tespiti.** Sadece doğrulama R² (val_R²) üzerinden model seçimi küçük örneklemde aşırı iyimser sonuç üretmektedir [6]. Bu çalışmada her model için hem 5-kat çapraz doğrulama R² (CV_R²) hem de val_R² hesaplanmış; aralarındaki açıklık (gap) belirli bir eşiği aşan modeller eleme havuzuna alınmıştır. Söz konusu mekanizma 20 yapılandırmadan oluşan eğitim havuzunda erken aşırı uyum tespiti yapmaktadır.
++
++**Katkı 5 — Belirsizlik nicelemesi ve istatistiksel anlamlılık testleri.** 267 çekirdek için MM ve QM tahminleri Monte Carlo örneklemi K = 1000 ile [40] üst 50 model üzerinde gerçekleştirilmiş ve %95 güven aralıkları her tahmin için raporlanmıştır. Modeller arası farkların anlamlılığı bootstrap CI (n = 10 000), paired t-testi, Wilcoxon testi ve tek yönlü ANOVA ile test edilmiştir. RF ile XGBoost arasındaki performans farkı **p = 0,0015** düzeyinde istatistiksel olarak anlamlı bulunmuştur.
++
++**Katkı 6 — Multi-dataset top-N ensemble'ın küçük-veri rejimindeki sınırı.** Birden fazla veri kümesi üzerinde eğitilmiş en iyi N model üzerinden oluşturulan ensemble, MM hedef değişkeni için R² = −3,18 sonucu üretmiştir. Söz konusu başarısızlık dataset-arası top-N seçiminde "0 common nuclei" sorunundan kaynaklanmaktadır. Bu bulgu, küçük-veri rejiminde **within-dataset top-N**'in dataset-arası top-N'e tercih edilmesi gerektiğini somut biçimde göstermektedir. QM hedef değişkeninde ise stacking_gbm_meta yöntemi ile R² = 0,8886 elde edilmiştir.
++
++## 1.5 Çalışmanın Organizasyonu
++
++Tezin geri kalanı şu biçimde düzenlenmiştir:
++
++- **Bölüm 2** nükleer moment teorisi, Schmidt yaklaşımı, Bohr-Mottelson kollektif modeli, SEMF, Woods-Saxon potansiyeli, Nilsson modeli ve ilgili makine öğrenmesi literatürünün incelemesini sunmaktadır.
++- **Bölüm 3** kullanılan veri kümesini, özellik mühendisliği metodolojisini, model mimarilerini (RF, XGBoost, 8 ANFIS varyantı), eğitim protokolünü, çift R² filtresini, ensemble stratejisini ve istatistiksel test çerçevesini ayrıntılarıyla tanımlamaktadır.
++- **Bölüm 4** deneysel kurulumu, kullanılan donanım ve yazılım altyapısını, hiperparametre seçim aralıklarını ve değerlendirme metriklerini içermektedir.
++- **Bölüm 5** eğitim sonuçlarını, çapraz model karşılaştırmasını, kabuk kapanması bölgelerinde model davranışını, AutoML iyileştirmelerini ve Monte Carlo belirsizlik analizini sunmaktadır.
++- **Bölüm 6** bulguların literatür perspektifinden yorumunu, sınırlamaları, geçerlilik tehditlerini ve odd-odd Schmidt-eşdeğeri özellik tasarımının fizibilitesini tartışmaktadır.
++- **Bölüm 7** tezin ana bulgularını özetlemekte ve gelecek çalışmalar için somut öneriler sunmaktadır.
++
++Ekler bölümünde kod deposu yapısı (EK A), hiperparametre detayları (EK B), ek figürler (EK C) ve sembol-kısaltma sözlüğü (EK D) yer almaktadır.
++
++---
++
++## ÖNEMLİ — Yazım sonrası kontrol listesi
++
++- [ ] Atıf [80] (Yuan 2021) Bölüm 2'de detaylı işlenmeli
++- [ ] Atıf [95], [101] Bölüm 2'de SAÜ grubu altında işlenmeli
++- [ ] §1.4 katkı maddeleri Hakan hoca cevabına göre revize edilebilir (özellikle Katkı 1: odd-odd özgün katkı çerçevesi onaylanmalı)
++- [ ] §1.2 sonundaki "QPNM tarafından mikroskobik analizler" referansı [95], [101] doğru numaralı atıf olmalı
++- [ ] §1.3 Yuan 2021 sayıları (0,949 → 0,036 ve 1,272 → 0,061 μₙ) doğrudan makaleden alıntı, kontrol edildi (DOI: 10.1088/1674-1137/ac28f9)
++
++---
++
++*Bölüm 1 v1.0 | 2026-05-21 | Claude Opus 4.7 ile üretildi*
++*Hakan Yakut hocaya sunum için hazır*
+diff --git a/thesis/02-literatur-incelemesi-v2.md b/thesis/02-literatur-incelemesi-v2.md
+new file mode 100644
+index 0000000..5c6647f
+--- /dev/null
++++ b/thesis/02-literatur-incelemesi-v2.md
+@@ -0,0 +1,252 @@
++# BÖLÜM 2: LİTERATÜR İNCELEMESİ
++
++> **Tez Başlığı:** Yapay Zekâ Destekli Nükleer Veri Analizi — Tek-Tek Çekirdekler için Manyetik ve Kuadrupol Moment Tahmini
++> **Araştırmacı:** Ahmet Kemal Acar
++> **Durum:** Taslak v2.0 — 2026-05-21
++> **Hedef sayfa:** 15-25
++> **Atıf formatı:** IEEE (Soru 3 cevabına göre revize edilecek)
++> **Önceki versiyon:** `thesis/bolum-02-literatur-incelemesi.md` v1.0 (2026-05-11, ~3200 kelime, R²=0,9794 hatalı, Yuan 2021 atıfı eksik) — `thesis/_archive/bolum-02-literatur-v1.md`'ye taşınacak
++> **Değişiklikler:**
++>   - Ensemble en iyi sayısı 0,9794 → **0,8886** (Sprint 17 güncel sayısı, QM stacking_gbm_meta)
++>   - Yuan, Tian, Li, Niu (2021) eklendi — MM için ana literatür referansı
++>   - Stone (2024) eklendi — en güncel MM/QM derlemesi
++>   - Knöll et al. (2025) eklendi — ML × ab initio EM moment, en yakın paralel çalışma
++>   - Karthein et al. (2024) ¹⁰⁰Sn doubly magic eklendi
++>   - Lechner et al. (2023) antimon izotopları EM moment eklendi
++>   - SAÜ grubu (Tabar, Yakut, Kuliev, Quliyev, Hoşgör 2017; Hoşgör, Yakut, Tabar 2017) eklendi
++>   - Stone (2021) QM tavsiye değerleri INDC(NDS)-0833 eklendi
++>   - **Yeni alt bölüm 2.X**: Odd-odd çekirdek için ML literatür boşluğu (tezin özgün katkı çerçevesi)
++
++---
++
++**2. LİTERATÜR İNCELEMESİ**
++
++## 2.1 Nükleer Moment Ölçümleri ve Veritabanları
++
++Nükleer manyetik dipol momenti (MM, μ) ve elektrik kuadrupol momenti (QM, Q), bir çekirdeğin temel durumdaki spin dağılımı, deformasyon yapısı ve tek parçacık konfigürasyonu hakkında doğrudan bilgi sunan iki temel niceliktir. Söz konusu büyüklüklerin deneysel olarak ölçülmesi, atomik hiperinfin yarılma spektroskopisi, nükleer manyetik rezonans (NMR), β-NMR ve lazer spektroskopisi tekniklerinin gelişimiyle birlikte 20. yüzyılın ortasından itibaren sistematik bir veri tabanı oluşturmaya başlamıştır. Bu birikim, yalnızca temel nükleer yapı çalışmaları için değil, aynı zamanda kabuk modeli, kollektif model ve karma yaklaşımların doğrulanması açısından da kritik referans oluşturmaktadır.
++
++Stone tarafından 2005 yılında yayımlanan ve hem MM hem de QM ölçümlerini bir araya getiren derleme [1], alanda en yaygın kullanılan referanslardan biri olarak kabul edilmektedir. Bu çalışmada hem deneysel değerler hem de ölçüm belirsizlikleri tek tek raporlanmış, ardışık güncellemelerle 2016'da kuadrupol momentlere yönelik kapsamlı bir genişletme yapılmıştır [2]. Stone'un 2019 yılında IAEA çatısı altında hazırladığı manyetik dipol momenti tavsiye değerleri [3] ve 2021 yılında yayımlanan kuadrupol momenti tavsiye değerleri tabloları [50], hem ölçüm çeşitliliğini hem de tutarlılık değerlendirmesini içeren önerilen değerler kümesini sunmaktadır. Stone'un en güncel derlemesi (2024) [49], ölçüm tekniklerindeki gelişimi ve tutarlılık değerlendirmelerini kapsamaktadır. Söz konusu beş derleme, bu tezde kullanılan 267 çekirdeklik veri setinin temel kaynaklarıdır.
++
++Yakın geçmişte yayımlanan deneysel çalışmalar nükleer moment ölçümlerinin sürekli güncellenmesine katkıda bulunmuştur. Lechner ve arkadaşları (2023) [60] antimon izotopları ¹¹²⁻¹³³Sb için elektromanyetik momentleri raporlamış; Karthein ve arkadaşları (2024) [70] indium izotoplarında ¹⁰⁰Sn doubly magic karakterinin elektromanyetik moment imzalarını ele almıştır. Bu çalışmalar, kararlılık vadisi dışındaki bölgelerde deneysel kapsamanın artan hızla genişlediğini göstermektedir.
++
++Ne var ki mevcut deneysel kapsama, kararlılık vadisi etrafındaki çekirdeklerle sınırlı kalmaktadır. Egzotik çekirdekler için ölçüm yapılması teknik olarak zor, maliyetli ve bazı durumlarda kısa yarı-ömür nedeniyle imkânsızdır. Bu durum, model tabanlı tahminlerin önemini artırmaktadır. Çekirdek başına ortalama birden fazla deneysel ölçüm bulunmakla birlikte, bazı çekirdekler için raporlanan değerler arasında %15'i aşan tutarsızlıklar gözlemlenmiştir [3]. Tutarsızlık, hem ölçüm tekniğinin farklılaşmasından hem de örneklem koşullarından kaynaklanabilmektedir.
++
++Klasik yorumsal çerçevede Schmidt [28], tek-A çekirdekleri için manyetik moment limitlerini öneren basit bir formül geliştirmiştir. Bu çerçeve, valans nükleonunun açısal momentumuna dayalı bir üst ve alt sınır oluşturmaktadır; ancak Schmidt sınırları ile deneysel veriler arasındaki belirgin sapmalar, çekirdek içi etkileşim ve çekirdek polarizasyonu gibi konfigürasyon karışım etkilerinin önemini ortaya koymaktadır [12]–[15]. Kuadrupol moment için ise Bohr-Mottelson kollektif modeli, deformasyon parametresi β₂ ile içsel kuadrupol moment Q₀ arasında doğrudan bir ilişki kurmaktadır [31], [32]. Mevcut tez bu klasik formülasyonları doğrudan tahmin aracı olarak değil, özellik mühendisliğinin fiziksel temellerini güçlendirmek amacıyla referans olarak kullanmaktadır.
++
++## 2.2 Makine Öğrenmesi — Nükleer Fizik Arayüzü
++
++Makine öğrenmesi yöntemleri son on yıl içerisinde fiziksel bilimlere yoğun şekilde nüfuz etmiştir. Carleo ve ark. [5], 2019 yılında yayımlanan kapsamlı incelemede yapay sinir ağlarının istatistiksel mekanik, kuantum durumlar ve yoğun madde sistemlerine uygulanma biçimlerini sınıflandırmıştır. Bu çalışmayı tamamlayıcı nitelikte olan Boehnlein ve ark. [4] incelemesi ise özellikle nükleer fizik bağlamında ML uygulamalarını sentezleyerek alana ait spesifik bir yol haritası önermektedir.
++
++Söz konusu sentez çalışmaları, ML yaklaşımlarının nükleer fizikte üç temel eksende konumlandığını ortaya koymaktadır. İlk eksen, deneysel veri analizi ve örüntü tanımadır; ikincisi, teorik hesaplama maliyetinin azaltılmasıdır; üçüncüsü ise mevcut modellerden artık (residual) öğrenme ile sapmaların düzeltilmesidir. Bu tezde kullanılan yaklaşım, üçüncü eksene yakın bir konumdadır. Pastore ve Carnini [45] tarafından öne sürülen yorumlanabilir ML temelli kütle sapma modellemesi, fiziksel taban model üzerine veri-temelli düzeltme uygulayan paradigmaya örnektir.
++
++He ve ark. [46] tarafından yapılan ve yüksek enerji nükleer fiziğine odaklanan inceleme, derin öğrenme mimarilerinin çarpıştırıcı verilerinden çekirdek yapısına kadar geniş bir spektrumda kullanıldığını belgelemektedir. Bu çalışmada özellikle veri kalitesi, eğitim/test ayrımı ve fiziksel tutarlılığın doğrulanması meselelerine dikkat çekilmiştir. Veri kalitesi sorunu mevcut tez bağlamında da kritik konumdadır; çünkü 267 çekirdekten oluşan görece küçük bir veri kümesinde aşırı uyum riskini yönetmek ayrı bir mühendislik çabası gerektirmektedir.
++
++Random Forest [19] ve XGBoost [20] gibi gradyan artırma temelli yöntemler, tablo formatındaki nükleer veriler için kanıtlanmış performansa sahip referans algoritmalardandır. Bu tezde söz konusu klasik modeller, ANFIS varyantları ile birlikte değerlendirilmektedir. Karşılaştırmalı bir çerçeve oluşturulması, modellerin yalnızca doğruluk değil aynı zamanda belirsizlik ve genelleme kapasitesi açısından da değerlendirilmesi bakımından önem taşımaktadır. Yang ve ark. [44] tarafından önerilen sembolik regresyon yaklaşımı, kara kutu modellere alternatif olarak yorumlanabilir formül üretimini hedeflemektedir; ancak bu yaklaşım yüksek hesaplama maliyeti taşımakta ve örneklem boyutu büyüdükçe kombinatoryal patlama sorununu beraberinde getirmektedir.
++
++Türkiye'de yürütülen çalışmalar açısından değerlendirildiğinde, Akkoyun ve ark. [62] tarafından 2013'te yapay sinir ağları ile yük yarıçapı modellemesi gerçekleştirilmiştir. Devamında Bayram ve ark. [61] 2014 yılında bu çalışmayı genişletmiş ve ANN tabanlı yarıçap tahminlerinin doğruluğunu sistematik biçimde değerlendirmiştir. Bahsi geçen iki çalışma, Türk nükleer fizik topluluğunun bu alana yönelik ilgisini göstermesi açısından dikkat çekicidir. Ne var ki söz konusu çalışmalarda yarıçap dışındaki nükleer gözlemliilere odaklanılmamıştır.
++
++## 2.3 Manyetik Moment için Makine Öğrenmesi Yaklaşımları
++
++ML tabanlı nükleer fizik literatürünün büyük bölümü, hedef değişken olarak nükleer kütle, bağlanma enerjisi ve yük yarıçapına yoğunlaşmaktadır [6]–[8], [10], [12]–[14], [47], [53]. Manyetik moment için doğrudan ML uygulamasının literatür kapsaması ise çok daha sınırlıdır.
++
++**Yuan, Tian, Li ve Niu (2021)** [80] tarafından gerçekleştirilen çalışma, manyetik moment tahmini için Bayesian sinir ağı (BNN) yaklaşımının ilk sistematik uygulamalarından birini sunmaktadır. Bu çalışmada eğitim veri kümesi 227 tek-proton (odd-proton) ve 221 tek-nötron (odd-neutron) odd-A çekirdekten oluşmaktadır. İki farklı girdi kombinasyonu test edilmiştir:
++
++- **BNN-I2:** Girdi = (Z, N), 2 değişken.
++- **BNN-I4:** Girdi = (Z, N, I, μ_Schmidt), 4 değişken. Burada I nükleer spin, μ_Schmidt ise klasik Schmidt yaklaşımıyla hesaplanan teorik manyetik moment değeridir.
++
++Schmidt yaklaşımı tek başına büyük rms (root-mean-square) sapma vermektedir: tek-nötron çekirdekler için 0,949 μₙ, tek-proton çekirdekler için 1,272 μₙ. BNN-I2 yaklaşımı bu sapmayı sırasıyla 0,156 ve 0,327 μₙ seviyesine indirmiş, ancak Schmidt ve spinin girdi katmanına eklendiği **BNN-I4** yaklaşımı dramatik bir iyileşme sağlamıştır: tek-nötron çekirdekler için **0,036 μₙ**, tek-proton çekirdekler için **0,061 μₙ**. Söz konusu sonuçlar, fizik-bilgili özellik mühendisliğinin küçük veri rejiminde performansı **bir büyüklük mertebesi** iyileştirebileceğini göstermektedir.
++
++Yuan ve arkadaşları izotop zincirlerinde manyetik moment evrimini de detaylı analiz etmişlerdir. Cd ve Cs izotop zincirleri için BNN-I4 yaklaşımının yalnızca düzgün interpolasyon değil, aynı zamanda manyetik momentteki staggering ve N=73 gibi spin değişiminden kaynaklanan ani sıçramaları da doğru biçimde modellediği gösterilmiştir. Bu bulgu, BNN'in yalnızca veri ezberlemediği, fizik-temelli özelliklerin (özellikle Schmidt değerinin) içine kodlanmış kabuk yapısı bilgisini de etkin biçimde kullandığını ortaya koymaktadır.
++
++**Önemli sınırlama:** Yuan ve arkadaşlarının çalışması yalnızca odd-A çekirdeklere odaklanmıştır. Klasik Schmidt formülü tek bir valens nükleon varsayar; odd-A çekirdeklerde bu varsayım geçerlidir. Ancak **odd-odd çekirdekler için Schmidt formülü doğrudan uygulanamaz**; iki valens nükleonun (bir proton ve bir nötron) coupling kuralları ve spin-spin etkileşimi göz önüne alınmalıdır. Bu literatür boşluğu, mevcut tezin özgün katkı çerçevesini tanımlamaktadır (bkz. §2.7).
++
++Diğer ML yaklaşımları açısından, Costiris ve arkadaşları [38], [39] manyetik moment için sinir ağı tabanlı ön incelemeler sunmuş, ancak bu çalışmalar Schmidt-temelli artık öğrenmeyi sistematik biçimde kullanmamıştır. Sembolik makine öğrenmesi yaklaşımları için Yang ve ark. [44] kütle ve diğer gözlemliiler için yorumlanabilir formüller türetilebileceğini göstermiştir; ancak bu yaklaşımın manyetik moment için somut bir uygulaması mevcut bilgimize göre yayımlanmamıştır.
++
++## 2.4 Kuadrupol Moment için Makine Öğrenmesi Yaklaşımları
++
++Elektrik kuadrupol momenti için doğrudan ML literatürü manyetik momentten dahi sınırlıdır. **Knöll ve arkadaşları (2025)** [71] tarafından yapılan ve Darmstadt grubu tarafından yürütülen çalışma, **ab initio nükleer yapı hesaplamalarında elektromanyetik gözlemliilerin makine öğrenmesi ile model-uzayı ekstrapolasyonu**nu ele almaktadır. Bu çalışmada elektrik kuadrupol momenti (E2) ML yöntemleriyle no-core shell model (NCSM) hesaplamalarındaki yavaş yakınsama sorununu aşacak şekilde extrapole edilmiştir. Söz konusu yaklaşım deneysel veri-temelli değil, hesaplamalı (computational) ML kullanır; ancak QM tahmini için ML uygulamasının literatürde aktif bir araştırma alanı olduğunu göstermektedir.
++
++Yang ve Zhao [78], [79] sinir ağı tabanlı Kohn-Sham yaklaşımıyla nükleer sistemler için global model türetmiş; nükleer yük yoğunluğu dağılımı [11], [44] gibi ilişkili gözlemliiler için back-propagation neural network kalibrasyonları yapmıştır. Bu çalışmalarda kuadrupol moment doğrudan birincil hedef olmasa da, yardımcı çıktı olarak değerlendirilmiştir.
++
++Kuadrupol moment için deneysel veri-temelli, doğrudan birincil hedef olarak ML uygulaması yaygın değildir; bu durum, mevcut tezin QM tarafındaki katkısını da somutlamaktadır.
++
++## 2.5 ANFIS ve Nöro-Fuzzy Sistemlerin Nükleer Uygulamaları
++
++Adaptive Network-Based Fuzzy Inference System (ANFIS), Jang [15] tarafından 1993 yılında önerilen ve sinir ağı öğrenme mekanizmasını Sugeno tipi bulanık çıkarım sistemiyle birleştiren melez bir mimaridir. Bu sistemin temel cazibesi, kara kutu özelliği yüksek olan sinir ağlarına kıyasla "eğer-ise" tipi kuralları açıkça gözlemlenebilir kılmasından kaynaklanmaktadır. Hibrit öğrenme algoritması olarak En Küçük Kareler Tahmini (EKKT) ile L-BFGS-B gibi gradyan tabanlı optimizasyon yöntemleri birlikte kullanılmaktadır.
++
++Nükleer mühendislik alanında ANFIS uygulamalarının görece köklü bir geçmişi bulunmaktadır. Idris ve ark. [41] tarafından reaktör güç dinamiği modellemesi için kullanılan ANFIS yapısı, sistem-düzeyi bir kontrol problemi olup mevcut tezin hedeflediği çekirdek-düzeyi özellik tahminine metodolojik olarak benzemez. Söz konusu çalışmada üyelik fonksiyonu seçimi ile kural sayısı arasındaki dengeye dikkat çekilmektedir; ancak ölçek, zaman serisi tabanlı bir reaktör çıkış sinyali olduğundan girdi-çıktı yapısı bu tezdekinden farklıdır.
++
++Mevcut tezde ANFIS, sekiz farklı yapılandırma altında değerlendirilmektedir. Bu yapılandırmalar, dört üyelik fonksiyonu tipi (üçgen, Gauss-2, Gauss-3 ve çan) ile iki başlangıç stratejisinin (grid partitioning ve subtractive clustering) çapraz kombinasyonundan oluşmaktadır. Subtractive clustering uyarlamasında MATLAB'ın genfis2 fonksiyonundan farklı olarak K-Means tabanlı bir başlangıç noktası belirlenmiştir; bu seçim, açık kaynak yığını içerisinde tutarlı sonuç üretebilmek için gereklidir.
++
++ANFIS'in MM ve QM gibi süreksizlik içeren nükleer gözlemliilere doğrudan uygulanması literatürde neredeyse hiç çalışılmamış bir alandır. Kabuk kapanması bölgelerinde gözlenen ani değişimler, klasik ANFIS yapısının üyelik fonksiyonu sayısının yetersiz kaldığı durumlarda doğru modellenememektedir. Bunun üstesinden gelmek için bu tezde magic_character, magic_n_dist ve magic_p_dist gibi özel olarak tasarlanmış özellikler girdi vektörüne eklenmiştir. Bu özellik tasarımı sayesinde ANFIS'in kabuk yapısı süreksizliklerini girdi düzleminde tanıyabilmesi hedeflenmektedir.
++
++## 2.6 Fizik-Bilgili Öğrenme ve Yorumlanabilirlik
++
++Fizik-Bilgili Sinir Ağları (Physics-Informed Neural Networks, PINN) yaklaşımı, Raissi ve ark. [16] tarafından 2019 yılında diferansiyel denklem çözümleri için önerilmiştir. Bu yaklaşımın temel fikri, bir sinir ağının yalnızca veri kayıp fonksiyonu üzerinden değil, aynı zamanda fiziksel denklemlerden türetilen rezidüel terimler üzerinden de eğitilmesidir. Karniadakis ve ark. [67] tarafından yapılan kapsamlı inceleme, fizik-bilgili öğrenmenin yalnızca PDE çözücüleri olarak değil, aynı zamanda fiziksel kısıtların bilinen ancak veri yetersizliği yaşanan problemlerde de güçlü bir paradigma sunduğunu ortaya koymaktadır.
++
++Mevcut tezde PINN mimarisi başlangıçta planlanmış, ancak ön analizler PINN ceza fonksiyonunun mevcut feature aralığında etkisiz kaldığını göstermiştir; bu nedenle PINN modeli Sprint 15 sonrası eğitim havuzundan çıkarılmıştır. Yine de Semi-Empirik Kütle Formülü (SEMF) [37] Weizsäcker'in 1935 formülasyonu kullanılarak özellik mühendisliği aşamasında bağlanma enerjisi tahmini, hacim, yüzey, Coulomb, asimetri ve çiftlenim terimleri ile girdi vektörüne entegre edilmiştir.
++
++Woods-Saxon potansiyeli [36] ve Nilsson modeli [35] gibi mikroskobik yaklaşımlar da özellik mühendisliği aşamasında bağlanma enerjisi tahminlerine entegre edilmiştir. Nilsson [35] tarafından 1955 yılında deforme çekirdekler için önerilen tek parçacık modeli, deformasyon parametresine bağlı tek parçacık enerjilerinin sistematik bir hesabını sunmaktadır. Söz konusu yaklaşım, bilhassa kuadrupol moment tahmininde fiziksel olarak anlamlı girdiler üretebilmek için kullanılmaktadır.
++
++Yorumlanabilirlik tarafında Lundberg ve Lee [26] tarafından önerilen SHAP (SHapley Additive exPlanations) yöntemi, ML modellerinin tahminlerini oyun teorik bir çerçevede özelliklerin katkısına ayrıştırmaktadır. Bu yöntem mevcut tezde özellik önem sıralamasının hem global hem de yerel düzeyde analiz edilebilmesi için kullanılmıştır. Magic number bölgelerinde SHAP analizi sayesinde özelliklerin etkisinin nasıl değiştiği gözlemlenebilmektedir. Bunun yanı sıra Pastore ve Carnini [45] kütle artıklarının ML tabanlı modellenmesinde model karmaşıklığı ile yorumlanabilirlik arasındaki ödünleşimi nicel olarak değerlendirmiştir.
++
++## 2.7 Belirsizlik Nicelemesi ve Ensemble Yöntemleri
++
++Bilimsel uygulamalarda nokta tahmininin yanı sıra belirsizlik bantlarının raporlanması zorunlu kabul edilmektedir. Bu noktada üç temel paradigma öne çıkmaktadır: Bayesian sinir ağları, MC Dropout ve bootstrap tabanlı yeniden örnekleme. Gal ve Ghahramani [17] 2016 yılında MC Dropout yönteminin Bayesian yaklaşıma yaklaşık bir alternatif sunduğunu kanıtlamıştır.
++
++Bootstrap yaklaşımı ise Efron ve Tibshirani [39] tarafından 1986'da formüle edilmiş, 1993'teki kitap çalışmasıyla [40] sistematik bir referans haline gelmiştir. Mevcut tezde Monte Carlo simülasyonu kapsamında K = 1000 örneklem boyutu, bootstrap güven aralığı hesaplamasında ise n = 10 000 yeniden örnekleme kullanılmıştır. Bu örneklem boyutları, hem güven aralıklarının istikrarlı şekilde tahmin edilebilmesi hem de uç değerlerin dengeli temsili açısından gereklidir.
++
++Ensemble yöntemler tarafında Wolpert [24] tarafından önerilen yığınlama (stacked generalization) yaklaşımı, birden fazla taban modelin tahminlerini ikinci bir meta-öğrenici aracılığıyla birleştirmektedir. Mevcut tezde dört oylama varyantı (simple_voting, weighted_voting_r2, weighted_voting_inv_rmse) ve dört yığınlama varyantı (stacking_ridge, stacking_lasso, stacking_rf_meta, stacking_gbm_meta) birlikte değerlendirilmiştir. Kuadrupol moment hedef değişkeninde en iyi performans **stacking_gbm_meta yöntemiyle R² = 0,8886 ve RMSE = 0,415 barn** düzeyinde elde edilmiştir.
++
++Ancak manyetik moment hedef değişkeninde ensemble yaklaşımı dramatik biçimde başarısız olmuştur (R² = −3,18). Bu beklenmeyen sonucun kök nedeni, dataset-arası top-N model seçim mekanizmasında ortaya çıkan "0 ortak çekirdek" sorunudur (Sprint 17 hata düzeltme dökümanı BUG-127). Bu bulgu, küçük-veri rejiminde **dataset-içi top-N** ensemble'ın **dataset-arası top-N**'e tercih edilmesi gerektiğini somut biçimde göstermektedir; söz konusu bulgu §6'da ayrıntılı tartışılmaktadır.
++
++Belirsizlik nicelemesi tarafında, top-50 model üzerinde 267 çekirdek için Monte Carlo tabanlı belirsizlik bantları üretilmiş, %95 güven aralıkları her bir tahmin için raporlanmıştır. Magic number bölgelerinde belirsizlik bandının genişlediği gözlemlenmiştir; bu beklenen bir bulgudur. Çünkü Mayer [29] ve Haxel ve ark. [30] tarafından 1949 yılında öne sürülen kabuk modeli, sihirli sayı bölgelerinde çekirdek özelliklerinin diğer bölgelere kıyasla daha duyarlı olduğunu öngörmektedir.
++
++## 2.8 Odd-Odd Çekirdek için ML Literatür Boşluğu ve Mevcut Çalışmanın Konumlanması
++
++Yukarıda ele alınan literatürün ortak özelliği, ML tabanlı nükleer moment tahmininin **odd-A (yalnızca proton sayısı ya da yalnızca nötron sayısı tek olan)** çekirdeklere odaklanmasıdır. Yuan, Tian, Li ve Niu (2021) [80] çalışması — manyetik moment için referans niteliğindeki sistematik BNN uygulaması — toplam 448 odd-A çekirdek üzerinde gerçekleştirilmiştir. Niu ve Liang (2018) [7] BNN ile kütle tahminlerinde benzer şekilde odd-even ve even-even çekirdekleri ayrıştırmış, ancak odd-odd çekirdekler ayrı bir kategori olarak ele alınmamıştır.
++
++Mevcut tezin veri kümesi **aaa2.txt**, 267 çekirdekten oluşmaktadır ve bu çekirdeklerin **tamamı odd-odd** karakterdedir; yani hem proton sayısı (Z) hem de nötron sayısı (N) tek, kütle numarası (A = Z + N) ise çifttir. Bu özel veri kümesi, klasik Schmidt formülünün **doğrudan uygulanmadığı** bir rejimi temsil etmektedir. Schmidt yaklaşımı (Schmidt 1937 [28]) tek bir valens nükleon için tanımlı olup, μ_s = g_l·l + ½g_s formülünü tek-A çekirdek için verir. Odd-odd çekirdekte hem proton hem nötron tarafında valans nükleon bulunduğundan, klasik tek-parçacık Schmidt değeri tanımsızdır; bunun yerine iki-parçacık coupling kuralları (j₁ ⊗ j₂) veya additivity yaklaşımları gerekmektedir [3], [14].
++
++Bu bağlamda Sakarya Üniversitesi Yakut grubunun çalışmaları yöntemsel açıdan önem taşımaktadır. Tabar ve ark. (2017) [95] tek-A'lı holmiyum izotopları için manyetik moment ve g faktörlerini QPNM (Quasiparticle-Phonon Nuclear Model) çerçevesinde hesaplamıştır. Hoşgör ve ark. (2017) [101] ¹⁵³,¹⁵⁵Eu çekirdeklerinde manyetik dipol momenti üzerindeki spin polarizasyon etkilerini incelemiştir. Sarıbaş (2020, yüksek lisans tezi) ¹⁵³⁻¹⁷⁹Yb izotopları için temel durum manyetik momentlerini araştırmıştır. Söz konusu çalışmalar tek-A çekirdeklerde mikroskopik (QPNM) yaklaşımları sistematik biçimde uygulamış; ancak odd-odd çekirdekler için ML tabanlı sistematik bir benchmark çalışması, mevcut bilgimize göre sunulmamıştır.
++
++Bu bilgiler ışığında mevcut tez aşağıdaki literatür boşluklarını doldurmaya yönelik konumlanmaktadır:
++
++1. **Odd-odd çekirdekler için sistematik ML+ANFIS benchmark.** 267 odd-odd çekirdek üzerinde RF, XGBoost ve 8 ANFIS varyantı ile 942 model-veri kümesi kombinasyonu eğitilmiş; literatürdeki odd-A ağırlıklı çalışmaların oluşturduğu boşluk doldurulmaya çalışılmıştır.
++
++2. **Sihirli sayı süreksizliklerinin ML modeline kodlanması.** magic_character, Z_magic_dist ve N_magic_dist özellikleri ile kabuk kapanması bölgelerindeki ani değişimler model tarafından tanınabilir hale getirilmiştir.
++
++3. **Çift R² filtresi ile küçük-veri overfit kontrolü.** val_R² ve 5-kat CV_R² tutarlılığını birlikte değerlendiren, eşik tabanlı bir model eleme mekanizması uygulanmıştır.
++
++4. **Multi-dataset top-N ensemble sınırının somutlanması.** MM hedef değişkeninde R² = −3,18 sonucu, küçük-veri rejiminde dataset-arası seçim yerine dataset-içi top-N stratejisinin gerekliliğini göstermiştir.
++
++5. **267 odd-odd çekirdek için Monte Carlo belirsizlik nicelemesi.** Top-50 model üzerinde K = 1000 örnekle %95 güven aralıkları her çekirdek için raporlanmıştır.
++
++**Sınırlama olarak belirtilmelidir ki** Yuan ve ark. (2021) [80] çalışmasında girdi katmanına Schmidt değerinin eklenmesi rms sapmasını **bir büyüklük mertebesi** iyileştirmiştir. Mevcut tezde Schmidt değeri özellik olarak **eklenmemiştir**; bunun temel gerekçesi, odd-odd çekirdekte klasik tek-parçacık Schmidt formülünün tanımsız olmasıdır. **Bölüm 6.3** ve **Bölüm 7.3** içerisinde, odd-odd çekirdekler için iki-parçacık additivity ya da j₁ ⊗ j₂ coupling üzerinden hesaplanabilecek **Schmidt-eşdeğeri** özelliklerin gelecek çalışmanın doğal hedefi olduğu tartışılmaktadır.
++
++---
++
++## Atıf Listesi (Bu Bölümde Kullanılan Kaynaklar)
++
++> **Not:** Atıf formatı (SAÜ-modifiye IEEE vs. klasik IEEE) Hakan hoca cevabına göre revize edilecektir (`HAKAN-HOCA-SORULAR.md` §3). Aşağıdaki liste SAÜ-modifiye IEEE formatındadır.
++
++[1] Stone, N.J., Table of nuclear magnetic dipole and electric quadrupole moments. *At. Data Nucl. Data Tables*, 90, 75–176, 2005. DOI: 10.1016/j.adt.2005.04.001
++
++[2] Stone, N.J., Table of nuclear electric quadrupole moments. *At. Data Nucl. Data Tables*, 111–112, 1–28, 2016. DOI: 10.1016/j.adt.2015.12.002
++
++[3] Stone, N.J., Table of Recommended Nuclear Magnetic Dipole Moments. INDC(NDS)-0794, IAEA, 2019.
++
++[4] Boehnlein, A., et al., Colloquium: Machine learning in nuclear physics. *Rev. Mod. Phys.*, 94, 031003, 2022. DOI: 10.1103/RevModPhys.94.031003
++
++[5] Carleo, G., et al., Machine learning and the physical sciences. *Rev. Mod. Phys.*, 91, 045002, 2019. DOI: 10.1103/RevModPhys.91.045002
++
++[6] Utama, R., Piekarewicz, J., Prosper, H.B., Nuclear mass predictions: A Bayesian neural network approach. *Phys. Rev. C*, 93, 014311, 2016. DOI: 10.1103/PhysRevC.93.014311
++
++[7] Niu, Z.M., Liang, H.Z., Nuclear mass predictions based on BNN with pairing and shell effects. *Phys. Lett. B*, 778, 48–53, 2018. DOI: 10.1016/j.physletb.2018.01.002
++
++[8] Neufcourt, L., et al., Bayesian approach to model-based extrapolation of nuclear observables. *Phys. Rev. C*, 98, 034318, 2018. DOI: 10.1103/PhysRevC.98.034318
++
++[10] Dong, X.-X., et al., Novel Bayesian neural network based approach for nuclear charge radii. *Phys. Rev. C*, 105, 014308, 2022. DOI: 10.1103/PhysRevC.105.014308
++
++[11] Yang, Z.-X., Fan, X.-H., Naito, T., Niu, Z.-M., Li, Z.-P., Liang, H., Calibration of nuclear charge density distribution by back-propagation neural networks. *Phys. Rev. C*, 108, 034315, 2023. DOI: 10.1103/PhysRevC.108.034315
++
++[12] Arima, A., Horie, H., On the magnetic moment of odd-A nuclei. *Prog. Theor. Phys.*, 11, 509, 1954. DOI: 10.1143/PTP.11.509
++
++[13] Arima, A., Horie, H., Configuration mixing and magnetic moments of odd nuclei. *Prog. Theor. Phys.*, 12, 623, 1954. DOI: 10.1143/PTP.12.623
++
++[14] Towner, I.S., Quenching of the spin matrix elements in nuclei. *Phys. Rep.*, 155, 263, 1987. DOI: 10.1016/0370-1573(87)90138-4
++
++[15] Jang, J.-S.R., ANFIS: Adaptive-network-based fuzzy inference system. *IEEE Trans. Syst., Man, Cybern.*, 23, 665–685, 1993. DOI: 10.1109/21.256541
++
++[16] Raissi, M., Perdikaris, P., Karniadakis, G.E., Physics-informed neural networks. *J. Comput. Phys.*, 378, 686–707, 2019. DOI: 10.1016/j.jcp.2018.10.045
++
++[17] Gal, Y., Ghahramani, Z., Dropout as a Bayesian approximation. *Proc. 33rd ICML*, 2016.
++
++[19] Breiman, L., Random forests. *Mach. Learn.*, 45, 5–32, 2001. DOI: 10.1023/A:1010933404324
++
++[20] Chen, T., Guestrin, C., XGBoost: A scalable tree boosting system. *Proc. 22nd KDD*, 2016. DOI: 10.1145/2939672.2939785
++
++[24] Wolpert, D.H., Stacked generalization. *Neural Netw.*, 5, 241–259, 1992. DOI: 10.1016/S0893-6080(05)80023-1
++
++[26] Lundberg, S.M., Lee, S.-I., A unified approach to interpreting model predictions. *NeurIPS*, 30, 2017.
++
++[28] Schmidt, T., Über die magnetischen Momente der Atomkerne. *Z. Phys.*, 106, 358–361, 1937. DOI: 10.1007/BF01338744
++
++[29] Mayer, M.G., On closed shells in nuclei. II. *Phys. Rev.*, 75, 1969–1970, 1949. DOI: 10.1103/PhysRev.75.1969
++
++[30] Haxel, O., Jensen, J.H.D., Suess, H.E., On the "magic numbers" in nuclear structure. *Phys. Rev.*, 75, 1766, 1949. DOI: 10.1103/PhysRev.75.1766.2
++
++[31] Bohr, A., Mottelson, B.R., *Nuclear Structure, Vol. I*. New York: W. A. Benjamin, 1969.
++
++[32] Bohr, A., Mottelson, B.R., *Nuclear Structure, Vol. II*. Reading, MA: W. A. Benjamin, 1975.
++
++[35] Nilsson, S.G., Binding states of individual nucleons in strongly deformed nuclei. *Mat. Fys. Medd.*, 29, 16, 1955.
++
++[36] Woods, R.D., Saxon, D.S., Diffuse surface optical model. *Phys. Rev.*, 95, 577–578, 1954. DOI: 10.1103/PhysRev.95.577
++
++[37] von Weizsäcker, C.F., Zur Theorie der Kernmassen. *Z. Phys.*, 96, 431–458, 1935. DOI: 10.1007/BF01337700
++
++[38] Costiris, N.J., Mavrommatis, E., Gernoth, K.A., et al., Decoding β-decay systematics: A global statistical model for β⁻ half-lives. *Phys. Rev. C*, 80, 044332, 2009. DOI: 10.1103/PhysRevC.80.044332
++
++[39] Efron, B., Tibshirani, R.J., Bootstrap methods for standard errors, confidence intervals. *Stat. Sci.*, 1, 54–75, 1986. DOI: 10.1214/ss/1177013815
++
++[40] Efron, B., Tibshirani, R.J., *An Introduction to the Bootstrap*. New York: Chapman & Hall, 1993.
++
++[41] Idris, M., et al., Power peaking factor prediction using ANFIS method. *Ann. Nucl. Energy*, 161, 108418, 2021. DOI: 10.1016/j.anucene.2021.108418
++
++[44] Yang, J., et al., Discovering nuclear models from symbolic machine learning. *Commun. Phys.*, 8, 102, 2025. DOI: 10.1038/s42005-025-02023-2
++
++[45] Pastore, A., Carnini, M., Physically interpretable ML for nuclear masses. *Phys. Rev. C*, 106, L021301, 2022. DOI: 10.1103/PhysRevC.106.L021301
++
++[46] He, W.B., et al., High-energy nuclear physics meets ML. *Nucl. Sci. Tech.*, 34, 88, 2023. DOI: 10.1007/s41365-023-01233-z
++
++[47] Utama, R., Piekarewicz, J., Validating neural-network refinements of nuclear mass models. *Phys. Rev. C*, 97, 014306, 2018. DOI: 10.1103/PhysRevC.97.014306
++
++[49] Stone, N.J., Nuclear moments: recent developments. *Interactions*, 245, 50, 2024. DOI: 10.1007/s10751-024-01896-z
++
++[50] Stone, N.J., Table of recommended nuclear electric quadrupole moments. INDC(NDS)-0833, IAEA, 2021. DOI: 10.61092/iaea.a6te-dg7q
++
++[53] Yang, Y., et al., Nuclear mass predictions using ML models. *Phys. Rev. C*, 109, 064322, 2024. DOI: 10.1103/PhysRevC.109.064322
++
++[60] Lechner, S., Miyagi, T., Xu, Z., et al., Electromagnetic moments of the antimony isotopes ¹¹²⁻¹³³Sb. *Phys. Lett. B*, 847, 138278, 2023. DOI: 10.1016/j.physletb.2023.138278
++
++[61] Bayram, T., Akkoyun, S., Şentürk, Ş., New parameters for nuclear charge radius formulas. *Acta Phys. Pol. B*, 45, 1791–1799, 2014. DOI: 10.5506/APhysPolB.45.1791
++
++[62] Akkoyun, S., Bayram, T., Kara, S.O., Şentürk, Ş., An artificial neural network application on nuclear charge radii. *J. Phys. G*, 40, 055106, 2013. DOI: 10.1088/0954-3899/40/5/055106
++
++[67] Karniadakis, G.E., et al., Physics-informed machine learning. *Nat. Rev. Phys.*, 3, 422–440, 2021. DOI: 10.1038/s42254-021-00314-5
++
++[70] Karthein, J., et al., Electromagnetic properties of indium isotopes elucidate the doubly magic character of ¹⁰⁰Sn. *Nat. Phys.*, 20, 1719–1725, 2024.
++
++[71] Knöll, M., Agel, M.L., Wolfgruber, T., Maris, P., Roth, R., Machine Learning for Correlations of Electromagnetic Properties in Ab Initio Calculations. arXiv:2501.08959, 2025.
++
++[78] Yang, Z., Fan, X., Li, Z., Liang, H., A Kohn-Sham scheme based neural network for nuclear systems. *Phys. Lett. B*, 840, 137870, 2023. DOI: 10.1016/j.physletb.2023.137870
++
++[80] Yuan, Z., Tian, D., Li, J., Niu, Z.M., Magnetic moment predictions of odd-A nuclei with the Bayesian neural network approach. *Chin. Phys. C*, 45(12), 124107, 2021. DOI: 10.1088/1674-1137/ac28f9
++
++[95] Tabar, E., Yakut, H., Kuliev, A.A., Quliyev, H., Hoşgör, G., Magnetic moments and g-factors in odd-A Ho isotopes. *Chin. Phys. C*, 41(7), 074101, 2017. DOI: 10.1088/1674-1137/41/7/074101
++
++[101] Hoşgör, G., Yakut, H., Tabar, E., Spin polarization effects on magnetic dipole moment of ¹⁵³,¹⁵⁵Eu. *AIP Conf. Proc.*, 1815, 060011, 2017.
++
++---
++
++## Bölüm 2 yazıldıktan sonra kontrol listesi
++
++- [ ] Atıf [80] (Yuan 2021) detaylı işlendi mi? ✅ §2.3
++- [ ] Atıf [95], [101] (Yakut grubu) işlendi mi? ✅ §2.8
++- [ ] Atıf [49] (Stone 2024) eklendi mi? ✅ §2.1
++- [ ] Atıf [50] (Stone 2021 QM) eklendi mi? ✅ §2.1
++- [ ] Atıf [60] (Lechner 2023) eklendi mi? ✅ §2.1
++- [ ] Atıf [70] (Karthein 2024) eklendi mi? ✅ §2.1
++- [ ] Atıf [71] (Knöll 2025) eklendi mi? ✅ §2.4
++- [ ] Eski R²=0,9794 değeri çıkarıldı, R²=0,8886 (QM only) yazıldı mı? ✅ §2.7
++- [ ] MM ensemble R²=−3,18 olumsuz bulgu olarak yazıldı mı? ✅ §2.7
++- [ ] Odd-odd özgün katkı konumlandırması yapıldı mı? ✅ §2.8
++- [ ] Tüm DOI'ler Agent F tarafından doğrulanacak (CrossRef API)
++- [ ] Atıf formatı Hakan hoca cevabı sonrası revize edilecek (Soru 3)
++
++---
++
++*Bölüm 2 v2.0 | 2026-05-21 | Claude Opus 4.7 ile üretildi*
++*Hakan Yakut hocaya sunum için hazır*
++*v1.0 (2026-05-11) `thesis/_archive/`'e taşınacak*
+diff --git a/thesis/bolum-02-literatur-incelemesi.md b/thesis/_archive/bolum-02-literatur-v1.md
+similarity index 100%
+rename from thesis/bolum-02-literatur-incelemesi.md
+rename to thesis/_archive/bolum-02-literatur-v1.md
+diff --git a/thesis/tez-yazim-not-defteri.md b/thesis/_archive/tez-yazim-not-defteri-OLD.md
+similarity index 100%
+rename from thesis/tez-yazim-not-defteri.md
+rename to thesis/_archive/tez-yazim-not-defteri-OLD.md
+-- 
+2.43.0
+

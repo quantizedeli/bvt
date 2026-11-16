@@ -488,9 +488,9 @@ ax.legend()
 # η_max vs α
 ax = axes[1, 1]
 ax.plot(alpha_test_values, eta_max_results, 'o-', color='purple', linewidth=2.5, markersize=8)
-ax.set_xlabel('Koherans Parametresi |alpha|')
+ax.set_xlabel('Termal Sapma |alpha|  (dusuk = koherant)')
 ax.set_ylabel('eta_max')
-ax.set_title('Koherans -> Ortusme Iliskisi\n(Daha fazla koherans = daha cok birlik)', fontweight='bold')
+ax.set_title('Termal Sapma -> Ortusme\n(Termal sapma artikca ortusme dustu)', fontweight='bold')
 ax.fill_between(alpha_test_values, eta_max_results, alpha=0.2, color='purple')
 
 plt.tight_layout()

@@ -41,7 +41,7 @@ class TestMerdivenOperatörleri:
         a_dag = oluşum_op(N)
         commutator = a @ a_dag - a_dag @ a
         expected = np.eye(N)
-        expected[-1, -1] = 0  # kesik uzay düzeltmesi
+        expected[-1, -1] = -(N - 1)  # kesik Fock: [â,â†] = I − N|N-1⟩⟨N-1|
         assert np.allclose(commutator, expected, atol=1e-10)
 
     @pytest.mark.parametrize("N", [5, 9])

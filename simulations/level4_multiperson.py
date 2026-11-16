@@ -29,15 +29,13 @@ import numpy as np
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from scipy.integrate import solve_ivp
-
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.core.constants import (
     OMEGA_HEART, N_C_SUPERRADIANCE, KAPPA_EFF, GAMMA_DEC_HIGH
 )
 from src.models.multi_person import (
-    kuramoto_ode, sira_parametresi, kritik_bağlaşım_hesapla
+    kuramoto_ode, kuramoto_bvt_coz, sira_parametresi, kritik_bağlaşım_hesapla
 )
 from src.models.two_person import surperradyans_2, faz_korelasyon_mesafeye_gore
 
@@ -50,7 +48,7 @@ def kuramoto_simule(
     seed: int = 42
 ) -> tuple:
     """
-    N osilatör için Kuramoto denklemini çözer.
+    N osilatör için Kuramoto denklemini çözer (N_c eşik demosunda kullanılır).
 
     Parametreler
     ------------
@@ -62,29 +60,89 @@ def kuramoto_simule(
 
     Döndürür
     --------
-    t, phases, r : zaman, fazlar, sıra parametresi
+    t, phases, r : zaman, fazlar (N×n_t), sıra parametresi
     """
     rng = np.random.default_rng(seed)
-
-    # Doğal frekanslar: Lorentzian dağılım, merkez = ω_kalp
-    gamma_omega = 0.1  # frekans yayılımı (rad/s)
+    gamma_omega = 0.1
     omega = rng.standard_cauchy(N) * gamma_omega + OMEGA_HEART
-
-    # Başlangıç fazları: uniform
     phi0 = rng.uniform(0, 2.0 * np.pi, N)
-
     t_eval = np.linspace(0, t_end, n_t)
+
+    from scipy.integrate import solve_ivp
 
     def ode(t, phi):
         return kuramoto_ode(t, phi, omega, K, N)
 
     sol = solve_ivp(ode, [0, t_end], phi0, t_eval=t_eval,
                     method="RK45", rtol=1e-4, atol=1e-6)
-
-    phases = sol.y  # (N, n_t)
-    r = sira_parametresi(phases)  # (n_t,)
-
+    phases = sol.y
+    r = sira_parametresi(phases)
     return sol.t, phases, r
+
+
+def kuramoto_bvt_simule(
+    N: int,
+    K: float,
+    t_end: float = 200.0,
+    n_t: int = 1000,
+    seed: int = 42
+) -> dict:
+    """
+    BVT-Kuramoto (f(Ĉ) kapısı dahil) — C_init eşik üstü tutulur.
+
+    kuramoto_bvt_coz() wrapper'ı: K büyük + C_init yüksek → kuplaj aktif.
+    """
+    C_init = np.random.default_rng(seed).uniform(0.45, 0.70, N)
+    return kuramoto_bvt_coz(
+        N=N, K=K, omega_spread=0.3, C_init=C_init,
+        t_end=t_end, n_points=n_t, rng_seed=seed,
+    )
+
+
+def stuart_landau_simule(
+    N: int,
+    t_end: float = 200.0,
+    lambda_par: float = 0.2,
+    gamma: float = 0.05,
+    seed: int = 42,
+) -> dict:
+    """
+    C2 — N osilatör için Stuart-Landau ağı (genlik + faz birlikte).
+
+    Saf Kuramoto faz dinamiğinin aksine, SL hem genlik hem faz evrimi
+    içerir; r_t = |⟨e^{iφ}⟩| genlik kollapsı/büyümesiyle modüle olur.
+    M6 `noral_kutle.stuart_landau_aglari_koz` yeniden kullanılır.
+
+    Parametreler
+    ------------
+    N          : int — osilatör sayısı
+    t_end      : float — süre (s)
+    lambda_par : float — lineer büyüme oranı (λ>0 → limit-cycle)
+    gamma      : float — nonlineer sönüm
+    seed       : int — rng tohumu
+
+    Döndürür
+    --------
+    dict: {"t", "r_t", "x", "y", "genlik_ort"} — SL ağ sonucu
+
+    Referans: noral_kutle.stuart_landau_aglari_koz; CLAUDE.md §3 (M6).
+    """
+    from src.models.acoustic.noral_kutle import stuart_landau_aglari_koz
+
+    fs = 10.0  # 0.1 Hz kalp dinamiği için yeterli örnekleme
+    nt = int(t_end * fs)
+    # Forsing yok (özerk senkronizasyon) — kalp doğal frekansı OMEGA_HEART.
+    F_t = np.zeros((nt, N))
+    sl = stuart_landau_aglari_koz(
+        N=N, fs=fs, t_end=t_end, F_t=F_t,
+        omega_rad_s=OMEGA_HEART, lambda_par=lambda_par,
+        gamma=gamma, rng_seed=seed,
+    )
+    genlik = np.sqrt(sl["x"] ** 2 + sl["y"] ** 2)
+    return {
+        "t": sl["t"], "r_t": sl["r_t"], "x": sl["x"], "y": sl["y"],
+        "genlik_ort": float(np.mean(genlik[-nt // 5:])),
+    }
 
 
 def superradyans_analizi(N_max: int = 25) -> tuple:
@@ -122,9 +180,216 @@ def grup_koherans_dinamigi(
     return sonuclar
 
 
+def monte_carlo_r_final(
+    N: int,
+    K: float,
+    t_end: float = 60.0,
+    n_MC: int = 20,
+) -> tuple:
+    """
+    Büyük N için Monte Carlo r_final tahmini (n_MC rastgele tohumla).
+
+    Döndürür
+    --------
+    (mean_r, std_r) : float, float
+    """
+    r_vals = []
+    for seed in range(n_MC):
+        _, _, r = kuramoto_simule(N=N, K=K, t_end=t_end, n_t=200, seed=seed)
+        r_vals.append(float(r[-1]))
+    arr = np.array(r_vals)
+    return float(arr.mean()), float(arr.std())
+
+
+def n_tarama_analizi(
+    K: float,
+    t_end: float = 60.0,
+) -> dict:
+    """
+    N = [10..20, 25, 50, 100] taraması.
+    N ≤ 25: tam Kuramoto ODE.
+    N = 50, 100: Monte Carlo (20 tohum).
+
+    Döndürür
+    --------
+    tarama : dict  — N → {"r_mean", "r_std", "I_super", "mode"}
+    """
+    N_tam   = [10, 11, 12, 13, 15, 16, 17, 18, 19, 20, 25]
+    N_mc    = [50, 100]
+    tarama  = {}
+
+    print("  N taraması (tam Kuramoto):")
+    for N in N_tam:
+        _, _, r = kuramoto_simule(N=N, K=K, t_end=t_end, n_t=300, seed=42)
+        r_f = float(r[-1])
+        I_s = float(surperradyans_2(1.0, np.array([N]))[0])
+        tarama[N] = {"r_mean": r_f, "r_std": 0.0, "I_super": I_s, "mode": "ode"}
+        print(f"    N={N:3d} → r={r_f:.3f}")
+
+    print("  N taraması (Monte Carlo):")
+    for N in N_mc:
+        r_mean, r_std = monte_carlo_r_final(N=N, K=K, t_end=t_end, n_MC=20)
+        I_s = float(surperradyans_2(1.0, np.array([N]))[0])
+        tarama[N] = {"r_mean": r_mean, "r_std": r_std, "I_super": I_s, "mode": "mc"}
+        print(f"    N={N:3d} → r={r_mean:.3f} ± {r_std:.3f} (MC)")
+
+    return tarama
+
+
+def sekil_n_tarama(tarama: dict, output_dir: str) -> None:
+    """N-tarama 4-panel özet şekli.
+
+    Panel 1: r_final vs N — ODE + MC errorbar, N_c çizgisi
+    Panel 2: I_super vs N — log-log, N ve N² referans eğrileri
+    Panel 3: N_c eşiği — r>0.8 olan minimum N (topoloji bağımsız gösterge)
+    Panel 4: Etkin kolektif güç C_kol vs N (0.8·r_mean)
+
+    Referans: BVT TODO v7 FAZ 9.2
+    """
+    N_all  = sorted(tarama.keys())
+    r_means = [tarama[n]["r_mean"] for n in N_all]
+    r_stds  = [tarama[n]["r_std"]  for n in N_all]
+    I_vals  = [tarama[n]["I_super"] for n in N_all]
+    modes   = [tarama[n]["mode"]    for n in N_all]
+
+    ode_idx = [i for i, m in enumerate(modes) if m == "ode"]
+    mc_idx  = [i for i, m in enumerate(modes) if m == "mc"]
+    N_np    = np.array(N_all, dtype=float)
+    r_np    = np.array(r_means)
+
+    fig, axs = plt.subplots(2, 2, figsize=(14, 10))
+    ax1, ax2, ax3, ax4 = axs[0, 0], axs[0, 1], axs[1, 0], axs[1, 1]
+
+    # ── Panel 1: r_final vs N ──────────────────────────────────
+    ax1.plot([N_all[i] for i in ode_idx], [r_means[i] for i in ode_idx],
+             "o-", color="#2980B9", lw=2, ms=7, label="ODE")
+    mc_N = [N_all[i] for i in mc_idx]
+    mc_r = [r_means[i] for i in mc_idx]
+    mc_e = [r_stds[i]  for i in mc_idx]
+    ax1.errorbar(mc_N, mc_r, yerr=mc_e, fmt="s", color="#E74C3C", lw=2,
+                 ms=9, capsize=5, label="Monte Carlo (±σ)")
+    ax1.axvline(N_C_SUPERRADIANCE, color="green", ls="--", lw=1.8,
+                label=f"N_c={N_C_SUPERRADIANCE}")
+    ax1.axhline(0.8, color="gray", ls=":", alpha=0.7, label="r=0.8 (SERİ eşiği)")
+    ax1.set_xlabel("Kişi sayısı N", fontsize=11)
+    ax1.set_ylabel("Kararlı durum r_∞", fontsize=11)
+    ax1.set_title("Senkronizasyon Düzeyi r(N)", fontsize=12, fontweight="bold")
+    ax1.legend(fontsize=9); ax1.grid(alpha=0.3)
+    ax1.set_ylim(0, 1.08)
+
+    # ── Panel 2: I_super log-log ───────────────────────────────
+    ax2.loglog(N_np, np.array(I_vals), "o-", color="#8E44AD", lw=2, ms=7,
+               label="BVT I_süperradyans")
+    ax2.loglog(N_np, N_np, "--", color="gray", lw=1.5, label="Klasik I∝N")
+    ax2.loglog(N_np, N_np**2, ":", color="orange", lw=1.8, label="Teorik N²")
+    ax2.axvline(N_C_SUPERRADIANCE, color="green", ls="--", lw=1.8)
+    ax2.axvline(50, color="#888", ls=":", lw=1, label="N=50 (MC geçiş)")
+    ax2.set_xlabel("Kişi sayısı N", fontsize=11)
+    ax2.set_ylabel("I / I₁", fontsize=11)
+    ax2.set_title("Süperradyans Kazanımı I(N) [log-log]", fontsize=12, fontweight="bold")
+    ax2.legend(fontsize=9); ax2.grid(alpha=0.3, which="both")
+
+    # ── Panel 3: N_c eşik çubuğu ──────────────────────────────
+    # Hangi N'lerde r > 0.8?
+    asildi = [N_all[i] for i in range(len(N_all)) if r_means[i] >= 0.8]
+    N_c_etkin = min(asildi) if asildi else max(N_all)
+    bar_colors = ["#27AE60" if r >= 0.8 else "#E74C3C" for r in r_means]
+    ax3.bar(N_all, r_means, color=bar_colors, alpha=0.8, edgecolor="white", width=1.0)
+    ax3.axhline(0.8, color="black", ls="--", lw=1.5, label="r=0.8 eşiği")
+    ax3.axvline(N_C_SUPERRADIANCE, color="gold", ls="-", lw=2.5,
+                label=f"N_c={N_C_SUPERRADIANCE} (teorik)")
+    if asildi:
+        ax3.axvline(N_c_etkin, color="lime", ls=":", lw=2,
+                    label=f"N_c_etkin={N_c_etkin} (sim)")
+    ax3.set_xlabel("Kişi sayısı N", fontsize=11)
+    ax3.set_ylabel("r_∞", fontsize=11)
+    ax3.set_title(f"Süperradyans Eşik Analizi (N_c_etkin={N_c_etkin})", fontsize=12, fontweight="bold")
+    ax3.legend(fontsize=9); ax3.grid(alpha=0.3, axis="y")
+    ax3.set_ylim(0, 1.12)
+
+    # ── Panel 4: Etkin kolektif güç C_kol vs N ────────────────
+    C_kol = 0.8 * r_np  # yaklaşık koherans
+    I_kol = N_np**2 * C_kol * (1 + (N_np - 1) * C_kol)
+    ax4.semilogy(N_np, I_kol, "D-", color="#1ABC9C", lw=2, ms=7,
+                 label="I_kol = N²·C·(1+(N-1)C)")
+    ax4.semilogy(N_np, N_np, "--", color="gray", lw=1.5, label="Klasik N")
+    ax4.axvline(N_C_SUPERRADIANCE, color="green", ls="--", lw=1.8,
+                label=f"N_c={N_C_SUPERRADIANCE}")
+    ax4.set_xlabel("Kişi sayısı N", fontsize=11)
+    ax4.set_ylabel("Kolektif Güç [semilogy]", fontsize=11)
+    ax4.set_title("Kolektif Güç C_kol(N) — Süperradyans Artışı", fontsize=12, fontweight="bold")
+    ax4.legend(fontsize=9); ax4.grid(alpha=0.3, which="both")
+
+    fig.suptitle(
+        "BVT Level 4 — N Taraması [10–100]: ODE + Monte Carlo | 4 Panel",
+        fontsize=14, fontweight="bold",
+    )
+    plt.tight_layout()
+    out = os.path.join(output_dir, "L4_N_tarama.png")
+    plt.savefig(out, dpi=150, bbox_inches="tight")
+    plt.close()
+    print(f"  [L4] 4-panel N-tarama kaydedildi: {out}")
+    print(f"  N-tarama PNG: {out}")
+
+
+def sekil_kuramoto_vs_sl(
+    N_values: list, K: float, output_dir: str, t_end: float = 200.0,
+) -> dict:
+    """C2 — Kuramoto (saf faz) vs Stuart-Landau (genlik+faz) karşılaştırması.
+
+    2 panel: (sol) r(t) eğrileri her iki model birkaç N için,
+    (sağ) kararlı r_∞ vs N — iki model yan yana.
+
+    Döndürür
+    --------
+    dict: {N: {"kuramoto_r": ..., "sl_r": ..., "sl_genlik": ...}}
+    """
+    os.makedirs(output_dir, exist_ok=True)
+    karsilastirma = {}
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
+
+    renk = plt.cm.plasma(np.linspace(0.1, 0.85, len(N_values)))
+    for N, c in zip(N_values, renk):
+        t_k, _, r_k = kuramoto_simule(N=N, K=K, t_end=t_end, n_t=500)
+        sl = stuart_landau_simule(N=N, t_end=t_end)
+        ax1.plot(t_k, r_k, color=c, lw=1.6, label=f"Kuramoto N={N}")
+        ax1.plot(sl["t"], sl["r_t"], color=c, lw=1.2, ls="--", alpha=0.8,
+                 label=f"SL N={N}")
+        karsilastirma[N] = {
+            "kuramoto_r": float(r_k[-1]),
+            "sl_r": float(np.mean(sl["r_t"][-len(sl["r_t"]) // 5:])),
+            "sl_genlik": sl["genlik_ort"],
+        }
+
+    ax1.set_xlabel("Zaman (s)"); ax1.set_ylabel("Sıra parametresi r(t)")
+    ax1.set_title("Kuramoto (düz) vs Stuart-Landau (kesik)")
+    ax1.legend(fontsize=7, ncol=2); ax1.grid(alpha=0.3); ax1.set_ylim(0, 1.08)
+
+    N_list = sorted(karsilastirma.keys())
+    kr = [karsilastirma[n]["kuramoto_r"] for n in N_list]
+    sr = [karsilastirma[n]["sl_r"] for n in N_list]
+    x = np.arange(len(N_list))
+    ax2.bar(x - 0.2, kr, width=0.4, color="#2980B9", label="Kuramoto r_∞")
+    ax2.bar(x + 0.2, sr, width=0.4, color="#E67E22", label="Stuart-Landau r_∞")
+    ax2.axvline(N_C_SUPERRADIANCE, color="green", ls="--", alpha=0.4)
+    ax2.set_xticks(x); ax2.set_xticklabels(N_list)
+    ax2.set_xlabel("Kişi sayısı N"); ax2.set_ylabel("Kararlı r_∞")
+    ax2.set_title("Model karşılaştırması: r_∞(N)")
+    ax2.legend(fontsize=9); ax2.grid(alpha=0.3, axis="y")
+
+    fig.suptitle("BVT Level 4 — C2: Kuramoto + Stuart-Landau (genlik+faz)",
+                 fontsize=13, fontweight="bold")
+    plt.tight_layout()
+    out = os.path.join(output_dir, "L4_kuramoto_vs_SL.png")
+    plt.savefig(out, dpi=150, bbox_inches="tight")
+    plt.close()
+    print(f"  [C2] Kuramoto vs SL karşılaştırma: {out}")
+    return karsilastirma
+
+
 def sekil_kaydet(sonuclar: dict, N_arr: np.ndarray, I_arr: np.ndarray,
-                 output_dir: str, html: bool) -> None:
-    """Şekilleri PNG ve HTML olarak kaydeder."""
+                 output_dir: str, html: bool = True) -> None:
+    """Şekilleri PNG ve HTML olarak kaydeder (html bayragi yoksayilir, her zaman uretilir)."""
 
     os.makedirs(output_dir, exist_ok=True)
 
@@ -182,53 +447,52 @@ def sekil_kaydet(sonuclar: dict, N_arr: np.ndarray, I_arr: np.ndarray,
     plt.close()
     print(f"  PNG: {png_yol}")
 
-    # HTML
-    if html:
-        try:
-            import plotly.graph_objects as go
-            from plotly.subplots import make_subplots
-            import plotly.express as px
+    # HTML (kosulsuz uretilir)
+    try:
+        import plotly.graph_objects as go
+        from plotly.subplots import make_subplots
+        import plotly.express as px
 
-            fig_html = make_subplots(
-                rows=2, cols=2,
-                subplot_titles=("Kuramoto r(t)", "r_final vs N",
-                                 "Süperradyans", "Faz Korelasyonu")
-            )
+        fig_html = make_subplots(
+            rows=2, cols=2,
+            subplot_titles=("Kuramoto r(t)", "r_final vs N",
+                             "Süperradyans", "Faz Korelasyonu")
+        )
 
-            colors = px.colors.sequential.Viridis
-            for i, (N, (t, r, r_f)) in enumerate(sorted(sonuclar.items())):
-                cidx = int(i / len(sonuclar) * (len(colors) - 1))
-                fig_html.add_trace(go.Scatter(
-                    x=t, y=r, mode="lines", name=f"N={N}",
-                    line=dict(color=colors[cidx], width=1.5)
-                ), row=1, col=1)
-
-            fig_html.add_trace(go.Bar(
-                x=N_list, y=r_final_list, marker_color="steelblue"
-            ), row=1, col=2)
-
+        colors = px.colors.sequential.Viridis
+        for i, (N, (t, r, r_f)) in enumerate(sorted(sonuclar.items())):
+            cidx = int(i / len(sonuclar) * (len(colors) - 1))
             fig_html.add_trace(go.Scatter(
-                x=N_arr.tolist(), y=I_arr.tolist(),
-                mode="lines+markers", line=dict(color="orangered")
-            ), row=2, col=1)
+                x=t, y=r, mode="lines", name=f"N={N}",
+                line=dict(color=colors[cidx], width=1.5)
+            ), row=1, col=1)
 
-            fig_html.add_trace(go.Scatter(
-                x=r_mesafe.tolist(), y=corr.tolist(),
-                mode="lines", line=dict(color="purple")
-            ), row=2, col=2)
+        fig_html.add_trace(go.Bar(
+            x=N_list, y=r_final_list, marker_color="steelblue"
+        ), row=1, col=2)
 
-            fig_html.update_xaxes(type="log", row=2, col=2)
-            fig_html.update_yaxes(type="log", row=2, col=1)
-            fig_html.update_layout(
-                title="BVT Level 4 — N-Kişi Senkronizasyon",
-                height=800, template="plotly_dark", showlegend=False
-            )
+        fig_html.add_trace(go.Scatter(
+            x=N_arr.tolist(), y=I_arr.tolist(),
+            mode="lines+markers", line=dict(color="orangered")
+        ), row=2, col=1)
 
-            html_yol = os.path.join(output_dir, "level4_multiperson.html")
-            fig_html.write_html(html_yol, include_plotlyjs="cdn")
-            print(f"  HTML: {html_yol}")
-        except ImportError:
-            print("  [UYARI] Plotly yok — HTML atlandı.")
+        fig_html.add_trace(go.Scatter(
+            x=r_mesafe.tolist(), y=corr.tolist(),
+            mode="lines", line=dict(color="purple")
+        ), row=2, col=2)
+
+        fig_html.update_xaxes(type="log", row=2, col=2)
+        fig_html.update_yaxes(type="log", row=2, col=1)
+        fig_html.update_layout(
+            title="BVT Level 4 — N-Kişi Senkronizasyon",
+            height=800, template="plotly_dark", showlegend=False
+        )
+
+        html_yol = os.path.join(output_dir, "level4_multiperson.html")
+        fig_html.write_html(html_yol, include_plotlyjs="cdn")
+        print(f"  HTML: {html_yol}")
+    except ImportError:
+        print("  [UYARI] Plotly yok — HTML atlandı.")
 
 
 def main():
@@ -237,7 +501,7 @@ def main():
     )
     parser.add_argument("--N", type=int, default=20,
                         help="Maksimum kişi sayısı (varsayılan: 20)")
-    parser.add_argument("--output", default="results/level4",
+    parser.add_argument("--output", default="output/level4",
                         help="Çıktı dizini")
     parser.add_argument("--html", action="store_true",
                         help="HTML çıktısı üret")
@@ -245,6 +509,9 @@ def main():
                         help="Simülasyon süresi (s)")
     parser.add_argument("--K", type=float, default=None,
                         help="Kuramoto bağlaşım kuvveti (rad/s)")
+    parser.add_argument("--stuart-landau", action="store_true",
+                        help="C2: Stuart-Landau (genlik+faz) modunu da koş ve "
+                             "Kuramoto ile karşılaştır (mevcut akış değişmez)")
     args = parser.parse_args()
 
     K = args.K if args.K is not None else KAPPA_EFF * 0.1
@@ -276,6 +543,29 @@ def main():
     if len(I_arr) > 10:
         print(f"  N=11: I/I1 = {I_arr[10]:.0f} (beklenen: 121)")
     print(f"  N={args.N}: I/I1 = {I_arr[args.N-1]:.0f}")
+
+    # N taraması [10-100]
+    print("\n--- N Taraması [10–100]: ODE + Monte Carlo ---")
+    try:
+        t_tarama = min(args.t_end, 60.0)  # tarama için daha kısa süre
+        tarama = n_tarama_analizi(K=K, t_end=t_tarama)
+        sekil_n_tarama(tarama, args.output)
+    except Exception as e:
+        print(f"  [UYARI] N taraması atlandı: {e}")
+
+    # C2 — Stuart-Landau karşılaştırması (opsiyonel)
+    if args.stuart_landau:
+        print("\n--- C2: Kuramoto vs Stuart-Landau (genlik+faz) ---")
+        try:
+            sl_N = [n for n in (5, 11, 20) if n <= args.N] or [args.N]
+            kars = sekil_kuramoto_vs_sl(sl_N, K=K, output_dir=args.output,
+                                        t_end=min(args.t_end, 200.0))
+            for n in sorted(kars):
+                print(f"    N={n:3d}: Kuramoto r_∞={kars[n]['kuramoto_r']:.3f} | "
+                      f"SL r_∞={kars[n]['sl_r']:.3f} | "
+                      f"SL ⟨genlik⟩={kars[n]['sl_genlik']:.3f}")
+        except Exception as e:
+            print(f"  [UYARI] Stuart-Landau karşılaştırması atlandı: {e}")
 
     # Şekiller
     print("\n--- Şekiller Kaydediliyor ---")

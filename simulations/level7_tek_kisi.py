@@ -33,7 +33,10 @@ import numpy as np
 from scipy import integrate, linalg
 from scipy.special import factorial
 
-from src.core.constants import HBAR, KAPPA_EFF, G_EFF, OMEGA_HEART, OMEGA_ALPHA
+from src.core.constants import (
+    HBAR, KAPPA_EFF, G_EFF, OMEGA_HEART, OMEGA_ALPHA,
+    GAMMA_K, GAMMA_B, GAMMA_PUMP,
+)
 
 
 def annihilation_op(n: int) -> np.ndarray:
@@ -117,10 +120,10 @@ def main() -> None:
     H_int_    = kappa_n * (A_K_d @ A_B + A_K @ A_B_d)
     H_total   = H_free + H_int_
 
-    # ─── Lindblad oranları ────────────────────────────────────────
-    gamma_kalp    = 0.01
-    gamma_beyin   = 1.0
-    gamma_pompa   = 0.005
+    # ─── Lindblad oranları (constants.py'den) ─────────────────────
+    gamma_kalp  = GAMMA_K     # 0.01 s⁻¹
+    gamma_beyin = GAMMA_B     # 1.0  s⁻¹
+    gamma_pompa = GAMMA_PUMP  # 0.005 s⁻¹
 
     L_ops = [
         (gamma_kalp,  A_K),       # Kalp decoherence
@@ -190,34 +193,41 @@ def main() -> None:
     B_in_amp     = 1.0
     noise_level  = 0.3
 
+    # BVT doğru mantığı:
+    #   Koherant = faz kilidi (senkron pompa) → b_out yapıcı girişim → güçlü yayın
+    #   İnkoherant = rastgele faz (dephasing) → b_out yıkıcı/karışık girişim → zayıf yayın
     scenarios = {}
-    for name, alpha_init, pompa in [
-        ("Koherant (Meditasyon)", 3.0 + 0j, 0.02),
-        ("Inkoherant (Stres)",    0.2 + 0.5j, 0.0)
+    for name, phase_locked, pompa in [
+        ("Koherant (Faz Kilidi)",    True,  0.02),
+        ("Inkoherant (Rastgele Faz)", False, 0.02),
     ]:
-        rng       = np.random.default_rng(42)
-        alpha_k   = np.zeros(len(t_ant), dtype=complex)
-        alpha_k[0] = alpha_init
+        rng = np.random.default_rng(42)
+        alpha_k    = np.zeros(len(t_ant), dtype=complex)
+        alpha_k[0] = 1.0 + 0j  # aynı başlangıç genliği
         b_in  = np.zeros(len(t_ant), dtype=complex)
         b_out = np.zeros(len(t_ant), dtype=complex)
 
         for i in range(len(t_ant) - 1):
-            b_in[i]  = B_in_amp * np.cos(omega_sch * t_ant[i]) + \
-                       noise_level * rng.standard_normal()
-            d_alpha  = (
+            b_in[i] = B_in_amp * np.cos(omega_sch * t_ant[i]) + \
+                      noise_level * rng.standard_normal()
+            if phase_locked:
+                pump_phase = omega_k_ant * t_ant[i]          # kalp frekansıyla senkron
+            else:
+                pump_phase = omega_k_ant * t_ant[i] + rng.uniform(0, 2 * np.pi)  # rastgele
+            d_alpha = (
                 -1j * omega_k_ant * alpha_k[i]
                 - gamma_rad / 2 * alpha_k[i]
                 + np.sqrt(gamma_rad) * b_in[i]
-                + pompa * np.exp(-1j * omega_k_ant * t_ant[i])
+                + pompa * np.exp(-1j * pump_phase)
             )
             alpha_k[i + 1] = alpha_k[i] + d_alpha * dt
-            b_out[i]       = b_in[i] - np.sqrt(gamma_rad) * alpha_k[i]
+            b_out[i] = b_in[i] - np.sqrt(gamma_rad) * alpha_k[i]
 
-        b_in[-1] = b_in[-2]
+        b_in[-1]  = b_in[-2]
         b_out[-1] = b_out[-2]
 
         mean_dipol = float(np.mean(np.abs(alpha_k)))
-        mean_power = float(np.mean(np.abs(b_out)**2))
+        mean_power = float(np.mean(np.abs(b_out) ** 2))
         print(f"  {name}: |<a_k>|={mean_dipol:.4f}, P_yayilan={mean_power:.4f}")
 
         scenarios[name] = {
@@ -294,9 +304,9 @@ def main() -> None:
         ax = axes[1, 1]
         ax.plot(alpha_vals, eta_max_vals, "o-", color="purple", lw=2.5, ms=8)
         ax.fill_between(alpha_vals, eta_max_vals, alpha=0.2, color="purple")
-        ax.set_xlabel("Koherans Parametresi |alpha|")
-        ax.set_ylabel("eta_max")
-        ax.set_title("Koherans → Ortusme  (Daha fazla koherans = daha fazla birlik)")
+        ax.set_xlabel("Koherant Genlik |α| (yüksek = güçlü yayın)")
+        ax.set_ylabel("η_max")
+        ax.set_title("BVT: Koherant genlik arttıkça örtüşme artıyor")
 
         fig.suptitle("BVT Level 7 — Tek Kisi Tam Modeli", fontsize=15)
         plt.tight_layout()
@@ -340,7 +350,7 @@ def main() -> None:
                 "Koherans ||Ĉ||_F Evrimi",
                 "η(t) — Ψ_Sonsuz Örtüşmesi",
                 "Kalp-Anten: Dipol Moment Karşılaştırması",
-                "Koherans → η_max İlişkisi"
+                "Termal Sapma |α| → η_max Azalışı  (büyük |α| = inkoherant)"
             ]
         )
 
@@ -377,6 +387,8 @@ def main() -> None:
             marker=dict(size=10, color="gold")
         ), row=2, col=2)
 
+        fig_h.update_xaxes(title_text="|α| (düşük = koherant)", row=2, col=2)
+        fig_h.update_yaxes(title_text="η_max", row=2, col=2)
         fig_h.update_layout(
             title=dict(text="BVT Level 7 — Tek Kisi Tam Modeli", font=dict(size=20)),
             width=1920, height=1080,
@@ -386,8 +398,20 @@ def main() -> None:
 
         html_path = os.path.join(args.output, "L7_tek_kisi.html")
         fig_h.write_html(html_path, include_plotlyjs="cdn")
+        try:
+            try:
+                fig_h.update_layout(paper_bgcolor="white", plot_bgcolor="#f0f4f8", font=dict(color="#111111"))
+            except Exception:
+                pass
+            fig_h.write_image(html_path.replace(".html", ".png"))
+        except Exception:
+            pass
         print(f"  HTML: {html_path}")
         try:
+            try:
+                fig_h.update_layout(paper_bgcolor="white", plot_bgcolor="#f0f4f8", font=dict(color="#111111"))
+            except Exception:
+                pass
             fig_h.write_image(os.path.join(args.output, "L7_tek_kisi_plotly.png"),
                               width=1920, height=1080)
         except Exception:
@@ -403,13 +427,13 @@ def main() -> None:
     ok = 0
     eta_increase = eta_t[-1] > eta_t[0]
     coh_stable   = coherence_t[-1] > 0
-    eta_max_mono = all(eta_max_vals[i] <= eta_max_vals[i+1]
-                       for i in range(len(eta_max_vals)-1))
+    eta_max_mono = all(eta_max_vals[i] >= eta_max_vals[i+1]
+                       for i in range(len(eta_max_vals)-1))  # büyük |α| → küçük η_max
 
     for crit, val, label in [
         (eta_increase, eta_t[-1], "η kalici artiş"),
         (coh_stable, coherence_t[-1], "Koherans > 0 (NESS)"),
-        (eta_max_mono, alpha_vals[-1], "η_max vs alpha monoton artiş"),
+        (eta_max_mono, alpha_vals[-1], "η_max vs alpha monoton azalis (termal sapma)"),
     ]:
         status = "BASARILI" if crit else "UYARI"
         print(f"  {status}: {label}  (deger={val:.4f})")

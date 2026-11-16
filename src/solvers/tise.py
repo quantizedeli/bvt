@@ -10,7 +10,7 @@ Kritik sayısal bulgu:
 Kullanım:
     from src.solvers.tise import tise_coz, kritik_geçiş_bul
 """
-from typing import Tuple, Dict
+from typing import Tuple, Dict, Optional
 import numpy as np
 from scipy.linalg import eigh
 
@@ -51,9 +51,13 @@ def rabi_frekansı(
     idx2: int = 16
 ) -> float:
     """
-    |idx1⟩ ve |idx2⟩ arasındaki Rabi salınım frekansı (Hz).
+    |idx1⟩ ve |idx2⟩ arasındaki GEÇİŞ frekansı (Hz).
 
-        Ω_Rabi = (E_idx2 − E_idx1) / (2πħ)
+        f_geçiş = (E_idx2 − E_idx1) / (2πħ)
+
+    NOT: Bu fonksiyon TISE enerji spektrumundan geçiş frekansı döndürür.
+    |7⟩→|16⟩ için ~7.83 Hz (Schumann S1 rezonansı) beklenir.
+    İki-seviyeli çırpınma frekansı için → rabi_carpinti_frekansi() kullanın.
 
     Parametreler
     ------------
@@ -62,12 +66,33 @@ def rabi_frekansı(
 
     Döndürür
     --------
-    freq_hz : float — Rabi frekansı (Hz)
+    freq_hz : float — geçiş frekansı (Hz)
 
     Referans: BVT_Makale.docx, Bölüm 7.2.
     """
     delta_E = energies[idx2] - energies[idx1]
     return float(delta_E / (2.0 * np.pi * HBAR))
+
+
+def rabi_carpinti_frekansi() -> float:
+    """
+    İki-seviyeli beyin-Schumann sisteminin analitik Rabi çırpınma frekansı (Hz).
+
+        Ω_R = √[(Δ_BS/2)² + g²_eff]
+        f_R  = Ω_R / (2π)
+
+    Bu, beyin alfa modu ile Schumann S1 arasındaki efektif bağlaşımdan
+    gelen salınım frekansıdır. constants.py'de OMEGA_RABI ve F_RABI_ANALYTIC
+    olarak sabitlenmiştir.
+
+    Döndürür
+    --------
+    f_r : float — Rabi çırpınma frekansı (Hz) ≈ 1.35 Hz (analitik)
+
+    Referans: constants.py — OMEGA_RABI, F_RABI_ANALYTIC.
+    """
+    from src.core.constants import F_RABI_ANALYTIC
+    return F_RABI_ANALYTIC
 
 
 def karışım_açısı(

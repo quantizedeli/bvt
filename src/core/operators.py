@@ -224,7 +224,7 @@ if __name__ == "__main__":
 
     commutator = a @ a_dag - a_dag @ a
     eye = np.eye(N)
-    eye[-1, -1] = 0  # kesik uzay düzeltmesi
+    eye[-1, -1] = -(N - 1)  # kesik Fock uzay düzeltmesi: [â,â†] = I − N|N-1⟩⟨N-1|
     assert np.allclose(commutator, eye, atol=1e-10), "Komütasyon ilişkisi başarısız!"
     print("Komütasyon [â, â†] = 1 (kesik):      BAŞARILI ✓")
 

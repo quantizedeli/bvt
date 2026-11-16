@@ -130,3 +130,33 @@ class TestCascade:
         # Son aşama: ~10⁻² J
         e7 = budget["aşama_7_η geri besleme"]["enerji_J"]
         assert np.log10(e7) > -3, f"Son aşama enerjisi çok küçük: {np.log10(e7):.1f}"
+
+
+class TestHTetikLindblad:
+    """C1 — H_tetik'in L3 QuTiP Lindblad'e entegrasyonu (Sprint 10)."""
+
+    def test_kapi_kapali_drive_yok_ile_ozdes(self):
+        """C_gate < C₀ → kapı kapalı → sonuç drive'sız ile birebir aynı."""
+        pytest.importorskip("qutip")
+        from src.solvers.lindblad import lindblad_coz
+        _, e_off = lindblad_coz(t_end=4.0, n_points=12, verbose=False)
+        _, e_closed = lindblad_coz(t_end=4.0, n_points=12, verbose=False,
+                                   include_drive=True, C_gate=0.2)
+        assert abs(float(e_off[2][-1]) - float(e_closed[2][-1])) < 1e-12
+
+    def test_akustik_varyant_gozlemlenebilir(self):
+        """Akustik tetik (rad/s kuplaj) → bare'den farklı, gözlemlenebilir etki."""
+        pytest.importorskip("qutip")
+        from src.solvers.lindblad import lindblad_coz
+        _, e_off = lindblad_coz(t_end=4.0, n_points=12, verbose=False)
+        _, e_ac = lindblad_coz(t_end=4.0, n_points=12, verbose=False,
+                               akustik_tetik=True)
+        # Akustik yol gözlemlenebilir bir fark üretmeli (bare ise tam 0).
+        assert abs(float(e_ac[2][-1]) - float(e_off[2][-1])) > 1e-9
+
+    def test_kapi_fonksiyonu_esik(self):
+        """Sürücü operatörü C₀ eşiğinde sıfır genlik (kapı sürekli)."""
+        pytest.importorskip("qutip")
+        from src.solvers.lindblad import surucu_operatoru_qutip
+        H1 = surucu_operatoru_qutip(0.3)  # C = C₀ → f(C)=0
+        assert abs(H1.full()).max() < 1e-30

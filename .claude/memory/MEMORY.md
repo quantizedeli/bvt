@@ -1,0 +1,9 @@
+- [BVT proje sahibi profili](user_role.md) — Ahmet, fizik+mühendislik, sprint disiplini, TRUBA HPC erişimi
+- [BVT proje mevcut durum (Sprint 11 sonrası, v9.9)](project_bvt_status_2026_05.md) — D-016 Hopf + D-017 HEP KAPALI; S3 Celardo/S4 TRUBA ertelendi
+- [Proxy spec'i geçse de fiziği temsil etmez](feedback_proxy_vs_topology.md) — kök neden çoğu kez kalibrasyon değil yanlış model topolojisi (D-016/D-017 dersi)
+- [Sprint 13 çıktı kalite overhaul](project_sprint13_output_quality.md) — viz+fizik+L19 pipeline+volumetrik render; agent birim-testi ≠ entegrasyon kanıtı (A4 byte-identical dersi)
+- [BVT repo + dosya yolları](reference_bvt_repo_layout.md) — GitHub URL, branch'ler, önemli yollar
+- [Sprint kapanış 8-adım disiplini](feedback_sprint_discipline.md) — test/docs/tag/branch/memory standart pattern
+- [Deferred decisions log otomatik tut](feedback_deferred_decisions_log.md) — alternative path'ler DEFERRED_DECISIONS.md'ye otomatik
+- [Multi-agent orkestrasyon pattern](feedback_multiagent_pattern.md) — Opus 4.7 manager + Sonnet 4.6 workers, her S için yeni branch + QA tarama
+- [Sprint görev kartları git'e yazılmalı](feedback_sprint_task_cards_git.md) — SPRINT_NN dökümanı şart; konuşmada bırakılırsa compaction siler (+ worktree disk-full dersi)

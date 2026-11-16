@@ -21,11 +21,13 @@ except ImportError:
     print("Kurulum: pip install qutip>=5.0")
 
 from src.core.constants import (
-    HBAR, OMEGA_HEART, OMEGA_ALPHA, OMEGA_S1,
+    HBAR, OMEGA_HEART, OMEGA_ALPHA, OMEGA_S1, F_S1,
     KAPPA_EFF, G_EFF, GAMMA_HEART, GAMMA_DEC,
     DIM_HEART, DIM_BRAIN, DIM_SCHUMANN,
-    N_THERMAL_HEART, N_THERMAL_ALPHA, N_THERMAL_S1
+    N_THERMAL_HEART, N_THERMAL_ALPHA, N_THERMAL_S1,
+    MU_0, B_SCHUMANN, C_THRESHOLD,
 )
+from src.core.operators import kapı_fonksiyonu
 
 
 def _kontrol_qutip() -> None:
@@ -83,6 +85,83 @@ def hamiltoniyen_qutip() -> "qt.Qobj":
     )
 
     return H_heart + H_brain + H_sch + H_hb + H_bs
+
+
+def surucu_operatoru_qutip(C_gate: float) -> "qt.Qobj":
+    """
+    Parametrik tetikleme (H_tetik) sürücü operatörünün zaman-bağımsız kısmı.
+
+        Ĥ_tetik(t) = −μ₀ B_s f(Ĉ) cos(ω_s t) (â_s + â†_s)
+
+    Bu fonksiyon zaman-bağımsız çarpan operatörünü döndürür:
+        H1 = −μ₀ B_s f(C_gate) (â_s + â†_s)   (yalnızca Schumann modu)
+    cos(ω_s t) zaman-bağımlılığı `lindblad_coz` içinde QuTiP'e ayrı verilir.
+
+    C_gate < C₀ → f(C_gate)=0 → H1 = 0 (kapı kapalı, sürücü etkisiz).
+
+    Parametreler
+    ------------
+    C_gate : float — koherans kapı değeri [0,1]
+
+    Döndürür
+    --------
+    H1 : qt.Qobj — 729×729 sürücü çarpan operatörü
+
+    Referans: BVT_Makale_EkBolumler_v2.docx Eq. 16.2; CLAUDE.md §5.
+    """
+    _kontrol_qutip()
+    a_s = qt.destroy(DIM_SCHUMANN)
+    eye_h = qt.qeye(DIM_HEART)
+    eye_b = qt.qeye(DIM_BRAIN)
+    fC = kapı_fonksiyonu(C_gate)
+    amplitude = -MU_0 * B_SCHUMANN * fC
+    return amplitude * qt.tensor(eye_h, eye_b, a_s + a_s.dag())
+
+
+def akustik_surucu_operatoru_qutip() -> "qt.Qobj":
+    """
+    Akustik tetikleme (C1 akustik varyant) sürücü çarpan operatörü.
+
+        H1_ac = (â_s + â†_s)   (yalnızca Schumann modu)
+
+    Bare SI genlik yerine (saf --drive yolu, ihmal edilebilir),
+    akustik yolun zaman-bağımlı katsayısı `akustik_katsayi` ile rad/s
+    biriminde verilir (QuTiP ħ=1 konvansiyonu). Bu, FAZ G akustik
+    basıncının domino-amplifiye edilmiş kalp→Schumann yolunu (§5) temsil
+    eder — gözlemlenebilir Schumann uyarımı üretir.
+
+    Döndürür
+    --------
+    H1 : qt.Qobj — 729×729 boyutsuz (â_s+â†_s) operatörü
+
+    Referans: CLAUDE.md §5 (domino kaskadı); Sprint 09 S3 L7 akustik patterni.
+    """
+    _kontrol_qutip()
+    a_s = qt.destroy(DIM_SCHUMANN)
+    return qt.tensor(qt.qeye(DIM_HEART), qt.qeye(DIM_BRAIN), a_s + a_s.dag())
+
+
+def akustik_katsayi(
+    kappa_drive: float,
+    f_ac: float,
+    C_base: float,
+    C_amp: float,
+):
+    """Akustik sürücü için zaman-bağımlı katsayı fabrikası (closure).
+
+    coeff(t) = κ_drive · f(C_ac(t)) · cos(ω_s t)
+      C_ac(t) = clip(C_base + C_amp·|sin(2π f_ac t)|, 0, 1)
+    Akustik basınç zarfı kalp-koherans kapısını zamanla modüle eder;
+    f(C_ac) < C₀ aralığında kapı kapalı kalır.
+    """
+    w_s = OMEGA_S1
+    w_ac = 2.0 * np.pi * f_ac
+
+    def _coeff(t, args):
+        C_ac = min(1.0, max(0.0, C_base + C_amp * abs(np.sin(w_ac * t))))
+        return kappa_drive * kapı_fonksiyonu(C_ac) * np.cos(w_s * t)
+
+    return _coeff
 
 
 def ayrışma_operatörleri() -> List["qt.Qobj"]:
@@ -164,7 +243,14 @@ def lindblad_coz(
     t_end: float = 60.0,
     n_points: int = 200,
     alpha_heart: float = 2.0,
-    verbose: bool = True
+    verbose: bool = True,
+    include_drive: bool = False,
+    C_gate: float = 0.5,
+    akustik_tetik: bool = False,
+    akustik_kappa: float = KAPPA_EFF,
+    akustik_freq: float = F_S1,
+    akustik_C_base: float = 0.35,
+    akustik_C_amp: float = 0.5,
 ) -> Tuple[np.ndarray, List]:
     """
     Lindblad master denklemini QuTiP mesesolve ile çözer.
@@ -175,17 +261,44 @@ def lindblad_coz(
     n_points   : int   — zaman noktaları
     alpha_heart: float — kalp başlangıç koheransı |α|
     verbose    : bool  — ilerleme çıktısı
+    include_drive : bool — H_tetik parametrik tetikleme terimini ekle (C1).
+                   True → H = H_0 + H_int + H_tetik(C_gate, t) (zaman-bağımlı).
+    C_gate     : float — H_tetik koherans kapı değeri [0,1]. C_gate ≤ C₀ ise
+                   kapı kapalı → sürücü etkisiz (geriye uyumlu sonuç).
 
     Döndürür
     --------
     t_arr     : np.ndarray — zaman dizisi
-    expect_vals: list — beklenti değerleri [⟨n̂_s⟩, ⟨n̂_b⟩, ⟨n̂_h⟩]
+    expect_vals: list — beklenti değerleri [⟨n̂_h⟩, ⟨n̂_b⟩, ⟨n̂_s⟩]
 
-    Referans: BVT_Makale.docx, Bölüm 3.
+    Referans: BVT_Makale.docx, Bölüm 3; Eq. 16.2 (H_tetik).
     """
     _kontrol_qutip()
 
-    H = hamiltoniyen_qutip()
+    H0 = hamiltoniyen_qutip()
+    # C1: H_tetik entegrasyonu — kapı açıksa zaman-bağımlı sürücü ekle.
+    # Python fonksiyon coefficient kullanılır (string coeff Windows'ta
+    # Cython/MSVC compile gerektirir — fonksiyon gerektirmez).
+    if akustik_tetik:
+        # Akustik varyant: gözlemlenebilir rad/s kuplaj, zaman-değişen kapı.
+        H1 = akustik_surucu_operatoru_qutip()
+        coeff = akustik_katsayi(akustik_kappa, akustik_freq,
+                                akustik_C_base, akustik_C_amp)
+        H = [H0, [H1, coeff]]
+        drive_args = None
+    elif include_drive and C_gate > C_THRESHOLD:
+        # Saf kuantum varyant: bare SI genlik (ihmal edilebilir, §5).
+        H1 = surucu_operatoru_qutip(C_gate)
+        _w_s = OMEGA_S1
+
+        def _drive_coeff(t, args):
+            return np.cos(_w_s * t)
+
+        H = [H0, [H1, _drive_coeff]]
+        drive_args = None
+    else:
+        H = H0
+        drive_args = None
     L_ops = ayrışma_operatörleri()
     rho0 = durum_hazırla(alpha_heart=alpha_heart)
     t_list = np.linspace(0, t_end, n_points)
@@ -203,8 +316,10 @@ def lindblad_coz(
     n_hat_s = qt.tensor(eye_h, eye_b, a_s.dag() * a_s)
 
     if verbose:
+        H_shape = H[0].shape if isinstance(H, list) else H.shape
+        drive_str = " + H_tetik(C={:.2f})".format(C_gate) if isinstance(H, list) else ""
         print("Lindblad simülasyonu başlıyor...")
-        print(f"  Boyut: {H.shape}, t_end={t_end}s, n_points={n_points}")
+        print(f"  Boyut: {H_shape}, t_end={t_end}s, n_points={n_points}{drive_str}")
 
     result = qt.mesolve(
         H,
@@ -212,6 +327,7 @@ def lindblad_coz(
         t_list,
         L_ops,
         [n_hat_h, n_hat_b, n_hat_s],
+        args=drive_args,
         options={"nsteps": 5000, "rtol": 1e-8}
     )
 

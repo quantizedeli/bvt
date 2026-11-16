@@ -221,6 +221,7 @@ def hibrit_simulasyon(
         "koherans": koherans,
         "dim": dim,
         "n_max": n_max,
+        "use_feedback": use_feedback,
     }
 
 
@@ -267,6 +268,12 @@ def sekil_kaydet(sonuc: dict, output_dir: str) -> None:
     ax.set_xlabel("Zaman (s)")
     ax.set_ylabel("Koherans C(t)")
     ax.set_title("Koherans Evrimi")
+    # Not: feedback durumuna göre açıklama ekle
+    if not sonuc.get("use_feedback", True):
+        ax.text(0.5, 0.95, f"Sabit C={sonuc['koherans'][0]:.3f}, feedback kapali",
+                transform=ax.transAxes, ha="center", va="top",
+                bbox=dict(boxstyle="round", facecolor="wheat", alpha=0.5),
+                fontsize=9)
     ax.legend()
     ax.set_ylim(0, 1.05)
 
@@ -305,6 +312,14 @@ def sekil_kaydet(sonuc: dict, output_dir: str) -> None:
         )
         html_path = os.path.join(output_dir, "level5_hybrid.html")
         fig_html.write_html(html_path, include_plotlyjs="cdn")
+        try:
+            try:
+                fig_html.update_layout(paper_bgcolor="white", plot_bgcolor="#f0f4f8", font=dict(color="#111111"))
+            except Exception:
+                pass
+            fig_html.write_image(html_path.replace(".html", ".png"))
+        except Exception:
+            pass
         print(f"  HTML: {html_path}")
     except ImportError:
         print("  [UYARI] Plotly yok -- HTML atlanıyor.")
